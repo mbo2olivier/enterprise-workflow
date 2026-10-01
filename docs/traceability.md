@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Tous les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. Voir le [PRD](prd.md), les [lots](implementation-plan.md) et les [tests](testing.md).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. Le contrôle de frontières correspondant à T18 est acquis pour le socle L1 sur l’environnement local décrit dans la [preuve L1](evidence/l1.md). Voir le [PRD](prd.md), les [lots](implementation-plan.md) et les [tests](testing.md).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |
@@ -34,4 +34,4 @@ S3 confirme .NET/plateformes, les deux providers, l’administration extensible,
 
 ## Préconditions encore ouvertes
 
-Q06, Q07, Q08, Q09b, Q10 et Q11 restent tracées au cadrage et aux portes du plan. Elles n’annulent pas les décisions confirmées. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
+Q06, Q07, Q08, Q09b et Q11 restent tracées au cadrage et aux portes du plan. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Ces points n’annulent pas les décisions confirmées. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.

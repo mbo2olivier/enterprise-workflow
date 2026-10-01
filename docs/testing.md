@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : spécification des preuves futures. Aucun test fonctionnel du framework n’a été exécuté lors de la rédaction.
+Statut : stratégie de validation. Les deux tests d’architecture du lot L1 ont été exécutés localement avec succès le 1er octobre 2026 ; les tests fonctionnels du moteur restent futurs.
 
 ## Pyramide
 

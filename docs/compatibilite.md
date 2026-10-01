@@ -43,4 +43,4 @@ Commencer sans trimming ni Native AOT afin d’éprouver le chargement dynamique
 
 ## Environnement observé
 
-SDK local `10.0.102` disponible. Aucun provider installé, serveur Oracle joint, contrôleur AD testé ou binaire produit pendant la rédaction. Les sources éditeurs devront être revérifiées à la sélection des versions exactes.
+Le lot L1 a été compilé et testé localement avec le SDK `10.0.102` sur macOS 26.3 ARM64. Cela prouve le socle géré, pas encore un artefact de distribution ni la matrice cible. Aucun provider installé, serveur Oracle joint ou contrôleur AD testé. Les sources éditeurs devront être revérifiées à la sélection des versions exactes.

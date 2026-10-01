@@ -50,7 +50,7 @@ Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. Le protocole
 | Q07 | Coexistence des versions de DLL ou drainage | Avant loader définitif ; ADR 0009 proposé |
 | Q08 | Licence, gouvernance et identifiants NuGet/CLI | Avant publication |
 | Q09b | Mode de rendu Razor/Blazor, bibliothèque graphique du Studio et outillage frontend de build | Mode de rendu avant UI ; bibliothèque avant Studio |
-| Q10 | Patch SDK, OS exacts et runners ; GitHub Actions est confirmé | Avant première CI |
+| Q10 | Résolue pour L1 : SDK 10.0.102 ; runners `ubuntu-24.04`, `windows-2025`, `macos-15` ; GitHub Actions | À revoir lors de la qualification de distribution L10 |
 | Q11 | Source des responsables et mapping des groupes | Avant affectation corporate |
 
 Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement validés restent des propositions, sans acceptation par défaut.

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>MinimalWorkflow</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
+  </ItemGroup>
+</Project>
+

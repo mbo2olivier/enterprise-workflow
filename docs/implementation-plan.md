@@ -1,10 +1,10 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Tous les lots de code sont **non démarrés**. La documentation est la phase actuelle.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Le lot L1 est **terminé localement** ; son workflow GitHub Actions reste à observer sur GitHub. Les lots L2 à L11 ne sont pas démarrés.
 
 ## Portes de décision
 
-G0 — avant le socle : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séquentiel sans parallélisme. GitHub Actions est retenu. Il reste à épingler le patch SDK et choisir les runners pour L1 ; le SDK 10.0.102 déjà installé constitue la proposition de départ. La réponse sur la licence peut attendre la publication.
+G0 — franchie : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séquentiel sans parallélisme. Le SDK 10.0.102 est épinglé. GitHub Actions utilise les runners `ubuntu-24.04`, `windows-2025` et `macos-15`. La réponse sur la licence peut attendre la publication.
 
 G1 — avant persistance stabilisée : fixer limites de payload, portée/rétention des reçus, délais de bail/retry et conversion du temps ; obtenir une base Oracle 19c de test. Ne pas installer d’infrastructure implicitement.
 
@@ -19,7 +19,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | Lot | Travail et livrables | Dépendances | Critère de sortie |
 | --- | --- | --- | --- |
 | L0 | Cadrage, PRD, ADR, architecture, plan et revue des décisions | Aucune | Dossier cohérent, inconnues tracées, mécanismes du lot suivant acceptés |
-| L1 | Solution minimale, Core/Abstractions/SDK, analyseurs et GitHub Actions | G0 | Build reproductible, références unidirectionnelles, exemple C# |
+| L1 — terminé localement | Solution minimale, Core/Abstractions/SDK, analyseurs et GitHub Actions | G0 | Build verrouillé réussi, références unidirectionnelles testées, exemple C# exécuté ; exécution GitHub à observer |
 | L2 | Modèle canonique, validateur, DSL et contrats de store | L1, G1 pour store final | Graphe normalisé ; erreurs localisées ; table de transitions et contrats testés |
 | L3a | Adaptateur SQLite et migrations | L2 | Création/claim/commit/reprise sur base fichier réelle |
 | L3b | Prototype puis adaptateur Oracle 19c, mappings et migrations | L2, accès Oracle | Même suite de conformité ; différences documentées ; aucun test ignoré présenté comme réussi |
@@ -56,7 +56,7 @@ samples/MinimalWorkflow/
 docs/
 ```
 
-Ajouter Runtime, store, adaptateurs, sécurité et Host au fil des lots ; ne pas créer d’emblée des dizaines de projets vides. Aucun fichier solution ou projet n’est livré par ce dossier documentaire.
+Ajouter Runtime, store, adaptateurs, sécurité et Host au fil des lots ; ne pas créer d’emblée des dizaines de projets vides. Le lot L1 livre uniquement les projets indiqués ci-dessus, le test d’architecture et l’exemple minimal.
 
 ## Risques et réponses
 

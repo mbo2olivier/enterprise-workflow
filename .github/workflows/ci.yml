@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - windows-2025
+          - macos-15
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pinned .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore locked dependencies
+        run: dotnet restore EnterpriseWorkflow.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build EnterpriseWorkflow.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
+
+      - name: Run minimal sample
+        run: dotnet run --project samples/MinimalWorkflow/MinimalWorkflow.csproj --configuration Release --no-build --no-restore

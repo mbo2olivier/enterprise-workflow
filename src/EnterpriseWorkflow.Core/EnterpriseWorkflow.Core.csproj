@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Canonical workflow model and validation for Enterprise Workflow.</Description>
+    <RootNamespace>EnterpriseWorkflow.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
+

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Pure contracts shared by Enterprise Workflow components.</Description>
+    <RootNamespace>EnterpriseWorkflow.Abstractions</RootNamespace>
+  </PropertyGroup>
+</Project>
+
