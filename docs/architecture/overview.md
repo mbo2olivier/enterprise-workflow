@@ -1,6 +1,6 @@
 # Architecture générale
 
-Statut : proposition technique ; contraintes produit acceptées dans les ADR 0001 à 0005. Aucune API livrée.
+Statut : proposition technique ; contraintes produit et principes acceptés dans les ADR 0001 à 0008 ; les détails de contrats restent à finaliser. Aucune API livrée.
 
 ## Responsabilités et intégration
 

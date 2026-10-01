@@ -18,7 +18,7 @@ Développer d’abord le designer retarderait la preuve de reprise. Supprimer le
 
 ## Conséquences
 
-Le modèle canonique prépare l’export visuel ; ni palette ni canvas nécessaires à la première tranche. Le périmètre graphe sans cycles/parallélisme reste une proposition technique ADR 0007.
+Le modèle canonique prépare l’export visuel ; ni palette ni canvas nécessaires à la première tranche. Le périmètre graphe séquentiel à décisions exclusives, sans cycles ni parallélisme, est accepté dans l’ADR 0007.
 
 ## Validation attendue
 

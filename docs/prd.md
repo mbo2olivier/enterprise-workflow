@@ -24,7 +24,7 @@ La distribution visée est open source. Le MVP ne revendique ni équivalence ave
 
 ## Périmètre
 
-MVP : moteur durable, SDK minimal, SQLite et Oracle, tâches humaines et formulaires simples, Kernel modulaire, administration et sécurité extensible, CLI et modèles de projet. Décisions exclusives, timers et retries constituent les détails techniques proposés. Le Kernel porte la démonstration ; le mode embarqué utilise le même moteur.
+MVP : moteur durable, SDK minimal, SQLite et Oracle, tâches humaines et formulaires simples, Kernel modulaire, administration et sécurité extensible, CLI et modèles de projet. Le graphe séquentiel à décisions exclusives, sans boucles ni parallélisme, est accepté dans l’ADR 0007 ; la durabilité et les retries suivent l’ADR 0008 accepté. Les paramètres concrets et contrats de timers restent à préciser. Le Kernel porte la démonstration ; le mode embarqué utilise le même moteur.
 
 Le Studio appartient au produit et à la livraison suivante, sans conditionner les workflows écrits en C#. La qualification Oracle et AD exige des environnements correspondants.
 
@@ -36,9 +36,9 @@ Le Studio appartient au produit et à la livraison suivante, sans conditionner l
 | --- | --- | --- | --- |
 | EF-01 | Bibliothèques .NET 10 et Kernel | Confirmé / source | Même définition exécutée dans Kernel et exemple embarqué |
 | EF-02 | C# sans Studio et nœuds métier extensibles | Source | Nœud extérieur au moteur, définition validée avant publication |
-| EF-03 | Exécution durable | MVP confirmé | Reprise après arrêt brutal ; aucun commit par worker périmé |
+| EF-03 | Exécution durable | MVP et principes ADR 0008 confirmés | Reprise après arrêt brutal ; aucun commit par worker périmé |
 | EF-04 | SQLite et Oracle 19c minimum | Confirmé | Suite de conformité réussie sur chaque provider revendiqué |
-| EF-05 | Tâches humaines, formulaires et décisions exclusives | MVP confirmé / détail proposé | Approbation après redémarrage ; double soumission sans double progression |
+| EF-05 | Tâches humaines, formulaires et décisions exclusives | MVP et décisions exclusives confirmés | Approbation après redémarrage ; double soumission sans double progression |
 | EF-06 | Timers, retries bornés et annulation | Proposé | Échéance passée reprise ; retries plafonnés ; aucune suite après annulation validée |
 | EF-07 | Modules découverts au redémarrage | Source / confirmé | Nouveau module sans modification du Host ; incompatibilité diagnostiquée |
 | EF-08 | Administration et sécurité extensibles, AD/API | Confirmé | Administration protégée ; contrats et connecteurs qualifiés |
@@ -79,9 +79,9 @@ La latence d’un timer se mesure depuis son échéance, sans garantie temps ré
 
 Cas négatifs : accès non autorisé, tâche d’autrui, formulaire invalide, module absent, provider indisponible et décisions concurrentes. L’auto-approbation est interdite par défaut et configurable par workflow (ADR 0011). Une autorisation explicite ne remplace ni les droits ni l’affectation ; les tâches de saisie du demandeur restent autorisées selon leurs permissions.
 
-## Non-objectifs proposés du MVP
+## Non-objectifs du MVP
 
-Cycles, parallélisme/jointures, sous-workflows, compensation automatique, migration d’instances, événements externes avant contrat explicite, édition arbitraire de l’état SQL, hot reload, plugins non fiables, round-trip de C# libre, pièces jointes avancées, éditeur de formulaires complet et administration centrale multi-organisations.
+Cycles et parallélisme/jointures sont exclus du MVP par l’ADR 0007 accepté. Les autres exclusions proposées sont : sous-workflows, compensation automatique, migration d’instances, événements externes avant contrat explicite, édition arbitraire de l’état SQL, hot reload, plugins non fiables, round-trip de C# libre, pièces jointes avancées, éditeur de formulaires complet et administration centrale multi-organisations.
 
 ## Acceptation du MVP
 

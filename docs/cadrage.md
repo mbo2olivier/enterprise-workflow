@@ -6,7 +6,9 @@ Date : 30 septembre 2026. Statut : exigences consolidées ; architecture propos�
 
 S1 : [document fourni et archivé](references/README.md), daté du 30 septembre 2026, synthèse d’une discussion dont la réponse architecturale initiale n’a été récupérée que partiellement. S2 : demande actuelle de documentation préalable et choix du nom Enterprise Workflow. S3 : réponses du porteur aux cinq questions de cadrage. S4 : précisions ultérieures sur Oracle 19c minimum, sécurité par extensions, AD avec identifiant/mot de passe et support distinct par adaptateur. S5 : réponse « 1A, 2A », validant l’auto-approbation configurable et interdite par défaut, ainsi que Razor/Blazor avec formulaires déclaratifs et composants personnalisés.
 
-S2, S3, S4 et S5 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées. Aucun nom d’API de ce dossier ne désigne une API déjà livrée.
+S6 : acceptation des ADR 0006 et 0008, choix GitHub/GitHub Actions, puis confirmation de la proposition initiale de l’ADR 0007 après examen du parallélisme. Le parallélisme reste différé ; GitLab sera envisagé ultérieurement.
+
+S2 à S6 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées. Aucun nom d’API de ce dossier ne désigne une API déjà livrée.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
 
@@ -22,6 +24,8 @@ Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouv
 | D05 | Une installation par organisation ; réutilisation des modules par déploiement indépendant | S3.5 | [0005](adr/0005-isolation-organisation.md) |
 | D06 | Auto-approbation configurable par workflow, interdite par défaut | S5.1A | [0011](adr/0011-auto-approbation.md) |
 | D07 | UI métier et administration Razor/Blazor ; formulaires déclaratifs et composants Razor personnalisés | S5.2A | [0012](adr/0012-ui-razor-blazor.md) |
+
+Décisions S6 : ADR 0006, 0007 et 0008 acceptés ; MVP séquentiel à décisions exclusives, sans boucles ni parallélisme ; dépôt GitHub et CI GitHub Actions. La proposition de parallélisme Q12 est retirée et n’est plus un arbitrage bloquant.
 
 Le porteur emploie Runtime pour désigner l’application d’hébergement. La nomenclature proposée distingue le moteur bibliothèque (Runtime) de l’exécutable d’accueil (Kernel/Host), afin de préserver l’intégration embarquée.
 
@@ -46,10 +50,10 @@ Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. Le protocole
 | Q07 | Coexistence des versions de DLL ou drainage | Avant loader définitif ; ADR 0009 proposé |
 | Q08 | Licence, gouvernance et identifiants NuGet/CLI | Avant publication |
 | Q09b | Mode de rendu Razor/Blazor, bibliothèque graphique du Studio et outillage frontend de build | Mode de rendu avant UI ; bibliothèque avant Studio |
-| Q10 | Patch SDK, OS exacts et runners CI | Avant première CI |
+| Q10 | Patch SDK, OS exacts et runners ; GitHub Actions est confirmé | Avant première CI |
 | Q11 | Source des responsables et mapping des groupes | Avant affectation corporate |
 
-Les ADR techniques sont des propositions reviewables, non des décisions acceptées par défaut.
+Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement validés restent des propositions, sans acceptation par défaut.
 
 ## Risques de conception
 

@@ -2,7 +2,7 @@
 
 Date : 30 septembre 2026.
 
-**Statut : Proposée.**
+**Statut : acceptée par le porteur du projet.**
 
 ## Contexte
 

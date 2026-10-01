@@ -30,7 +30,7 @@ Les liens associent besoin, décision, lot et preuve attendue. Tous les tests ci
 
 ## Décisions utilisateur
 
-S3 confirme .NET/plateformes, les deux providers, l’administration extensible, le Studio différé et une organisation par installation. S4 précise Oracle 19c minimum, local/distant selon extension, AD par identifiant/mot de passe et matrice distincte par provider. S5 confirme l’auto-approbation configurable et interdite par défaut (0011), et Razor/Blazor avec formulaires déclaratifs et composants personnalisés (0012). Voir [cadrage](cadrage.md) pour les limites d’autorité de la source initiale.
+S3 confirme .NET/plateformes, les deux providers, l’administration extensible, le Studio différé et une organisation par installation. S4 précise Oracle 19c minimum, local/distant selon extension, AD par identifiant/mot de passe et matrice distincte par provider. S5 confirme l’auto-approbation configurable et interdite par défaut (0011), et Razor/Blazor avec formulaires déclaratifs et composants personnalisés (0012). S6 accepte les ADR 0006 à 0008, confirme le retour au MVP séquentiel sans parallélisme et retient GitHub Actions. Voir [cadrage](cadrage.md) pour les limites d’autorité de la source initiale.
 
 ## Préconditions encore ouvertes
 

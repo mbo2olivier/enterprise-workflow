@@ -6,6 +6,8 @@ Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, applic
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
+Le MVP suit un graphe séquentiel à décisions exclusives, sans boucles ni parallélisme. Le projet sera hébergé sur GitHub et utilisera GitHub Actions pour la première CI.
+
 ## Parcours de lecture
 
 1. [Cadrage et décisions à clarifier](docs/cadrage.md)

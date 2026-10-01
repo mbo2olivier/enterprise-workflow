@@ -8,7 +8,7 @@ Une définition porte `DefinitionId`, version immuable, version de schéma, empr
 
 Le SDK et le Studio produisent ce modèle ; le moteur ne dépend pas de leur syntaxe. DTO et JSON versionnés aux frontières ; aucune lambda, instance de service ou nom CLR arbitraire n’est un format durable. Une décision référence un évaluateur C# enregistré qui retourne une issue nommée.
 
-MVP proposé : un point de départ, au moins une fin, graphe acyclique, parcours séquentiel et branches exclusives. Le validateur rejette doublons, références absentes, nœuds inatteignables, cycles, types inconnus et sorties ambiguës. Toute branche doit mener à une fin. Un résultat non déclaré constitue une erreur explicite, pas une transition improvisée.
+Périmètre accepté dans l’ADR 0007 : un point de départ, au moins une fin, graphe acyclique, parcours séquentiel et branches exclusives. Le validateur rejette doublons, références absentes, nœuds inatteignables, cycles, types inconnus et sorties ambiguës. Toute branche doit mener à une fin. Un résultat non déclaré constitue une erreur explicite, pas une transition improvisée.
 
 ## Données logiques
 

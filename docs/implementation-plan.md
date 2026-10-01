@@ -4,7 +4,7 @@ Statut : plan proposé, sans engagement de calendrier. Le périmètre est confir
 
 ## Portes de décision
 
-G0 — avant le socle : relire les ADR 0006 à 0008 (frontières, graphe, durabilité), choisir le patch SDK/CI. La réponse sur la licence peut attendre la publication.
+G0 — avant le socle : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séquentiel sans parallélisme. GitHub Actions est retenu. Il reste à épingler le patch SDK et choisir les runners pour L1 ; le SDK 10.0.102 déjà installé constitue la proposition de départ. La réponse sur la licence peut attendre la publication.
 
 G1 — avant persistance stabilisée : fixer limites de payload, portée/rétention des reçus, délais de bail/retry et conversion du temps ; obtenir une base Oracle 19c de test. Ne pas installer d’infrastructure implicitement.
 
@@ -19,7 +19,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | Lot | Travail et livrables | Dépendances | Critère de sortie |
 | --- | --- | --- | --- |
 | L0 | Cadrage, PRD, ADR, architecture, plan et revue des décisions | Aucune | Dossier cohérent, inconnues tracées, mécanismes du lot suivant acceptés |
-| L1 | Solution minimale, Core/Abstractions/SDK, analyseurs et CI | G0 | Build reproductible, références unidirectionnelles, exemple C# |
+| L1 | Solution minimale, Core/Abstractions/SDK, analyseurs et GitHub Actions | G0 | Build reproductible, références unidirectionnelles, exemple C# |
 | L2 | Modèle canonique, validateur, DSL et contrats de store | L1, G1 pour store final | Graphe normalisé ; erreurs localisées ; table de transitions et contrats testés |
 | L3a | Adaptateur SQLite et migrations | L2 | Création/claim/commit/reprise sur base fichier réelle |
 | L3b | Prototype puis adaptateur Oracle 19c, mappings et migrations | L2, accès Oracle | Même suite de conformité ; différences documentées ; aucun test ignoré présenté comme réussi |

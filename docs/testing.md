@@ -46,7 +46,9 @@ Tester l’auto-approbation sans configuration, avec interdiction explicite et a
 
 Tester même nom affiché dans deux fournisseurs, tentative de fusion par email, suppression/retrait des accès avant complétion, accès direct aux routes administratives et droits d’une tâche d’autrui. Ne pas utiliser de credentials corporate réels dans les fixtures ou rapports.
 
-## CI proposée
+## CI — GitHub Actions confirmé
+
+La première CI utilise GitHub Actions. Les commandes de compilation et de test restent utilisables hors Actions pour faciliter une future adaptation GitLab ; aucune pipeline GitLab n’est requise au premier lot.
 
 Sur chaque changement : restore verrouillé, build, tests purs et architecture, tests SQLite, templates et packaging pertinents. Oracle doit avoir une exécution d’intégration disponible avec identifiants injectés de manière sûre ; si elle ne peut tourner sur une contribution externe, le résultat requis doit être fourni dans une pipeline de confiance avant release. Une étape ignorée ne vaut pas succès.
 

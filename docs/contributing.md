@@ -10,6 +10,10 @@ API asynchrones suffixées Async ; CancellationToken propagé ; pas d’async vo
 
 Composition plutôt que hiérarchies profondes. Les contrats publics documentent garanties, idempotence, limites et versionnement. Ne pas imposer CQRS, MediatR, event sourcing ou repository générique sans besoin démontré.
 
+## CI
+
+GitHub héberge le projet ; GitHub Actions est retenu pour cette version. Les commandes reproductibles de compilation et de test restent utilisables hors Actions pour faciliter une future adaptation à GitLab. Aucun pipeline GitLab n’est requis au premier lot.
+
 ## Changements et tests
 
 Chaque lot fournit code compilable, tests adaptés aux risques et documentation synchronisée. Toute évolution du modèle durable inclut migration et compatibilité ; toute garantie de concurrence inclut preuve sur SQLite et Oracle. Les tests simplement non exécutés sont déclarés comme tels.
