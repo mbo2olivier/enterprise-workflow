@@ -1,6 +1,6 @@
 # Architecture générale
 
-Statut : proposition technique ; contraintes produit et principes acceptés dans les ADR 0001 à 0008 ; les détails de contrats restent à finaliser. Aucune API livrée.
+Statut : L1, L2 et adaptateur SQLite L3a implémentés localement ; les composants ultérieurs restent une proposition technique. Les contrats de store demeurent révisables jusqu’au prototype Oracle L3b.
 
 ## Responsabilités et intégration
 
@@ -42,8 +42,8 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 | Application | Commandes, lectures et contrôles d’accès | Runtime, Security.Abstractions |
 | Security.Abstractions | Identité, permissions et capacités | Abstractions |
 | Security.* | Connecteurs et autorisation ; intégration sessions séparée | Security.Abstractions ; dépendances externes locales au connecteur |
-| Persistence.EntityFramework | Mappings communs et intégration DbContext | Persistence.Abstractions |
-| Persistence.Sqlite / Oracle | SQL, conversions et migrations propres au provider | Persistence.EntityFramework |
+| Persistence.Sqlite | Mapping EF Core intégrable, contexte dédié, SQL/conversions et migrations SQLite | Persistence.Abstractions |
+| Persistence.Oracle | Mapping, SQL, conversions et migrations Oracle à qualifier en L3b | Persistence.Abstractions ; socle commun éventuel après preuve des deux providers |
 | AspNetCore | HTTP, DI, sessions, worker hébergé | Application, Runtime et contrats d’intégration |
 | PluginSystem | Manifestes, compatibilité, résolution des modules | Contrats purs et contrats DI dédiés |
 | UI / Administration | Formulaires, pages métier et administration | Application et contrats UI/sécurité |
@@ -52,6 +52,8 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 | Studio | Modèle visuel et export, après MVP | Sdk, Core, intégrations UI |
 
 L’instrumentation se fait aux frontières par les abstractions .NET. Un package d’export optionnel pourra apparaître sans créer de cycle. Les contrats dépendant de `IServiceCollection`, HTTP ou Razor restent dans les intégrations correspondantes.
+
+Le schéma possédé par l’adaptateur L3a est détaillé dans le [dictionnaire physique SQLite](sqlite-schema.md). Les applications ne doivent pas traiter ses tables comme une API publique.
 
 ## Frontières
 

@@ -1,12 +1,12 @@
 # Persistance SQLite et Oracle
 
-Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2 ; les détails EF/SQL et leur atomicité réelle restent à éprouver avant stabilisation.
+Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2. Le provider SQLite L3a est implémenté et éprouvé sur base fichier ; Oracle et la portabilité finale du contrat restent à qualifier en L3b avant stabilisation.
 
 ## Composition
 
-Le Core reste indépendant d’EF. Les contrats du store sont purs ; l’adaptateur EF expose des mappings intégrables à un DbContext applicatif. Le Kernel utilise un contexte dédié. L’application embarquée possède les migrations de son contexte ; le Kernel possède celles du sien.
+Le Core reste indépendant d’EF. Les contrats du store sont purs. `EnterpriseWorkflow.Persistence.Sqlite` expose `ConfigureEnterpriseWorkflowSqlite` pour intégrer les mappings à un modèle applicatif et `SqliteWorkflowDbContext` pour le contexte dédié. `SqliteWorkflowDatabase.MigrateAsync` est une opération explicite ; le store ne migre jamais implicitement au démarrage. L’application embarquée reste propriétaire des migrations de son contexte ; le Kernel possède celles du sien.
 
-Un modèle commun ne suffit pas à rendre le SQL portable. Deux adaptateurs concrets et deux jeux de migrations sont proposés, avec contrats atomiques et tests partagés. Les opérations nécessitant du SQL spécifique restent à l’intérieur du provider.
+Un modèle commun ne suffit pas à rendre le SQL portable. L3a conserve donc la transaction d’écriture immédiate, l’horloge SQL et les conversions de dates à l’intérieur du provider SQLite. La factorisation éventuelle d’entités avec Oracle attend L3b afin de ne pas figer prématurément des hypothèses SQLite.
 
 ## Opérations atomiques proposées
 
@@ -36,13 +36,15 @@ Index attendus : travaux par état/échéance ; baux expirés ; tâches ouvertes
 
 UTC au contrat ; encodage SQL explicite. JSON versionné stockable en texte, avec limites de taille définies avant exposition réseau ; pas de dépendance fonctionnelle au type JSON natif d’une version Oracle récente. Les conversions doivent préserver les identifiants, décimaux, dates et valeurs vides selon leur sémantique déclarée.
 
-## SQLite
+## SQLite — implémenté en L3a
 
 Cible initiale proposée : base fichier locale, processus Host unique et transactions courtes ; aucun partage du fichier via stockage réseau ni HA revendiquée. Tester la contention et les reprises avec plusieurs connexions, et pas seulement en mémoire.
 
-Le provider a des limites de types, de migrations et de jetons de concurrence générés par la base. Choix proposé : conversions explicites des dates UTC pour les comparaisons SQL, révision gérée par l’application et migrations testées sur copie. [Limites officielles](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations).
+Le provider utilise EF Core SQLite 10.0.12. Les identifiants `Guid` sont stockés en texte hexadécimal fixe, les identifiants techniques avec collation `BINARY`, les statuts comme entiers, les JSON canoniques comme texte et les instants UTC comme millisecondes Unix entières. La révision est gérée par l’application. La migration initiale crée définitions, instances, activations, travaux, reçus idempotents et audit, avec clés étrangères et index de claim.
 
-Claim : mise à jour conditionnelle et transaction courte, avec stratégie de verrouillage/retry à valider par la suite de conformité. WAL et paramètres de synchronisation seront évalués avec les objectifs de durabilité ; aucun réglage de performance ne doit affaiblir silencieusement la garantie de reprise.
+Le [dictionnaire du schéma physique SQLite](sqlite-schema.md) documente chaque table et colonne, les relations, index, codes d’état, règles de conservation et opérations du store associées.
+
+Chaque mutation ouvre une connexion et une transaction `BEGIN IMMEDIATE` courte. Claim, renouvellement, commit, annulation et audit partagent cette transaction. L’heure du bail vient de SQLite avec précision milliseconde ; le claim accepte un travail Ready dû ou un bail expiré, puis avance génération et token. Les tests utilisent plusieurs connexions contre un fichier, prouvent un seul gagnant et refusent le commit de l’ancien propriétaire après reprise. Aucun mode WAL ni affaiblissement de `synchronous` n’est imposé ; ces réglages restent à mesurer avec Q06.
 
 ## Oracle
 

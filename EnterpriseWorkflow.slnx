@@ -3,10 +3,12 @@
     <Project Path="src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
     <Project Path="src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EnterpriseWorkflow.Core.Tests/EnterpriseWorkflow.Core.Tests.csproj" />
+    <Project Path="tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/EnterpriseWorkflow.Persistence.Sqlite.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MinimalWorkflow/MinimalWorkflow.csproj" />

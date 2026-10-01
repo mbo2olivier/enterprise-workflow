@@ -15,6 +15,7 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Abstractions"] = [],
             ["EnterpriseWorkflow.Core"] = ["EnterpriseWorkflow.Abstractions"],
             ["EnterpriseWorkflow.Persistence.Abstractions"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
+            ["EnterpriseWorkflow.Persistence.Sqlite"] = ["EnterpriseWorkflow.Persistence.Abstractions"],
             ["EnterpriseWorkflow.Sdk"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
         };
 
@@ -46,16 +47,24 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
-    public void ProductionProjectsDoNotReferenceExternalPackages()
+    public void OnlyProviderProjectsReferenceApprovedExternalPackages()
     {
         var packageReferences = Directory.GetFiles(
                 Path.Combine(RepositoryRoot, "src"),
                 "*.csproj",
                 SearchOption.AllDirectories)
-            .SelectMany(projectPath => XDocument.Load(projectPath).Descendants("PackageReference"))
+            .SelectMany(projectPath => XDocument.Load(projectPath)
+                .Descendants("PackageReference")
+                .Select(reference => new
+                {
+                    Project = Path.GetFileNameWithoutExtension(projectPath),
+                    Package = reference.Attribute("Include")?.Value,
+                }))
             .ToArray();
 
-        Assert.Empty(packageReferences);
+        Assert.Equal(
+            [(Project: "EnterpriseWorkflow.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite")],
+            packageReferences.Select(item => (item.Project, item.Package)));
     }
 
     private static string FindRepositoryRoot()

@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : stratégie de validation. Les 42 tests des lots L1/L2 ont été exécutés localement avec succès le 1er octobre 2026 : architecture, modèle, DSL, normalisation, limites et règles pures du store. Les tests SQL et fonctionnels du moteur restent futurs.
+Statut : stratégie de validation. Les 47 tests des lots L1/L2/L3a ont été exécutés localement avec succès le 1er octobre 2026 : architecture, modèle, DSL, normalisation, limites, règles pures du store et cinq scénarios SQLite sur base fichier. Les tests Oracle et fonctionnels du worker restent futurs.
 
 ## Pyramide
 

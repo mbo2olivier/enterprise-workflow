@@ -1,6 +1,6 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 et L2 sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). Les lots L3 à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1, L2 et L3a sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). L3b et les lots L4 à L11 ne sont pas démarrés.
 
 Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
@@ -23,7 +23,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | L0 | Cadrage, PRD, ADR, architecture, plan et revue des décisions | Aucune | Dossier cohérent, inconnues tracées, mécanismes du lot suivant acceptés |
 | L1 — terminé | Solution minimale, Core/Abstractions/SDK, analyseurs et GitHub Actions | G0 | Build verrouillé réussi, références unidirectionnelles testées, exemple C# exécuté ; réussite GitHub confirmée par le porteur |
 | L2 — terminé localement | Modèle canonique, validateur, DSL et contrats de store | L1, G1 pour store final | Graphe normalisé et hashé ; erreurs localisées ; table de transitions, déduplication et fencing testés au niveau contrat |
-| L3a | Adaptateur SQLite et migrations | L2 | Création/claim/commit/reprise sur base fichier réelle |
+| L3a — terminé localement | Adaptateur SQLite et migrations | L2 | Création/claim/commit/reprise sur base fichier réelle |
 | L3b | Prototype puis adaptateur Oracle 19c, mappings et migrations | L2, accès Oracle | Même suite de conformité ; différences documentées ; aucun test ignoré présenté comme réussi |
 | L4a | Contrats d'exécution, résultats explicites, contexte borné, registre versionné initial et résolution par scope DI | L2 ; G1 sur l'identité des handlers | Un handler concret est enregistré, validé puis résolu par sa clé durable ; configuration invalide, clé absente ou ambiguë refusée explicitement |
 | L4b | Worker, Start/Service/End, retries, idempotence et outbox, utilisant exclusivement le registre L4a | L3a, L4a ; qualification finale avec L3b | Start → Service concret → End ; arrêt brutal puis reprise ; fencing et effet externe simulé dédupliqué |
