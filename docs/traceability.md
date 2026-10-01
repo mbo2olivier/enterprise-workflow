@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. Le contrôle de frontières correspondant à T18 est acquis pour le socle L1 sur l’environnement local décrit dans la [preuve L1](evidence/l1.md). Voir le [PRD](prd.md), les [lots](implementation-plan.md) et les [tests](testing.md).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et le contrôle de frontières T18 sont acquis au niveau L2 sur l’environnement local décrit dans la [preuve L2](evidence/l2.md). Voir le [PRD](prd.md), les [lots](implementation-plan.md) et les [tests](testing.md).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |

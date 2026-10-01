@@ -165,6 +165,20 @@
         "dependencies": {
           "EnterpriseWorkflow.Abstractions": "[1.0.0, )"
         }
+      },
+      "enterpriseworkflow.persistence.abstractions": {
+        "type": "Project",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Core": "[1.0.0, )"
+        }
+      },
+      "enterpriseworkflow.sdk": {
+        "type": "Project",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Core": "[1.0.0, )"
+        }
       }
     }
   }

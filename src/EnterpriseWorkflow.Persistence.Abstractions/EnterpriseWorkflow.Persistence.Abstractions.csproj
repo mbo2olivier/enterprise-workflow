@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Atomic persistence contracts for Enterprise Workflow.</Description>
+    <RootNamespace>EnterpriseWorkflow.Persistence</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
+  </ItemGroup>
+</Project>
+

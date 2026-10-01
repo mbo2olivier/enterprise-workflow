@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -11,4 +12,3 @@
     <Project Path="samples/MinimalWorkflow/MinimalWorkflow.csproj" />
   </Folder>
 </Solution>
-

@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : stratégie de validation. Les deux tests d’architecture du lot L1 ont été exécutés localement avec succès le 1er octobre 2026 ; les tests fonctionnels du moteur restent futurs.
+Statut : stratégie de validation. Les 42 tests des lots L1/L2 ont été exécutés localement avec succès le 1er octobre 2026 : architecture, modèle, DSL, normalisation, limites et règles pures du store. Les tests SQL et fonctionnels du moteur restent futurs.
 
 ## Pyramide
 

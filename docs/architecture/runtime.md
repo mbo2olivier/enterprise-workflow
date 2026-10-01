@@ -1,10 +1,12 @@
 # Modèle et exécution durable
 
-Statut : contrat de conception proposé, à approuver avant les lots L2 à L4. Aucun schéma SQL ni contrat C# public n’est figé.
+Statut : conventions L2 acceptées et implémentées selon l’ADR 0013. Les contrats du worker L4 et les preuves SQL L3 restent à finaliser ; l’API du store demeure révisable avant ces qualifications.
 
 ## Définition canonique
 
 Une définition porte `DefinitionId`, version immuable, version de schéma, empreinte normalisée, références des artefacts, métadonnées, nœuds et transitions. Chaque nœud possède un identifiant stable, un type enregistré avec version de contrat et une configuration sérialisable. Chaque transition explicite source, issue et destination.
+
+L’implémentation L2 sérialise les propriétés d’objet JSON, nœuds, transitions, issues et références d’artefacts en ordre ordinal. L’ordre des tableaux métier internes aux configurations est préservé. Les nombres JSON sont réémis depuis leur lexème valide, sans passage par `double` ou `decimal` ; `1`, `1.0` et `1e0` peuvent donc conserver des empreintes différentes. L’empreinte de définition est le SHA-256 minuscule de l’UTF-8 canonique au schéma 1 ; elle reste distincte des empreintes d’artefacts référencées.
 
 Le SDK et le Studio produisent ce modèle ; le moteur ne dépend pas de leur syntaxe. DTO et JSON versionnés aux frontières ; aucune lambda, instance de service ou nom CLR arbitraire n’est un format durable. Une décision référence un évaluateur C# enregistré qui retourne une issue nommée.
 

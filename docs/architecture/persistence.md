@@ -1,6 +1,6 @@
 # Persistance SQLite et Oracle
 
-Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Contrats et détails EF proposés, à éprouver avant stabilisation.
+Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2 ; les détails EF/SQL et leur atomicité réelle restent à éprouver avant stabilisation.
 
 ## Composition
 
@@ -23,6 +23,8 @@ Un modèle commun ne suffit pas à rendre le SQL portable. Deux adaptateurs conc
 | Claim/CompleteOutbox | Message disponible, génération de livraison valide | Bail puis résultat de livraison, sans double clôture logique |
 
 Chaque méthode renvoie un résultat structuré : réussite, résultat idempotent, conflit, absence ou indisponibilité. Un échec SQL avant commit annule toutes les écritures. Une réponse perdue après commit est récupérée via idempotence ou état durable.
+
+Le projet `EnterpriseWorkflow.Persistence.Abstractions` expose en L2 publication immuable, démarrage idempotent, claim, renouvellement, commit conditionnel et annulation. Les tâches humaines, timers et détails d’outbox ne sont pas figés avant leurs lots fonctionnels. Les règles pures testées classent répétition identique/conflit, contrôlent token + génération + expiration de bail, imposent UTC à la milliseconde et codent les transitions d’instance terminales.
 
 La révocation de droits externes ne peut pas être rendue atomique avec une transaction SQL locale. Recontrôler l’autorisation au moment de la commande ; protéger aussi l’affectation et la révision persistées au commit. Les garanties de fraîcheur sont documentées dans le contrat de sécurité.
 

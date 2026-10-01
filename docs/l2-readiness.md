@@ -1,16 +1,16 @@
 # Préparation du lot L2
 
-Date : 1er octobre 2026. Statut : décisions L2-D1 à L2-D6 acceptées par le porteur le 1er octobre 2026 ; aucune implémentation L2 engagée.
+Date : 1er octobre 2026. Statut : décisions L2-D1 à L2-D6 acceptées et lot L2 implémenté localement ; voir la [preuve L2](evidence/l2.md).
 
 ## Point de départ
 
-L1 fournit solution, Abstractions/Core/SDK, règles de compilation, SDK 10.0.102 épinglé, tests d’architecture et exemple de chargement des assemblies. Le porteur confirme la réussite de GitHub Actions ; cette confirmation n’a pas été remplacée par une vérification indépendante du run.
+L1 fournit solution, Abstractions/Core/SDK, règles de compilation, ligne SDK .NET 10 stable à partir de 10.0.100, tests d’architecture et exemple de chargement des assemblies. Les preuves locales utilisent 10.0.102. Le porteur confirme la réussite de GitHub Actions ; cette confirmation n’a pas été remplacée par une vérification indépendante du run.
 
 Les ADR 0006, 0007 et 0008 sont acceptés : frontières séparées, modèle canonique, parcours séquentiel avec décisions exclusives, pas de cycles/parallélisme, transitions durables et reprise au moins une fois. Ces décisions ne sont pas à rouvrir.
 
 ## Livrables et frontières
 
-L2 transforme le socle en bibliothèque capable de construire, normaliser et valider une définition. Il livre le modèle canonique immuable, un DSL minimal, les diagnostics, la sérialisation déterministe, les contrats de stockage et leurs scénarios de conformité.
+L2 transforme le socle en bibliothèque capable de construire, normaliser et valider une définition. Il livre le modèle canonique immuable, un DSL minimal, les diagnostics, la sérialisation déterministe, les contrats de stockage et leurs règles de conformité pures.
 
 Le modèle concret couvre Start, Service, Decision et End ; HumanTask et Timer seront ajoutés avec leurs contrats fonctionnels au lot L6. Le modèle et le catalogue de types doivent rester extensibles pour cela. Le DSL référence des exécuteurs/évaluateurs nommés et versionnés ; L2 ne les exécute pas. Les types personnalisés sont décrits par un catalogue fourni par l’application, sans chargement de DLL automatique.
 

@@ -1,6 +1,6 @@
 # MinimalWorkflow
 
-Cet exemple vérifie que le SDK et ses dépendances transitives peuvent être consommés par une application .NET 10. Le modèle canonique et la DSL seront ajoutés au lot L2 ; l’exemple ne simule donc pas encore un workflow.
+Cet exemple construit en C# une demande de congé séquentielle avec décision exclusive, valide explicitement le brouillon, puis affiche l’identité et l’empreinte SHA-256 de sa représentation canonique. Il démontre l’auteur/validateur L2 ; il n’exécute pas encore le workflow.
 
 ## Prérequis
 
@@ -12,4 +12,3 @@ Depuis la racine du dépôt :
 ```bash
 dotnet run --project samples/MinimalWorkflow/MinimalWorkflow.csproj --no-restore
 ```
-
