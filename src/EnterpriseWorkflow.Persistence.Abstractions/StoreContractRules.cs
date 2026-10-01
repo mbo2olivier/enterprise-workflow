@@ -1,10 +1,34 @@
 namespace EnterpriseWorkflow.Persistence;
 
+using System.Buffers.Binary;
+using System.Security.Cryptography;
+using System.Text;
+using EnterpriseWorkflow.Abstractions;
+
 /// <summary>
 /// Pure reference rules shared by provider conformance scenarios.
 /// </summary>
 public static class StoreContractRules
 {
+    /// <summary>Normalizes optional text because Oracle persists an empty string as null.</summary>
+    public static string? NormalizeOptionalText(string? value) => string.IsNullOrEmpty(value) ? null : value;
+
+    /// <summary>
+    /// Computes the portable physical key for a start receipt from length-prefixed UTF-8 components.
+    /// Persisted components must still be compared to defend against corruption or a theoretical collision.
+    /// </summary>
+    public static string ComputeStartReceiptKey(StartCommandScope scope, TechnicalId idempotencyKey)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        using var stream = new MemoryStream();
+        WriteLengthPrefixed(stream, scope.InstallationId.Value);
+        WriteLengthPrefixed(stream, scope.CommandTypeId.Value);
+        WriteLengthPrefixed(stream, scope.Actor.ProviderId.Value);
+        WriteLengthPrefixed(stream, scope.Actor.SubjectId);
+        WriteLengthPrefixed(stream, idempotencyKey.Value);
+        return Convert.ToHexStringLower(SHA256.HashData(stream.GetBuffer().AsSpan(0, checked((int)stream.Length))));
+    }
+
     /// <summary>Classifies a repeated immutable publication.</summary>
     public static StoreOutcome ClassifyPublication(string? persistedSha256, string requestedSha256) =>
         persistedSha256 is null
@@ -56,5 +80,13 @@ public static class StoreContractRules
             (WorkflowInstanceStatus.Waiting, WorkflowInstanceStatus.Cancelled) => true,
             _ => false,
         };
-}
 
+    private static void WriteLengthPrefixed(Stream stream, string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        Span<byte> length = stackalloc byte[sizeof(int)];
+        BinaryPrimitives.WriteInt32BigEndian(length, bytes.Length);
+        stream.Write(length);
+        stream.Write(bytes);
+    }
+}

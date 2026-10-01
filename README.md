@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1, L2 et L3a implémentés localement.** Le dépôt contient le socle .NET 10, le modèle canonique, le validateur, la DSL C#, les contrats atomiques de persistance et l’adaptateur EF Core SQLite avec migration explicite et tests sur base fichier. L’adaptateur Oracle L3b n’est pas encore livré et aucun package n’est publié. La licence open source reste à choisir avant publication.
+**Statut : lots L1 à L3b implémentés localement.** Le dépôt contient le socle .NET 10, le modèle canonique, le validateur, la DSL C#, les contrats atomiques de persistance et les adaptateurs EF Core SQLite et Oracle avec migrations explicites et tests sur bases réelles. L’adaptateur Oracle passe sa validation de développement sur Oracle Free ; sa qualification minimale sur l’image officielle Oracle 19.19 est différée jusqu’à une connexion non limitée. Aucun package n’est encore publié et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -32,12 +32,14 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 7. [Preuve du lot L1](docs/evidence/l1.md)
 8. [Preuve du lot L2](docs/evidence/l2.md)
 9. [Preuve du lot L3a](docs/evidence/l3a.md)
+10. [Preuve du lot L3b](docs/evidence/l3b.md)
 
 ## Documents de référence
 
 - [Modèle et exécution durable](docs/architecture/runtime.md)
 - [Persistance SQLite et Oracle](docs/architecture/persistence.md)
 - [Dictionnaire du schéma physique SQLite](docs/architecture/sqlite-schema.md)
+- [Dictionnaire du schéma physique Oracle](docs/architecture/oracle-schema.md)
 - [Sécurité et administration](docs/architecture/security.md)
 - [Modules, SDK, formulaires et Studio](docs/architecture/extensions.md)
 - [Compatibilité et distribution](docs/compatibilite.md)

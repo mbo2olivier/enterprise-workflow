@@ -15,8 +15,23 @@ public readonly record struct NodeActivationId(Guid Value);
 /// <summary>Distinct fencing token for one lease ownership generation.</summary>
 public readonly record struct LeaseToken(Guid Value);
 
-/// <summary>Stable authenticated actor identity.</summary>
-public sealed record ActorIdentity(TechnicalId ProviderId, string SubjectId);
+/// <summary>Stable authenticated actor identity. Empty subject identifiers are not portable to Oracle.</summary>
+public sealed record ActorIdentity
+{
+    /// <summary>Creates a provider-qualified identity.</summary>
+    public ActorIdentity(TechnicalId providerId, string subjectId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(subjectId);
+        ProviderId = providerId;
+        SubjectId = subjectId;
+    }
+
+    /// <summary>Gets the identity provider identifier.</summary>
+    public TechnicalId ProviderId { get; }
+
+    /// <summary>Gets the non-empty, provider-stable subject identifier.</summary>
+    public string SubjectId { get; }
+}
 
 /// <summary>Scope of a start-command idempotency key.</summary>
 public sealed record StartCommandScope(

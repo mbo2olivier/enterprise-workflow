@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ ! "${ORACLE_TEST_PASSWORD:-}" =~ ^[A-Za-z][A-Za-z0-9_]{11,63}$ ]]; then
+  echo "ORACLE_TEST_PASSWORD must use 12-64 ASCII letters, digits or underscores and start with a letter." >&2
+  exit 1
+fi
+
+sqlplus -s / as sysdba <<SQL
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+ALTER SESSION SET CONTAINER=ORCLPDB1;
+CREATE USER EWTEST IDENTIFIED BY "${ORACLE_TEST_PASSWORD}";
+GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, CREATE TRIGGER TO EWTEST;
+ALTER USER EWTEST QUOTA UNLIMITED ON USERS;
+SQL

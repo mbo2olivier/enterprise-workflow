@@ -68,6 +68,7 @@ public sealed class InitialSqlite : Migration
             );
 
             CREATE TABLE "EwStartReceipts" (
+                "ReceiptKey" TEXT NOT NULL CONSTRAINT "PK_EwStartReceipts" PRIMARY KEY,
                 "InstallationId" TEXT COLLATE BINARY NOT NULL,
                 "CommandTypeId" TEXT COLLATE BINARY NOT NULL,
                 "ActorProviderId" TEXT COLLATE BINARY NOT NULL,
@@ -77,8 +78,6 @@ public sealed class InitialSqlite : Migration
                 "InstanceId" TEXT NOT NULL,
                 "InstanceRevision" INTEGER NOT NULL,
                 "CommittedAtUnixMilliseconds" INTEGER NOT NULL,
-                CONSTRAINT "PK_EwStartReceipts" PRIMARY KEY
-                    ("InstallationId", "CommandTypeId", "ActorProviderId", "ActorSubjectId", "IdempotencyKey"),
                 CONSTRAINT "FK_EwStartReceipts_EwInstances" FOREIGN KEY ("InstanceId")
                     REFERENCES "EwInstances" ("Id") ON DELETE RESTRICT
             );

@@ -1,3 +1,4 @@
+using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Persistence;
 using Xunit;
 
@@ -19,6 +20,36 @@ public sealed class StoreContractTests
         Assert.Equal(StoreOutcome.Succeeded, StoreContractRules.ClassifyReceipt(null, "request-a"));
         Assert.Equal(StoreOutcome.Idempotent, StoreContractRules.ClassifyReceipt("request-a", "request-a"));
         Assert.Equal(StoreOutcome.Conflict, StoreContractRules.ClassifyReceipt("request-a", "request-b"));
+    }
+
+    [Fact]
+    public void ReceiptKeyUsesUnambiguousOrdinalComponents()
+    {
+        var provider = new TechnicalId("local");
+        var first = StoreContractRules.ComputeStartReceiptKey(
+            new StartCommandScope(
+                new TechnicalId("ab"),
+                new TechnicalId("c"),
+                new ActorIdentity(provider, "subject")),
+            new TechnicalId("key"));
+        var second = StoreContractRules.ComputeStartReceiptKey(
+            new StartCommandScope(
+                new TechnicalId("a"),
+                new TechnicalId("bc"),
+                new ActorIdentity(provider, "subject")),
+            new TechnicalId("key"));
+
+        Assert.Equal(64, first.Length);
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
+    public void OptionalTextNormalizesEmptyForOraclePortability()
+    {
+        Assert.Null(StoreContractRules.NormalizeOptionalText(null));
+        Assert.Null(StoreContractRules.NormalizeOptionalText(string.Empty));
+        Assert.Equal(" ", StoreContractRules.NormalizeOptionalText(" "));
+        Assert.Throws<ArgumentException>(() => new ActorIdentity(new TechnicalId("local"), string.Empty));
     }
 
     [Fact]
@@ -89,4 +120,3 @@ public sealed class StoreContractTests
         Assert.Equal(expected, StoreContractRules.CanTransition(from, to));
     }
 }
-

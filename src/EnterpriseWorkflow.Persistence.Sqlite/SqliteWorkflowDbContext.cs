@@ -99,14 +99,8 @@ public static class SqliteWorkflowModelBuilderExtensions
     {
         var entity = modelBuilder.Entity<StartReceiptRow>();
         entity.ToTable("EwStartReceipts");
-        entity.HasKey(row => new
-        {
-            row.InstallationId,
-            row.CommandTypeId,
-            row.ActorProviderId,
-            row.ActorSubjectId,
-            row.IdempotencyKey,
-        });
+        entity.HasKey(row => row.ReceiptKey);
+        entity.Property(row => row.ReceiptKey).HasMaxLength(64);
         entity.Property(row => row.InstallationId).HasMaxLength(128).UseCollation("BINARY");
         entity.Property(row => row.CommandTypeId).HasMaxLength(128).UseCollation("BINARY");
         entity.Property(row => row.ActorProviderId).HasMaxLength(128).UseCollation("BINARY");
@@ -184,6 +178,7 @@ internal sealed class WorkItemRow
 
 internal sealed class StartReceiptRow
 {
+    public required string ReceiptKey { get; set; }
     public required string InstallationId { get; set; }
     public required string CommandTypeId { get; set; }
     public required string ActorProviderId { get; set; }

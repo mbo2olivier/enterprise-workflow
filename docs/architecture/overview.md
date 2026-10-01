@@ -1,6 +1,6 @@
 # Architecture générale
 
-Statut : L1, L2 et adaptateur SQLite L3a implémentés localement ; les composants ultérieurs restent une proposition technique. Les contrats de store demeurent révisables jusqu’au prototype Oracle L3b.
+Statut : L1, L2 et adaptateurs SQLite L3a et Oracle L3b implémentés localement ; les composants ultérieurs restent une proposition technique. Les contrats de store sont éprouvés sur SQLite et Oracle Free ; la qualification Oracle Enterprise 19.19 reste différée.
 
 ## Responsabilités et intégration
 
@@ -43,7 +43,7 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 | Security.Abstractions | Identité, permissions et capacités | Abstractions |
 | Security.* | Connecteurs et autorisation ; intégration sessions séparée | Security.Abstractions ; dépendances externes locales au connecteur |
 | Persistence.Sqlite | Mapping EF Core intégrable, contexte dédié, SQL/conversions et migrations SQLite | Persistence.Abstractions |
-| Persistence.Oracle | Mapping, SQL, conversions et migrations Oracle à qualifier en L3b | Persistence.Abstractions ; socle commun éventuel après preuve des deux providers |
+| Persistence.Oracle | Mapping, SQL, conversions et migrations éprouvés sur Oracle Free en L3b ; qualification 19.19 différée | Persistence.Abstractions |
 | AspNetCore | HTTP, DI, sessions, worker hébergé | Application, Runtime et contrats d’intégration |
 | PluginSystem | Manifestes, compatibilité, résolution des modules | Contrats purs et contrats DI dédiés |
 | UI / Administration | Formulaires, pages métier et administration | Application et contrats UI/sécurité |
@@ -53,7 +53,7 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 
 L’instrumentation se fait aux frontières par les abstractions .NET. Un package d’export optionnel pourra apparaître sans créer de cycle. Les contrats dépendant de `IServiceCollection`, HTTP ou Razor restent dans les intégrations correspondantes.
 
-Le schéma possédé par l’adaptateur L3a est détaillé dans le [dictionnaire physique SQLite](sqlite-schema.md). Les applications ne doivent pas traiter ses tables comme une API publique.
+Les schémas possédés par les adaptateurs sont détaillés dans les dictionnaires physiques [SQLite](sqlite-schema.md) et [Oracle](oracle-schema.md). Les applications ne doivent pas traiter ces tables comme une API publique.
 
 ## Frontières
 

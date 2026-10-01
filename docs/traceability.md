@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et le contrôle de frontières T18 sont acquis au niveau L2. Les parties SQLite de T03 à T05 et la création/migration initiale de T13 sont acquises localement en L3a ; voir les [preuves L2](evidence/l2.md) et [L3a](evidence/l3a.md). Voir aussi le [PRD](prd.md), les [lots](implementation-plan.md) et les [tests](testing.md).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et le contrôle de frontières T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis localement sur SQLite en L3a et sur Oracle Free en L3b-I ; leur qualification Oracle 19.19 reste en L3b-Q. Voir les [preuves L2](evidence/l2.md), [L3a](evidence/l3a.md) et [L3b](evidence/l3b.md), ainsi que le [plan](implementation-plan.md) et les [tests](testing.md).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |

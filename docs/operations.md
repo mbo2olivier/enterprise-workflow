@@ -1,6 +1,6 @@
 # Exploitation — procédures cibles
 
-Statut : runbook de conception. La migration SQLite L3a est exécutable par API ; les commandes Host, Oracle, sauvegarde et restauration restent à livrer avec leurs lots.
+Statut : runbook de conception. Les migrations SQLite L3a et Oracle L3b sont exécutables par API ; les commandes Host, sauvegarde et restauration restent à livrer avec leurs lots.
 
 ## Installation et configuration
 
@@ -8,9 +8,9 @@ Choisir l’archive correspondant au RID, à l’OS et aux providers qualifiés.
 
 Configurer stockage, catalogue de modules, fournisseur d’authentification/autorisation, adresse d’écoute, logs et paramètres worker. Les secrets proviennent du mécanisme approuvé de l’installation, sans présence dans les modules ni dans le dépôt. Les paramètres ont un schéma et une validation au démarrage.
 
-Lancer les migrations explicitement avant le worker. Pour SQLite, la racine de composition construit `SqliteWorkflowDatabase` avec sa chaîne de connexion et attend `MigrateAsync`; elle construit ensuite `SqliteWorkflowStore`. Le store ne crée ni ne modifie le schéma implicitement. Démarrer le Host et vérifier readiness, accès au catalogue et extension de sécurité active. Une base inaccessible, un schéma incompatible ou un module requis absent ne doit pas produire un service déclaré prêt.
+Lancer les migrations explicitement avant le worker. Pour SQLite, la racine de composition construit `SqliteWorkflowDatabase` avec sa chaîne de connexion et attend `MigrateAsync`, puis construit `SqliteWorkflowStore`. Oracle suit le même cycle avec `OracleWorkflowDatabase` et `OracleWorkflowStore`; le compte de migration doit pouvoir créer les objets décrits dans le dictionnaire Oracle. Aucun store ne crée ni ne modifie le schéma implicitement. Démarrer le Host et vérifier readiness, accès au catalogue et extension de sécurité active. Une base inaccessible, un schéma incompatible ou un module requis absent ne doit pas produire un service déclaré prêt.
 
-Le [dictionnaire du schéma SQLite](architecture/sqlite-schema.md) permet d’identifier les tables, clés et index lors d’un diagnostic. Il ne constitue pas une autorisation de modifier les lignes manuellement.
+Les dictionnaires des schémas [SQLite](architecture/sqlite-schema.md) et [Oracle](architecture/oracle-schema.md) permettent d’identifier les tables, clés et index lors d’un diagnostic. Ils ne constituent pas une autorisation de modifier les lignes manuellement.
 
 Le processus peut être intégré à l’hébergement choisi par l’utilisateur. Les exemples de service Windows/Linux/macOS seront livrés après qualification ; ni IIS ni Docker n’est un prérequis général.
 

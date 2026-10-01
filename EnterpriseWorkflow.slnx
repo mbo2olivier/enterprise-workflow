@@ -3,6 +3,7 @@
     <Project Path="src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
     <Project Path="src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
   </Folder>

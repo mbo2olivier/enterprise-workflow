@@ -1,0 +1,16 @@
+services:
+  oracle:
+    image: gvenzl/oracle-free:23.26.3-slim-faststart
+    platform: linux/arm64
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_TEST_PASSWORD:?Set ORACLE_TEST_PASSWORD}
+      APP_USER: EWTEST
+      APP_USER_PASSWORD: ${ORACLE_TEST_PASSWORD:?Set ORACLE_TEST_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s

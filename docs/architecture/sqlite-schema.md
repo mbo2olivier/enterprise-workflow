@@ -139,6 +139,7 @@ Cette table garantit l’idempotence de `StartInstanceAsync` dans la portée aut
 
 | Colonne | Type SQLite | Null | Description |
 | --- | --- | --- | --- |
+| `ReceiptKey` | `TEXT` | non | SHA-256 de l’encodage longueur + UTF-8 de la portée et de la clé ; clé primaire physique |
 | `InstallationId` | `TEXT COLLATE BINARY` | non | Installation propriétaire de la commande |
 | `CommandTypeId` | `TEXT COLLATE BINARY` | non | Type durable de commande |
 | `ActorProviderId` | `TEXT COLLATE BINARY` | non | Fournisseur d’identité |
@@ -149,7 +150,7 @@ Cette table garantit l’idempotence de `StartInstanceAsync` dans la portée aut
 | `InstanceRevision` | `INTEGER` | non | Révision retournée lors du démarrage initial |
 | `CommittedAtUnixMilliseconds` | `INTEGER` | non | Instant du commit initial |
 
-Clé primaire composite : (`InstallationId`, `CommandTypeId`, `ActorProviderId`, `ActorSubjectId`, `IdempotencyKey`). `InstanceId` référence `EwInstances` avec suppression restreinte. Une répétition avec la même empreinte retourne le résultat enregistré ; une autre empreinte produit un conflit.
+Clé primaire : `ReceiptKey`. Les composantes originales (`InstallationId`, `CommandTypeId`, `ActorProviderId`, `ActorSubjectId`, `IdempotencyKey`) restent stockées et sont revérifiées après lecture afin de détecter une corruption ou une collision théorique. `InstanceId` référence `EwInstances` avec suppression restreinte. Une répétition avec la même empreinte de requête retourne le résultat enregistré ; une autre empreinte produit un conflit.
 
 ## `EwAudits`
 
@@ -197,4 +198,4 @@ Toutes ces mutations utilisent une transaction d’écriture SQLite courte. Une 
 
 ## Évolutions prévues
 
-Le schéma L3a ne contient pas encore les tables de tâches humaines, timers ou outbox : elles seront ajoutées par des migrations correspondant aux lots L4 et L6. Oracle L3b aura son propre schéma physique et ses propres migrations ; cette page ne doit pas être utilisée comme promesse de noms ou de types Oracle.
+Le schéma L3a ne contient pas encore les tables de tâches humaines, timers ou outbox : elles seront ajoutées par des migrations correspondant aux lots L4 et L6. Oracle L3b possède son [propre schéma physique](oracle-schema.md) et ses propres migrations ; cette page ne doit pas être utilisée comme promesse de noms ou de types Oracle.

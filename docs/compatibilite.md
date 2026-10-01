@@ -1,6 +1,6 @@
 # Compatibilité et distribution
 
-Date de vérification documentaire : 30 septembre 2026. **Aucune combinaison n’est encore qualifiée par Enterprise Workflow.** Les décisions produit et les capacités annoncées par les éditeurs sont distinctes des résultats de tests.
+Date de vérification documentaire : 1er octobre 2026. La combinaison de développement macOS ARM64, client .NET 10/ODP.NET et serveur Oracle Free Linux ARM64 en conteneur est validée pour les scénarios de persistance L3b-I. Oracle Enterprise 19.19 et les distributions complètes du produit ne sont pas encore qualifiés. Les décisions produit et les capacités annoncées par les éditeurs restent distinctes des résultats de tests.
 
 ## Base vérifiée
 
@@ -43,4 +43,4 @@ Commencer sans trimming ni Native AOT afin d’éprouver le chargement dynamique
 
 ## Environnement observé
 
-Le lot L1 a été compilé et testé localement avec le SDK `10.0.102` sur macOS 26.3 ARM64. Cela prouve le socle géré, pas encore un artefact de distribution ni la matrice cible. Aucun provider installé, serveur Oracle joint ou contrôleur AD testé. Les sources éditeurs devront être revérifiées à la sélection des versions exactes.
+Les lots L1 à L3b ont été compilés avec le SDK .NET `10.0.401` sur macOS 26.3 ARM64. SQLite a été testé sur fichiers locaux et Oracle via Oracle Entity Framework Core `10.23.26301` contre Oracle Free `23.26.3` en conteneur. Cette preuve valide l’adaptateur en développement ; elle ne qualifie ni Oracle 19.19, ni un artefact de distribution, ni les autres lignes de la matrice, ni AD.

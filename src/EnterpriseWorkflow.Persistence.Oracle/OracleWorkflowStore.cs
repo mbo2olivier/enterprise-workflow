@@ -1,22 +1,22 @@
+using System.Data;
+using System.Globalization;
 using System.Text.Json;
 using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Core.Model;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Oracle.ManagedDataAccess.Client;
 
-namespace EnterpriseWorkflow.Persistence.Sqlite;
+namespace EnterpriseWorkflow.Persistence.Oracle;
 
-/// <summary>Atomic workflow store backed by a real SQLite database.</summary>
-public sealed class SqliteWorkflowStore : IWorkflowStore
+/// <summary>Atomic workflow store backed by Oracle Database 19c or later.</summary>
+public sealed class OracleWorkflowStore : IWorkflowStore
 {
-    private readonly SqliteWorkflowDatabase _database;
+    private readonly OracleWorkflowDatabase _database;
 
     /// <summary>Creates a store. Migrations must be applied explicitly before use.</summary>
-    public SqliteWorkflowStore(SqliteWorkflowDatabase database)
-    {
+    public OracleWorkflowStore(OracleWorkflowDatabase database) =>
         _database = database ?? throw new ArgumentNullException(nameof(database));
-    }
 
     /// <inheritdoc />
     public async ValueTask<StoreResult<DefinitionReference>> PublishDefinitionAsync(
@@ -26,13 +26,11 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         ArgumentNullException.ThrowIfNull(command);
         return await ExecuteAsync(async context =>
         {
-            await using var transaction = await BeginWriteTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
             var definition = command.Definition;
             var existing = await context.Definitions.FindAsync(
-                [definition.Id.Value, definition.Version],
-                cancellationToken).ConfigureAwait(false);
+                [definition.Id.Value, definition.Version], cancellationToken).ConfigureAwait(false);
             var reference = new DefinitionReference(definition.Id, definition.Version, definition.Sha256);
-
             if (existing is not null)
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -70,7 +68,7 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
         return await ExecuteAsync(async context =>
         {
-            await using var transaction = await BeginWriteTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
             var receipt = await FindReceiptAsync(context, command, cancellationToken).ConfigureAwait(false);
             if (receipt is not null)
             {
@@ -82,15 +80,12 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
                 return string.Equals(receipt.RequestSha256, command.RequestSha256, StringComparison.Ordinal)
                     ? StoreResults.Idempotent(new StartInstanceResult(
-                        new WorkflowInstanceId(ParseGuid(receipt.InstanceId)),
-                        WasCreated: false,
-                        receipt.InstanceRevision))
+                        new WorkflowInstanceId(ParseGuid(receipt.InstanceId)), false, receipt.InstanceRevision))
                     : StoreResults.Conflict<StartInstanceResult>("EW3003_IDEMPOTENCY_KEY_CONFLICT");
             }
 
             var definition = await context.Definitions.FindAsync(
-                [command.Definition.DefinitionId.Value, command.Definition.Version],
-                cancellationToken).ConfigureAwait(false);
+                [command.Definition.DefinitionId.Value, command.Definition.Version], cancellationToken).ConfigureAwait(false);
             if (definition is null)
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -107,9 +102,7 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
             var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
             var instanceId = Guid.NewGuid();
             var activationId = Guid.NewGuid();
-            var workItemId = Guid.NewGuid();
             var instanceKey = FormatGuid(instanceId);
-
             context.Instances.Add(new InstanceRow
             {
                 Id = instanceKey,
@@ -135,7 +128,7 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
             });
             context.WorkItems.Add(new WorkItemRow
             {
-                Id = FormatGuid(workItemId),
+                Id = FormatGuid(Guid.NewGuid()),
                 ActivationId = FormatGuid(activationId),
                 InstanceId = instanceKey,
                 NodeId = startNodeId,
@@ -158,7 +151,6 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
                 CommittedAtUnixMilliseconds = now,
             });
             AddAudit(context, instanceKey, "InstanceStarted", 0, now, command.Scope.Actor);
-
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new StartInstanceResult(new WorkflowInstanceId(instanceId), true, 0));
@@ -178,40 +170,27 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
         return await ExecuteAsync(async context =>
         {
-            await using var transaction = await BeginWriteTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
             var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
-            var item = await context.WorkItems
-                .Where(row =>
-                    (row.Status == (int)WorkItemStatus.Ready && row.DueAtUnixMilliseconds <= now) ||
-                    (row.Status == (int)WorkItemStatus.Leased && row.LeaseExpiresAtUnixMilliseconds <= now))
-                .Where(row => context.Instances.Any(instance =>
-                    instance.Id == row.InstanceId &&
-                    (instance.Status == (int)WorkflowInstanceStatus.Created ||
-                     instance.Status == (int)WorkflowInstanceStatus.Running ||
-                     instance.Status == (int)WorkflowInstanceStatus.Waiting)))
-                .OrderBy(row => row.DueAtUnixMilliseconds)
-                .ThenBy(row => row.CreatedAtUnixMilliseconds)
-                .ThenBy(row => row.Id)
-                .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-
-            if (item is null)
+            var itemId = await LockNextDueWorkAsync(context, transaction, now, cancellationToken).ConfigureAwait(false);
+            if (itemId is null)
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.NotFound<WorkLease>("EW3007_NO_DUE_WORK");
             }
 
+            var item = await context.WorkItems.FindAsync([itemId], cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The locked work item no longer exists.");
             var instance = await context.Instances.FindAsync([item.InstanceId], cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The claimed work item has no instance.");
             var activation = await context.Activations.FindAsync([item.ActivationId], cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The claimed work item has no activation.");
             var token = Guid.NewGuid();
-            var expiresAt = checked(now + (long)command.LeaseDuration.TotalMilliseconds);
-
             item.Status = (int)WorkItemStatus.Leased;
             item.OwnerId = command.OwnerId.Value;
             item.Generation = checked(item.Generation + 1);
             item.LeaseToken = FormatGuid(token);
-            item.LeaseExpiresAtUnixMilliseconds = expiresAt;
+            item.LeaseExpiresAtUnixMilliseconds = checked(now + (long)command.LeaseDuration.TotalMilliseconds);
             activation.Status = (int)NodeExecutionStatus.Running;
             activation.Attempt = checked(activation.Attempt + 1);
             if (instance.Status is (int)WorkflowInstanceStatus.Created or (int)WorkflowInstanceStatus.Waiting)
@@ -241,22 +220,23 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
         return await ExecuteAsync(async context =>
         {
-            await using var transaction = await BeginWriteTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
             var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
-            var item = await context.WorkItems.FindAsync([FormatGuid(command.WorkItemId.Value)], cancellationToken).ConfigureAwait(false);
-            if (item is null)
+            var key = FormatGuid(command.WorkItemId.Value);
+            if (!await LockWorkAndInstanceAsync(context, transaction, key, cancellationToken).ConfigureAwait(false))
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.NotFound<WorkLease>("EW3008_WORK_NOT_FOUND");
             }
 
-            if (!IsCurrentLease(item, command.Token, command.Generation, now))
+            var item = await context.WorkItems.FindAsync([key], cancellationToken).ConfigureAwait(false)!;
+            if (!IsCurrentLease(item!, command.Token, command.Generation, now))
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.Conflict<WorkLease>("EW3009_STALE_LEASE");
             }
 
-            var instance = await context.Instances.FindAsync([item.InstanceId], cancellationToken).ConfigureAwait(false);
+            var instance = await context.Instances.FindAsync([item!.InstanceId], cancellationToken).ConfigureAwait(false);
             if (instance is null || instance.Status != (int)WorkflowInstanceStatus.Running)
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -284,22 +264,23 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
         return await ExecuteAsync(async context =>
         {
-            await using var transaction = await BeginWriteTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
             var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
-            var item = await context.WorkItems.FindAsync([FormatGuid(command.WorkItemId.Value)], cancellationToken).ConfigureAwait(false);
-            if (item is null)
+            var key = FormatGuid(command.WorkItemId.Value);
+            if (!await LockWorkAndInstanceAsync(context, transaction, key, cancellationToken).ConfigureAwait(false))
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.NotFound<CommitNodeResult>("EW3008_WORK_NOT_FOUND");
             }
 
-            if (!IsCurrentLease(item, command.Token, command.Generation, now))
+            var item = await context.WorkItems.FindAsync([key], cancellationToken).ConfigureAwait(false)!;
+            if (!IsCurrentLease(item!, command.Token, command.Generation, now))
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.Conflict<CommitNodeResult>("EW3009_STALE_LEASE");
             }
 
-            var instance = await context.Instances.FindAsync([item.InstanceId], cancellationToken).ConfigureAwait(false)
+            var instance = await context.Instances.FindAsync([item!.InstanceId], cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The committed work item has no instance.");
             if (instance.Status != (int)WorkflowInstanceStatus.Running || instance.Revision != command.ExpectedInstanceRevision)
             {
@@ -344,16 +325,16 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
         return await ExecuteAsync(async context =>
         {
-            await using var transaction = await BeginWriteTransactionAsync(context, cancellationToken).ConfigureAwait(false);
-            var instanceKey = FormatGuid(command.InstanceId.Value);
-            var instance = await context.Instances.FindAsync([instanceKey], cancellationToken).ConfigureAwait(false);
-            if (instance is null)
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            var key = FormatGuid(command.InstanceId.Value);
+            if (!await LockInstanceAsync(context, transaction, key, cancellationToken).ConfigureAwait(false))
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.NotFound<CancelInstanceResult>("EW3012_INSTANCE_NOT_FOUND");
             }
 
-            if (instance.Revision != command.ExpectedRevision || IsTerminal((WorkflowInstanceStatus)instance.Status))
+            var instance = await context.Instances.FindAsync([key], cancellationToken).ConfigureAwait(false)!;
+            if (instance!.Revision != command.ExpectedRevision || IsTerminal((WorkflowInstanceStatus)instance.Status))
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return StoreResults.Conflict<CancelInstanceResult>("EW3011_INSTANCE_REVISION_CONFLICT");
@@ -363,8 +344,7 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
             instance.Status = (int)WorkflowInstanceStatus.Cancelled;
             instance.Revision = checked(instance.Revision + 1);
             instance.UpdatedAtUnixMilliseconds = now;
-            var workItems = await context.WorkItems
-                .Where(row => row.InstanceId == instanceKey && row.Status != (int)WorkItemStatus.Done)
+            var workItems = await context.WorkItems.Where(row => row.InstanceId == key && row.Status != (int)WorkItemStatus.Done)
                 .ToListAsync(cancellationToken).ConfigureAwait(false);
             foreach (var workItem in workItems)
             {
@@ -372,10 +352,8 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
                 ClearLease(workItem);
             }
 
-            var activations = await context.Activations
-                .Where(row => row.InstanceId == instanceKey &&
-                    row.Status != (int)NodeExecutionStatus.Succeeded &&
-                    row.Status != (int)NodeExecutionStatus.Failed)
+            var activations = await context.Activations.Where(row => row.InstanceId == key &&
+                    row.Status != (int)NodeExecutionStatus.Succeeded && row.Status != (int)NodeExecutionStatus.Failed)
                 .ToListAsync(cancellationToken).ConfigureAwait(false);
             foreach (var activation in activations)
             {
@@ -389,13 +367,8 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private static void ApplyCommit(
-        SqliteWorkflowDbContext context,
-        CommitNodeResultCommand command,
-        WorkItemRow item,
-        ActivationRow activation,
-        InstanceRow instance,
-        long now)
+    private static void ApplyCommit(OracleWorkflowDbContext context, CommitNodeResultCommand command,
+        WorkItemRow item, ActivationRow activation, InstanceRow instance, long now)
     {
         switch (command.Kind)
         {
@@ -432,13 +405,12 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         }
     }
 
-    private static void AddNextWork(SqliteWorkflowDbContext context, string instanceId, NextWork nextWork, long now)
+    private static void AddNextWork(OracleWorkflowDbContext context, string instanceId, NextWork nextWork, long now)
     {
-        var activationId = Guid.NewGuid();
-        var activationKey = FormatGuid(activationId);
+        var activationId = FormatGuid(Guid.NewGuid());
         context.Activations.Add(new ActivationRow
         {
-            Id = activationKey,
+            Id = activationId,
             InstanceId = instanceId,
             NodeId = nextWork.NodeId.Value,
             Status = (int)NodeExecutionStatus.Pending,
@@ -447,7 +419,7 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         context.WorkItems.Add(new WorkItemRow
         {
             Id = FormatGuid(Guid.NewGuid()),
-            ActivationId = activationKey,
+            ActivationId = activationId,
             InstanceId = instanceId,
             NodeId = nextWork.NodeId.Value,
             Status = (int)WorkItemStatus.Ready,
@@ -474,48 +446,75 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         return null;
     }
 
-    private static async Task<StartReceiptRow?> FindReceiptAsync(
-        SqliteWorkflowDbContext context,
-        StartInstanceCommand command,
-        CancellationToken cancellationToken) =>
-        await context.StartReceipts.FindAsync(
-            [StoreContractRules.ComputeStartReceiptKey(command.Scope, command.IdempotencyKey)],
-            cancellationToken).ConfigureAwait(false);
+    private static async Task<IDbContextTransaction> BeginTransactionAsync(
+        OracleWorkflowDbContext context, CancellationToken cancellationToken) =>
+        await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken).ConfigureAwait(false);
 
-    private static bool ReceiptMatches(StartReceiptRow receipt, StartInstanceCommand command) =>
-        string.Equals(receipt.InstallationId, command.Scope.InstallationId.Value, StringComparison.Ordinal) &&
-        string.Equals(receipt.CommandTypeId, command.Scope.CommandTypeId.Value, StringComparison.Ordinal) &&
-        string.Equals(receipt.ActorProviderId, command.Scope.Actor.ProviderId.Value, StringComparison.Ordinal) &&
-        string.Equals(receipt.ActorSubjectId, command.Scope.Actor.SubjectId, StringComparison.Ordinal) &&
-        string.Equals(receipt.IdempotencyKey, command.IdempotencyKey.Value, StringComparison.Ordinal);
-
-    private static async Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginWriteTransactionAsync(
-        SqliteWorkflowDbContext context,
-        CancellationToken cancellationToken)
+    private static async Task<string?> LockNextDueWorkAsync(OracleWorkflowDbContext context,
+        IDbContextTransaction transaction, long now, CancellationToken cancellationToken)
     {
-        await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        var connection = (SqliteConnection)context.Database.GetDbConnection();
-        var transaction = connection.BeginTransaction(deferred: false);
-        await context.Database.UseTransactionAsync(transaction, cancellationToken).ConfigureAwait(false);
-        return context.Database.CurrentTransaction
-            ?? throw new InvalidOperationException("EF Core did not attach the SQLite transaction.");
+        const string sql = """
+            SELECT w."ID"
+            FROM "EW_WORK_ITEMS" w
+            INNER JOIN "EW_INSTANCES" i ON i."ID" = w."INSTANCE_ID"
+            WHERE ((w."STATUS" = 0 AND w."DUE_AT_MS" <= :now_ms)
+                OR (w."STATUS" = 1 AND w."LEASE_EXPIRES_AT_MS" <= :now_ms))
+              AND i."STATUS" IN (0, 1, 2)
+            ORDER BY w."DUE_AT_MS", w."CREATED_AT_MS", w."ID"
+            FOR UPDATE OF w."ID", i."ID" SKIP LOCKED
+            """;
+        await using var command = CreateCommand(context, transaction, sql);
+        command.Parameters.Add(new OracleParameter("now_ms", OracleDbType.Int64) { Value = now });
+        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false);
+        return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? reader.GetString(0) : null;
     }
 
-    private static async Task<long> ReadStoreUtcNowMillisecondsAsync(
-        SqliteWorkflowDbContext context,
-        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction,
-        CancellationToken cancellationToken)
+    private static async Task<bool> LockWorkAndInstanceAsync(OracleWorkflowDbContext context,
+        IDbContextTransaction transaction, string workItemId, CancellationToken cancellationToken)
     {
-        await using var command = context.Database.GetDbConnection().CreateCommand();
-        command.Transaction = transaction.GetDbTransaction();
-        command.CommandText =
-            "SELECT CAST(strftime('%s','now') AS INTEGER) * 1000 + CAST(substr(strftime('%f','now'), 4, 3) AS INTEGER);";
-        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return Convert.ToInt64(result, System.Globalization.CultureInfo.InvariantCulture);
+        const string sql = """
+            SELECT w."ID"
+            FROM "EW_WORK_ITEMS" w
+            INNER JOIN "EW_INSTANCES" i ON i."ID" = w."INSTANCE_ID"
+            WHERE w."ID" = :work_id
+            FOR UPDATE OF w."ID", i."ID"
+            """;
+        await using var command = CreateCommand(context, transaction, sql);
+        command.Parameters.Add(new OracleParameter("work_id", OracleDbType.Char, 32) { Value = workItemId });
+        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;
     }
 
-    private async Task<StoreResult<T>> ExecuteAsync<T>(
-        Func<SqliteWorkflowDbContext, Task<StoreResult<T>>> operation,
+    private static async Task<bool> LockInstanceAsync(OracleWorkflowDbContext context,
+        IDbContextTransaction transaction, string instanceId, CancellationToken cancellationToken)
+    {
+        const string sql = "SELECT \"ID\" FROM \"EW_INSTANCES\" WHERE \"ID\" = :instance_id FOR UPDATE";
+        await using var command = CreateCommand(context, transaction, sql);
+        command.Parameters.Add(new OracleParameter("instance_id", OracleDbType.Char, 32) { Value = instanceId });
+        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;
+    }
+
+    private static OracleCommand CreateCommand(OracleWorkflowDbContext context, IDbContextTransaction transaction, string sql)
+    {
+        var command = (OracleCommand)context.Database.GetDbConnection().CreateCommand();
+        command.BindByName = true;
+        command.Transaction = (OracleTransaction)transaction.GetDbTransaction();
+        command.CommandText = sql;
+        return command;
+    }
+
+    private static async Task<long> ReadStoreUtcNowMillisecondsAsync(OracleWorkflowDbContext context,
+        IDbContextTransaction transaction, CancellationToken cancellationToken)
+    {
+        const string sql = "SELECT TO_CHAR(SYS_EXTRACT_UTC(SYSTIMESTAMP), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF3\"Z\"') FROM DUAL";
+        await using var command = CreateCommand(context, transaction, sql);
+        var value = Convert.ToString(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture)
+            ?? throw new InvalidOperationException("Oracle did not return its UTC clock.");
+        var instant = DateTimeOffset.ParseExact(value, "yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        return instant.ToUnixTimeMilliseconds();
+    }
+
+    private async Task<StoreResult<T>> ExecuteAsync<T>(Func<OracleWorkflowDbContext, Task<StoreResult<T>>> operation,
         CancellationToken cancellationToken)
     {
         try
@@ -527,32 +526,37 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         {
             throw;
         }
-        catch (SqliteException exception)
+        catch (OracleException exception)
         {
-            return StoreResults.Unavailable<T>($"EW3090_SQLITE_{exception.SqliteErrorCode}");
+            return StoreResults.Unavailable<T>($"EW3091_ORACLE_{exception.Number}");
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqliteException sqliteException)
+        catch (DbUpdateException exception) when (exception.InnerException is OracleException oracleException)
         {
-            return StoreResults.Unavailable<T>($"EW3090_SQLITE_{sqliteException.SqliteErrorCode}");
+            return StoreResults.Unavailable<T>($"EW3091_ORACLE_{oracleException.Number}");
         }
     }
 
-    private static WorkLease ToLease(WorkItemRow item, long instanceRevision, long now) =>
-        new(
-            new WorkItemId(ParseGuid(item.Id)),
-            new NodeActivationId(ParseGuid(item.ActivationId)),
-            new WorkflowInstanceId(ParseGuid(item.InstanceId)),
-            new TechnicalId(item.NodeId),
-            new TechnicalId(item.OwnerId!),
-            item.Generation,
-            new LeaseToken(ParseGuid(item.LeaseToken!)),
-            DateTimeOffset.FromUnixTimeMilliseconds(now),
-            DateTimeOffset.FromUnixTimeMilliseconds(item.LeaseExpiresAtUnixMilliseconds!.Value),
-            instanceRevision);
+    private static async Task<StartReceiptRow?> FindReceiptAsync(OracleWorkflowDbContext context,
+        StartInstanceCommand command, CancellationToken cancellationToken) =>
+        await context.StartReceipts.FindAsync(
+            [StoreContractRules.ComputeStartReceiptKey(command.Scope, command.IdempotencyKey)], cancellationToken)
+            .ConfigureAwait(false);
+
+    private static bool ReceiptMatches(StartReceiptRow receipt, StartInstanceCommand command) =>
+        string.Equals(receipt.InstallationId, command.Scope.InstallationId.Value, StringComparison.Ordinal) &&
+        string.Equals(receipt.CommandTypeId, command.Scope.CommandTypeId.Value, StringComparison.Ordinal) &&
+        string.Equals(receipt.ActorProviderId, command.Scope.Actor.ProviderId.Value, StringComparison.Ordinal) &&
+        string.Equals(receipt.ActorSubjectId, command.Scope.Actor.SubjectId, StringComparison.Ordinal) &&
+        string.Equals(receipt.IdempotencyKey, command.IdempotencyKey.Value, StringComparison.Ordinal);
+
+    private static WorkLease ToLease(WorkItemRow item, long revision, long now) => new(
+        new WorkItemId(ParseGuid(item.Id)), new NodeActivationId(ParseGuid(item.ActivationId)),
+        new WorkflowInstanceId(ParseGuid(item.InstanceId)), new TechnicalId(item.NodeId), new TechnicalId(item.OwnerId!),
+        item.Generation, new LeaseToken(ParseGuid(item.LeaseToken!)), DateTimeOffset.FromUnixTimeMilliseconds(now),
+        DateTimeOffset.FromUnixTimeMilliseconds(item.LeaseExpiresAtUnixMilliseconds!.Value), revision);
 
     private static bool IsCurrentLease(WorkItemRow item, LeaseToken token, long generation, long now) =>
-        item.Status == (int)WorkItemStatus.Leased &&
-        item.Generation == generation &&
+        item.Status == (int)WorkItemStatus.Leased && item.Generation == generation &&
         string.Equals(item.LeaseToken, FormatGuid(token.Value), StringComparison.Ordinal) &&
         item.LeaseExpiresAtUnixMilliseconds > now;
 
@@ -563,14 +567,8 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
         item.LeaseExpiresAtUnixMilliseconds = null;
     }
 
-    private static void AddAudit(
-        SqliteWorkflowDbContext context,
-        string instanceId,
-        string eventType,
-        long revision,
-        long now,
-        ActorIdentity? actor = null) =>
-        context.Audits.Add(new AuditRow
+    private static void AddAudit(OracleWorkflowDbContext context, string instanceId, string eventType,
+        long revision, long now, ActorIdentity? actor = null) => context.Audits.Add(new AuditRow
         {
             InstanceId = instanceId,
             EventType = eventType,
@@ -597,13 +595,9 @@ public sealed class SqliteWorkflowStore : IWorkflowStore
 
     private static bool IsWholePositiveMilliseconds(TimeSpan value) =>
         value > TimeSpan.Zero && value.Ticks % TimeSpan.TicksPerMillisecond == 0;
-
     private static bool IsUtcMillisecond(DateTimeOffset value) => StoreContractRules.HasUtcMillisecondPrecision(value);
-
     private static bool IsTerminal(WorkflowInstanceStatus status) =>
         status is WorkflowInstanceStatus.Completed or WorkflowInstanceStatus.Failed or WorkflowInstanceStatus.Cancelled;
-
-    private static string FormatGuid(Guid value) => value.ToString("N", System.Globalization.CultureInfo.InvariantCulture);
-
+    private static string FormatGuid(Guid value) => value.ToString("N", CultureInfo.InvariantCulture);
     private static Guid ParseGuid(string value) => Guid.ParseExact(value, "N");
 }

@@ -1,12 +1,12 @@
 # Persistance SQLite et Oracle
 
-Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2. Le provider SQLite L3a est implémenté et éprouvé sur base fichier ; Oracle et la portabilité finale du contrat restent à qualifier en L3b avant stabilisation.
+Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2. Les providers SQLite L3a et Oracle L3b sont implémentés et éprouvés sur des bases réelles ; Oracle Free couvre la validation de développement, tandis que la qualification officielle 19.19 reste différée.
 
 ## Composition
 
-Le Core reste indépendant d’EF. Les contrats du store sont purs. `EnterpriseWorkflow.Persistence.Sqlite` expose `ConfigureEnterpriseWorkflowSqlite` pour intégrer les mappings à un modèle applicatif et `SqliteWorkflowDbContext` pour le contexte dédié. `SqliteWorkflowDatabase.MigrateAsync` est une opération explicite ; le store ne migre jamais implicitement au démarrage. L’application embarquée reste propriétaire des migrations de son contexte ; le Kernel possède celles du sien.
+Le Core reste indépendant d’EF et les contrats du store sont purs. Chaque adaptateur expose sa configuration de modèle, son `DbContext` dédié et un objet `*WorkflowDatabase` dont `MigrateAsync` applique explicitement les migrations. Le store ne migre jamais implicitement au démarrage. L’application embarquée reste propriétaire des migrations de son contexte ; le Kernel possède celles du sien.
 
-Un modèle commun ne suffit pas à rendre le SQL portable. L3a conserve donc la transaction d’écriture immédiate, l’horloge SQL et les conversions de dates à l’intérieur du provider SQLite. La factorisation éventuelle d’entités avec Oracle attend L3b afin de ne pas figer prématurément des hypothèses SQLite.
+Un modèle commun ne suffit pas à rendre le SQL portable. La transaction d’écriture immédiate SQLite et le verrouillage `FOR UPDATE ... SKIP LOCKED` Oracle, leurs horloges SQL et leurs conversions restent donc dans leurs adaptateurs respectifs. Les entités physiques ne sont pas factorisées artificiellement.
 
 ## Opérations atomiques proposées
 
@@ -46,13 +46,15 @@ Le [dictionnaire du schéma physique SQLite](sqlite-schema.md) documente chaque 
 
 Chaque mutation ouvre une connexion et une transaction `BEGIN IMMEDIATE` courte. Claim, renouvellement, commit, annulation et audit partagent cette transaction. L’heure du bail vient de SQLite avec précision milliseconde ; le claim accepte un travail Ready dû ou un bail expiré, puis avance génération et token. Les tests utilisent plusieurs connexions contre un fichier, prouvent un seul gagnant et refusent le commit de l’ancien propriétaire après reprise. Aucun mode WAL ni affaiblissement de `synchronous` n’est imposé ; ces réglages restent à mesurer avec Q06.
 
-## Oracle
+## Oracle — implémenté en L3b, qualification 19.19 différée
 
 Minimum produit : 19c. Tester réellement 19c pour toute déclaration de compatibilité minimale. Une version plus récente n’est pas qualifiée automatiquement ; inscrire les versions et patchs testés dans le manifeste de release.
 
-La documentation Oracle annonce EF Core 10 à partir d’Oracle Entity Framework Core 23.26.0. La version exacte du package sera épinglée après restauration et tests. [Prérequis EF Oracle](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/InstallEFCoreRequirements.html).
+Le provider utilise Oracle Entity Framework Core `10.23.26301`, avec compatibilité SQL configurée pour Oracle Database 19c. [Prérequis EF Oracle](https://docs.oracle.com/en/database/oracle/oracle-database/26/odpnt/InstallEFCoreRequirements.html).
 
-Points à éprouver : transactions de claim, fencing, chaîne vide/null, booléens et nombres, précision UTC, LOB/JSON texte, identifiants et noms de contraintes, limites d’index, migrations 19c et privilèges minimaux. Choisir le SQL de claim à partir d’un prototype concurrent, sans transposer un SQL SQLite.
+Les chaînes obligatoires, notamment le sujet d’acteur, refusent `null` et la chaîne vide ; les textes facultatifs vides sont normalisés en `NULL` pour une sémantique identique à Oracle. Les reçus utilisent une empreinte SHA-256 de composantes UTF-8 préfixées par leur longueur, tout en stockant et revérifiant les composantes originales. Le claim ordonne les candidats et verrouille le premier disponible avec `FOR UPDATE ... SKIP LOCKED`; génération et token assurent le fencing. Les instants proviennent de l’horloge UTC Oracle à la milliseconde, les GUID sont des `CHAR(32)` et les JSON des `CLOB`.
+
+Le [dictionnaire du schéma physique Oracle](oracle-schema.md) décrit les tables, types, clés, index, règles de chaînes vides et privilèges de migration retenus en L3b.
 
 Compte de migration distinct du compte d’exécution lorsque l’environnement l’exige ; pas de privilège DBA nécessaire au moteur. La topologie d’accès et le provisionnement de la base de test doivent être convenus, sans installer Oracle ou Docker implicitement.
 
@@ -68,4 +70,4 @@ D5 acceptée : aucun purgeur automatique des reçus au MVP initial ; la politiqu
 
 ## Environnement de test
 
-Docker Compose est autorisé pour préparer Oracle ; aucune instance n’est encore disponible. Cette infrastructure sert aux tests, sans devenir une dépendance obligatoire du framework. Voir la [préparation L2](../l2-readiness.md) pour la distinction entre contrats et qualification Oracle 19c.
+Deux compositions Docker reproductibles sont fournies : Oracle Free publique pour la boucle ARM64 rapide et l’image Oracle Enterprise officielle `19.19.0.0` pour la qualification ultérieure du minimum produit. Seule la première a été exécutée en L3b-I ; le téléchargement officiel a été interrompu à la demande du porteur pour préserver une connexion limitée. Cette infrastructure sert uniquement aux tests et n’est pas une dépendance du framework. Voir les [commandes d’intégration](../../tests/oracle/README.md) et la [preuve L3b](../evidence/l3b.md).

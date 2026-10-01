@@ -15,6 +15,7 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Abstractions"] = [],
             ["EnterpriseWorkflow.Core"] = ["EnterpriseWorkflow.Abstractions"],
             ["EnterpriseWorkflow.Persistence.Abstractions"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
+            ["EnterpriseWorkflow.Persistence.Oracle"] = ["EnterpriseWorkflow.Persistence.Abstractions"],
             ["EnterpriseWorkflow.Persistence.Sqlite"] = ["EnterpriseWorkflow.Persistence.Abstractions"],
             ["EnterpriseWorkflow.Sdk"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
         };
@@ -63,8 +64,11 @@ public sealed class ArchitectureTests
             .ToArray();
 
         Assert.Equal(
-            [(Project: "EnterpriseWorkflow.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite")],
-            packageReferences.Select(item => (item.Project, item.Package)));
+            [
+                (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
+                (Project: "EnterpriseWorkflow.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite"),
+            ],
+            packageReferences.Select(item => (item.Project, item.Package)).OrderBy(item => item.Project, StringComparer.Ordinal));
     }
 
     private static string FindRepositoryRoot()
