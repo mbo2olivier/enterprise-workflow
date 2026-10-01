@@ -28,6 +28,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 3. [Architecture](docs/architecture/overview.md)
 4. [ADR](docs/adr/README.md)
 5. [Plan d’implémentation](docs/implementation-plan.md)
+6. [Prérequis et arbitrages pour L2](docs/l2-readiness.md)
 6. [Preuve du lot L1](docs/evidence/l1.md)
 
 ## Documents de référence

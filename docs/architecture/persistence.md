@@ -26,7 +26,7 @@ Chaque méthode renvoie un résultat structuré : réussite, résultat idempoten
 
 La révocation de droits externes ne peut pas être rendue atomique avec une transaction SQL locale. Recontrôler l’autorisation au moment de la commande ; protéger aussi l’affectation et la révision persistées au commit. Les garanties de fraîcheur sont documentées dans le contrat de sécurité.
 
-## Modèle physique à produire au lot L2
+## Modèle logique en L2 ; modèle physique en L3
 
 Contraintes uniques : définition/version, reçu/portée/clé, travail logique de suite, résolution d’attente. Révision abstraite entière mise à jour conditionnellement ; ne pas imposer `rowversion` SQL Server.
 
@@ -60,4 +60,8 @@ Le partage d’un DbContext ne signifie pas que tous les effets du nœud partici
 
 Schéma versionné ; vérification au démarrage et migration explicite avant démarrage du worker. Pas de DDL destructif automatique. Tester création à vide et montée de version sur un état contenant instances et tâches actives. Restaurer la base et ses artefacts compatibles ensemble.
 
-Politique de rétention en attente de Q06 : aucun purgeur automatique au MVP initial. Les reçus d’idempotence, modules requis et audits ne doivent pas être supprimés sans vérifier leurs dépendances.
+D5 acceptée : aucun purgeur automatique des reçus au MVP initial ; la politique complète de rétention reste Q06. Les reçus d’idempotence, modules requis et audits ne doivent pas être supprimés sans vérifier leurs dépendances.
+
+## Environnement de test
+
+Docker Compose est autorisé pour préparer Oracle ; aucune instance n’est encore disponible. Cette infrastructure sert aux tests, sans devenir une dépendance obligatoire du framework. Voir la [préparation L2](../l2-readiness.md) pour la distinction entre contrats et qualification Oracle 19c.

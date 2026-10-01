@@ -1,12 +1,14 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Le lot L1 est **terminé localement** ; son workflow GitHub Actions reste à observer sur GitHub. Les lots L2 à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Le lot L1 est **terminé** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions (run non revérifié indépendamment dans ce dossier). Les lots L2 à L11 ne sont pas démarrés.
+
+Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
 ## Portes de décision
 
 G0 — franchie : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séquentiel sans parallélisme. Le SDK 10.0.102 est épinglé. GitHub Actions utilise les runners `ubuntu-24.04`, `windows-2025` et `macos-15`. La réponse sur la licence peut attendre la publication.
 
-G1 — avant persistance stabilisée : fixer limites de payload, portée/rétention des reçus, délais de bail/retry et conversion du temps ; obtenir une base Oracle 19c de test. Ne pas installer d’infrastructure implicitement.
+G1 — contrats L2 cadrés par D1 à D6 : limites, déduplication sans purge automatique et temps UTC à la milliseconde acceptés. Encodage SQL et atomicité à qualifier en L3 ; durées de bail/retry et polling à finaliser en L4. Aucune instance Oracle disponible ; préparation Docker Compose autorisée pour les tests. Le provisionnement 19c reste à réaliser et ne bloque pas le modèle/DSL.
 
 G2 — avant sécurité/UI : arrêter contrats de fournisseurs, bootstrap, durée de session/révocation, source des responsables Q11 et mode de rendu UI Q09b. Auto-approbation configurable et interdite par défaut (ADR 0011), Razor/Blazor (ADR 0012), besoin local/distant et mode AD sont déjà résolus. Définir au contrat les tâches d’approbation et le versionnement de leur politique avant L6.
 
@@ -19,7 +21,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | Lot | Travail et livrables | Dépendances | Critère de sortie |
 | --- | --- | --- | --- |
 | L0 | Cadrage, PRD, ADR, architecture, plan et revue des décisions | Aucune | Dossier cohérent, inconnues tracées, mécanismes du lot suivant acceptés |
-| L1 — terminé localement | Solution minimale, Core/Abstractions/SDK, analyseurs et GitHub Actions | G0 | Build verrouillé réussi, références unidirectionnelles testées, exemple C# exécuté ; exécution GitHub à observer |
+| L1 — terminé | Solution minimale, Core/Abstractions/SDK, analyseurs et GitHub Actions | G0 | Build verrouillé réussi, références unidirectionnelles testées, exemple C# exécuté ; réussite GitHub confirmée par le porteur |
 | L2 | Modèle canonique, validateur, DSL et contrats de store | L1, G1 pour store final | Graphe normalisé ; erreurs localisées ; table de transitions et contrats testés |
 | L3a | Adaptateur SQLite et migrations | L2 | Création/claim/commit/reprise sur base fichier réelle |
 | L3b | Prototype puis adaptateur Oracle 19c, mappings et migrations | L2, accès Oracle | Même suite de conformité ; différences documentées ; aucun test ignoré présenté comme réussi |

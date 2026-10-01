@@ -72,7 +72,7 @@ sequenceDiagram
 
 Une transaction de commit vérifie statut de l’instance, révision, génération et expiration ; elle met à jour activation et instance, clôture le travail et persiste les suites, attentes et intentions de livraison. Une course perdue ne doit produire aucune écriture partielle.
 
-L’horloge de référence des baux doit être cohérente entre claim, renouvellement et commit. Proposition : temps fourni par le store, à implémenter et tester par provider ; `TimeProvider` pour le moteur et les tests. Ne pas comparer des horloges de workers non synchronisées en prétendant garantir le fencing.
+L’horloge de référence des baux doit être cohérente entre claim, renouvellement et commit. D5 acceptée : temps fourni par le store, à implémenter et tester par provider ; `TimeProvider` pour le moteur et les tests. Ne pas comparer des horloges de workers non synchronisées en prétendant garantir le fencing.
 
 Polling SQL et `BackgroundService` sont suffisants pour démarrer. Un signal mémoire accélère éventuellement le réveil ; un redémarrage doit fonctionner sans lui. Aucun DbContext ni transaction n’est conservé durant une attente ou un appel réseau métier.
 
@@ -82,7 +82,7 @@ Polling SQL et `BackgroundService` sont suffisants pour démarrer. Un signal mé
 - Une clé d’effet est stable, par exemple installation + instance + activation + nom de l’opération ; le numéro de tentative n’en fait pas partie.
 - La destination doit accepter cette clé ou la duplication doit être tolérée/traitée par l’intégration.
 - L’outbox rend l’intention atomique avec le moteur ; le destinataire peut recevoir plusieurs livraisons.
-- Les reçus de démarrage sont scoped par installation, acteur stable et type de commande ; empreinte de la requête et résultat sont conservés. Leur rétention sera fixée avant implémentation, sans purge tant que sa sémantique n’est pas décidée.
+- Les reçus de démarrage sont scoped par installation, acteur stable et type de commande ; empreinte de la requête et résultat sont conservés. D5 accepte l’absence de purge automatique au MVP initial ; toute expiration future exigera une décision explicite.
 - Pour une tâche : requête identique avec même clé rend le résultat connu après contrôle d’accès ; même clé avec autre contenu ou autre décision après clôture rend un conflit. Aucun deuxième réveil.
 
 Un défaut transitoire autorise un retry avec délai progressif, jitter et plafond configurable. Erreur métier produit une issue prévue ; erreur permanente ou retries épuisés produisent Failed. Les valeurs par défaut sont à fixer et tester avant L4.

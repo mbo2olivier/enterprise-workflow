@@ -1,6 +1,6 @@
 # Registre des ADR
 
-Les ADR 0001 à 0008, 0011 et 0012 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
+Les ADR 0001 à 0008, 0011 à 0013 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
 
 Une modification significative donnera lieu à un nouvel ADR qui remplace le précédent ; conserver l’historique et le motif. « Acceptée » signifie décision prise, pas fonctionnalité implémentée ou testée.
 
@@ -18,3 +18,4 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0010](0010-distribution.md) | Distribution par RID et qualification explicite | Proposée pour le packaging ; périmètre plateformes accepté |
 | [0011](0011-auto-approbation.md) | Auto-approbation configurable, interdite par défaut | Acceptée |
 | [0012](0012-ui-razor-blazor.md) | UI Razor/Blazor et formulaires extensibles | Acceptée |
+| [0013](0013-contrats-l2.md) | Conventions et contrats du lot L2 | Acceptée |

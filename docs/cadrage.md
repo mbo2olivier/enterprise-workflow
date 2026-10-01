@@ -8,7 +8,9 @@ S1 : [document fourni et archivé](references/README.md), daté du 30 septembre 
 
 S6 : acceptation des ADR 0006 et 0008, choix GitHub/GitHub Actions, puis confirmation de la proposition initiale de l’ADR 0007 après examen du parallélisme. Le parallélisme reste différé ; GitLab sera envisagé ultérieurement.
 
-S2 à S6 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées. Aucun nom d’API de ce dossier ne désigne une API déjà livrée.
+S7 : validation de L2-D1 à L2-D6 le 1er octobre 2026 ; aucune instance Oracle disponible, Docker installé et environnement de test Docker Compose autorisé. Voir [ADR 0013](adr/0013-contrats-l2.md).
+
+S2 à S7 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées. Aucun nom d’API de ce dossier ne désigne une API déjà livrée.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
 
@@ -67,4 +69,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-Le PRD, les ADR, l’architecture, le plan, les tests attendus et l’exploitation forment le dossier préalable. Aucun code, migration, installation, publication ni test fonctionnel du framework n’a été réalisé.
+L1 est implémenté et le porteur confirme la réussite de la CI GitHub. L2 est cadré par les décisions D1 à D6 acceptées et n’est pas encore implémenté. Aucun adaptateur SQL ni environnement Oracle n’est livré à ce stade.
