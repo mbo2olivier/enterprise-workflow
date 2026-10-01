@@ -1,6 +1,6 @@
 # Architecture générale
 
-Statut : L1, L2 et adaptateurs SQLite L3a et Oracle L3b implémentés localement ; les composants ultérieurs restent une proposition technique. Les contrats de store sont éprouvés sur SQLite et Oracle Free ; la qualification Oracle Enterprise 19.19 reste différée.
+Statut : L1, L2 et adaptateurs SQLite L3a et Oracle L3b implémentés localement ; les composants ultérieurs restent une proposition technique. Les contrats de store sont éprouvés sur SQLite, Oracle Free et Oracle Enterprise 19.19.
 
 ## Responsabilités et intégration
 
@@ -43,7 +43,7 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 | Security.Abstractions | Identité, permissions et capacités | Abstractions |
 | Security.* | Connecteurs et autorisation ; intégration sessions séparée | Security.Abstractions ; dépendances externes locales au connecteur |
 | Persistence.Sqlite | Mapping EF Core intégrable, contexte dédié, SQL/conversions et migrations SQLite | Persistence.Abstractions |
-| Persistence.Oracle | Mapping, SQL, conversions et migrations éprouvés sur Oracle Free en L3b ; qualification 19.19 différée | Persistence.Abstractions |
+| Persistence.Oracle | Mapping, SQL, conversions et migrations éprouvés sur Oracle Free et Enterprise 19.19 en L3b | Persistence.Abstractions |
 | AspNetCore | HTTP, DI, sessions, worker hébergé | Application, Runtime et contrats d’intégration |
 | PluginSystem | Manifestes, compatibilité, résolution des modules | Contrats purs et contrats DI dédiés |
 | UI / Administration | Formulaires, pages métier et administration | Application et contrats UI/sécurité |

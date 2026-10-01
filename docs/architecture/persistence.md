@@ -1,6 +1,6 @@
 # Persistance SQLite et Oracle
 
-Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2. Les providers SQLite L3a et Oracle L3b sont implémentés et éprouvés sur des bases réelles ; Oracle Free couvre la validation de développement, tandis que la qualification officielle 19.19 reste différée.
+Choix des SGBD accepté : SQLite et Oracle à partir de 19c. Les opérations atomiques et règles pures du contrat sont implémentées en L2. Les providers SQLite L3a et Oracle L3b sont implémentés et éprouvés sur des bases réelles ; Oracle Free couvre la boucle de développement et Oracle Enterprise 19.19 qualifie le minimum produit pour les scénarios de persistance L3b.
 
 ## Composition
 
@@ -46,7 +46,7 @@ Le [dictionnaire du schéma physique SQLite](sqlite-schema.md) documente chaque 
 
 Chaque mutation ouvre une connexion et une transaction `BEGIN IMMEDIATE` courte. Claim, renouvellement, commit, annulation et audit partagent cette transaction. L’heure du bail vient de SQLite avec précision milliseconde ; le claim accepte un travail Ready dû ou un bail expiré, puis avance génération et token. Les tests utilisent plusieurs connexions contre un fichier, prouvent un seul gagnant et refusent le commit de l’ancien propriétaire après reprise. Aucun mode WAL ni affaiblissement de `synchronous` n’est imposé ; ces réglages restent à mesurer avec Q06.
 
-## Oracle — implémenté en L3b, qualification 19.19 différée
+## Oracle — implémenté et qualifié en L3b
 
 Minimum produit : 19c. Tester réellement 19c pour toute déclaration de compatibilité minimale. Une version plus récente n’est pas qualifiée automatiquement ; inscrire les versions et patchs testés dans le manifeste de release.
 
@@ -70,4 +70,4 @@ D5 acceptée : aucun purgeur automatique des reçus au MVP initial ; la politiqu
 
 ## Environnement de test
 
-Deux compositions Docker reproductibles sont fournies : Oracle Free publique pour la boucle ARM64 rapide et l’image Oracle Enterprise officielle `19.19.0.0` pour la qualification ultérieure du minimum produit. Seule la première a été exécutée en L3b-I ; le téléchargement officiel a été interrompu à la demande du porteur pour préserver une connexion limitée. Cette infrastructure sert uniquement aux tests et n’est pas une dépendance du framework. Voir les [commandes d’intégration](../../tests/oracle/README.md) et la [preuve L3b](../evidence/l3b.md).
+Deux compositions Docker reproductibles sont fournies et exécutées : Oracle Free publique pour la boucle ARM64 rapide et l’image Oracle Enterprise officielle `19.19.0.0` pour la qualification du minimum produit. Le healthcheck officiel exécute une requête SQL avec sortie non nulle sur erreur afin de ne pas confondre listener démarré et PDB réellement disponible. Cette infrastructure sert uniquement aux tests et n’est pas une dépendance du framework. Voir les [commandes d’intégration](../../tests/oracle/README.md) et la [preuve L3b](../evidence/l3b.md).

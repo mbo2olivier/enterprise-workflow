@@ -1,6 +1,6 @@
 # Schéma physique Oracle du framework
 
-Statut : schéma L3b ciblant Oracle Database 19c, validé en développement sur Oracle Free `23.26.3`. La qualification sur l’image officielle Enterprise 19.19 reste planifiée en L3b-Q. La source exécutable est la migration `202610010002_InitialOracle` du projet `EnterpriseWorkflow.Persistence.Oracle`.
+Statut : schéma L3b ciblant Oracle Database 19c, validé sur Oracle Free `23.26.3` et qualifié sur Oracle Enterprise `19.19.0.0.0`. La source exécutable est la migration `202610010002_InitialOracle` du projet `EnterpriseWorkflow.Persistence.Oracle`.
 
 Les tables appartiennent au schéma Oracle configuré dans la chaîne de connexion. Elles ne sont pas une API SQL publique : les mutations passent par `IWorkflowStore`, afin de préserver transactions, révisions, idempotence et fencing.
 

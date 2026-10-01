@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L3b implémentés localement.** Le dépôt contient le socle .NET 10, le modèle canonique, le validateur, la DSL C#, les contrats atomiques de persistance et les adaptateurs EF Core SQLite et Oracle avec migrations explicites et tests sur bases réelles. L’adaptateur Oracle passe sa validation de développement sur Oracle Free ; sa qualification minimale sur l’image officielle Oracle 19.19 est différée jusqu’à une connexion non limitée. Aucun package n’est encore publié et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L3b implémentés et qualifiés localement.** Le dépôt contient le socle .NET 10, le modèle canonique, le validateur, la DSL C#, les contrats atomiques de persistance et les adaptateurs EF Core SQLite et Oracle avec migrations explicites et tests sur bases réelles. L’adaptateur Oracle passe sur Oracle Free et sur l’image officielle Oracle Enterprise 19.19 ARM64. Aucun package n’est encore publié et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 

@@ -15,7 +15,7 @@ dotnet test --project tests/EnterpriseWorkflow.Persistence.Oracle.Tests/Enterpri
 
 ## L3b-Q — qualification Oracle 19.19 officielle
 
-Cette étape est prête mais différée jusqu’à la disponibilité d’une connexion non limitée. Elle ne doit pas être présentée comme réussie avant l’exécution complète des commandes suivantes.
+Cette étape a été exécutée avec succès le 1er octobre 2026 sur Oracle Enterprise `19.19.0.0.0` ARM64. Les commandes restent la procédure de reproduction ; chaque future version ou plateforme revendiquée doit les repasser.
 
 Après authentification à Oracle Container Registry et acceptation de ses conditions :
 

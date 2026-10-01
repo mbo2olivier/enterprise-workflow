@@ -10,7 +10,11 @@ services:
     volumes:
       - ./official-setup:/opt/oracle/scripts/setup:ro
     healthcheck:
-      test: ["CMD-SHELL", "echo 'select 1 from dual;' | sqlplus -s system/$${ORACLE_PWD}@//localhost:1521/ORCLPDB1 >/dev/null"]
+      test:
+        - CMD-SHELL
+        - >-
+          printf 'whenever sqlerror exit 1\nselect 1 from dual;\nexit\n' |
+          sqlplus -s system/$${ORACLE_PWD}@//localhost:1521/ORCLPDB1 >/dev/null
       interval: 15s
       timeout: 10s
       retries: 60
