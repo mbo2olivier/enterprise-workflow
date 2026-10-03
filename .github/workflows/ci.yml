@@ -35,5 +35,5 @@ jobs:
       - name: Test
         run: dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
 
-      - name: Run minimal sample
-        run: dotnet run --project samples/MinimalWorkflow/MinimalWorkflow.csproj --configuration Release --no-build --no-restore
+      - name: Run executable workflow sample
+        run: dotnet run --project samples/ExecutableWorkflow/ExecutableWorkflow.csproj --configuration Release --no-build --no-restore

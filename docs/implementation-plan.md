@@ -88,7 +88,7 @@ src/EnterpriseWorkflow.Core/
 src/EnterpriseWorkflow.Sdk/
 src/EnterpriseWorkflow.Persistence.Abstractions/
 tests/EnterpriseWorkflow.Core.Tests/
-samples/MinimalWorkflow/
+samples/ExecutableWorkflow/
 docs/
 ```
 
