@@ -40,13 +40,29 @@ jobs:
           sudo cp tests/ldap/certs/ca.crt /usr/local/share/ca-certificates/enterprise-workflow-openldap.crt
           sudo update-ca-certificates
           docker compose -f tests/ldap/docker-compose.yml up -d --wait
+          for attempt in {1..30}; do
+            if timeout 2 openssl s_client \
+              -connect 127.0.0.1:1636 \
+              -verify_ip 127.0.0.1 \
+              -CAfile tests/ldap/certs/ca.crt \
+              -verify_return_error </dev/null >/tmp/openldap-tls-probe.log 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              cat /tmp/openldap-tls-probe.log
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Test
         run: dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
         env:
           LDAP_TEST_ENABLED: ${{ runner.os == 'Linux' && '1' || '0' }}
           LDAP_TEST_LDAPS: ${{ runner.os == 'Linux' && '1' || '0' }}
+          LDAP_TEST_HOST: ${{ runner.os == 'Linux' && '127.0.0.1' || 'localhost' }}
           LDAP_TEST_CA_FILE: ${{ github.workspace }}/tests/ldap/certs/ca.crt
+          LDAP_TEST_CA_DIRECTORY: ${{ github.workspace }}/tests/ldap/certs/trust
           LDAPTLS_CACERT: ${{ github.workspace }}/tests/ldap/certs/ca.crt
           LDAPTLS_REQCERT: demand
 

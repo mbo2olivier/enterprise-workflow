@@ -43,7 +43,7 @@ Q11 est résolue par l’[ADR 0017](../adr/0017-designation-approbateur.md) : un
 
 `LdapDirectoryProvider` implémente LDAPv3 en lecture seule. `LdapDirectoryOptions` configure filtre utilisateur, attributs, codecs `Utf8String`, `GuidLittleEndian`, `Hexadecimal` ou `Base64`, stratégie de groupes et statut. Les capacités recherche/groupes/statut sont annoncées explicitement. L’identité stable repose par défaut sur `entryUUID` ; aucun DN, login ou email ne sert de repli.
 
-Le transport par défaut est LDAPS. Le mode `PlainText` doit être choisi explicitement ; il n’existe aucun downgrade automatique après erreur TLS. Les credentials de service restent fournis par `ILdapServiceCredentialProvider`, les referrals sont désactivés et les recherches, groupes et timeouts sont bornés. StartTLS et groupes imbriqués sont hors L5a. L’ancien connecteur AD est supprimé conformément à R1 ; AD n’est pas revendiqué.
+Le transport par défaut est LDAPS. Le mode `PlainText` doit être choisi explicitement ; il n’existe aucun downgrade automatique après erreur TLS. La chaîne système est utilisée par défaut ; sous Linux, `CertificateDirectory` peut désigner explicitement un répertoire de CA PEM indexé par `openssl rehash`, sans désactiver la validation du certificat. Les credentials de service restent fournis par `ILdapServiceCredentialProvider`, les referrals sont désactivés et les recherches, groupes et timeouts sont bornés. StartTLS et groupes imbriqués sont hors L5a. L’ancien connecteur AD est supprimé conformément à R1 ; AD n’est pas revendiqué.
 
 ## Extension locale
 

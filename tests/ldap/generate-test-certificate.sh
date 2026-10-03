@@ -25,3 +25,7 @@ openssl x509 -req \
   -out "$certificate_directory/server.crt" \
   -days 2 -sha256 \
   -extfile "$(dirname "$0")/server-cert.ext"
+
+mkdir -p "$certificate_directory/trust"
+cp "$certificate_directory/ca.crt" "$certificate_directory/trust/enterprise-workflow-ldap-ca.crt"
+openssl rehash "$certificate_directory/trust"

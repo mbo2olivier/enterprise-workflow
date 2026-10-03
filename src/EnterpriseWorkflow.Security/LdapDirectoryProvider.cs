@@ -142,6 +142,11 @@ public sealed class LdapDirectoryProvider(
         };
         connection.SessionOptions.ProtocolVersion = 3;
         connection.SessionOptions.SecureSocketLayer = endpoint.UseSsl;
+        if (endpoint.UseSsl && options.CertificateDirectory is not null && OperatingSystem.IsLinux())
+        {
+            connection.SessionOptions.TrustedCertificatesDirectory = options.CertificateDirectory;
+            connection.SessionOptions.StartNewTlsSessionContext();
+        }
         connection.SessionOptions.ReferralChasing = ReferralChasingOptions.None;
         return connection;
     }

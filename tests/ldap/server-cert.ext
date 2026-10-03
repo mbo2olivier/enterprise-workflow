@@ -1,4 +1,4 @@
 basicConstraints=critical,CA:FALSE
 keyUsage=critical,digitalSignature,keyEncipherment
 extendedKeyUsage=serverAuth
-subjectAltName=DNS:localhost,DNS:openldap
+subjectAltName=DNS:localhost,DNS:openldap,IP:127.0.0.1

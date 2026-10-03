@@ -12,18 +12,28 @@ public sealed class LdapDirectoryIntegrationTests
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("LDAP_TEST_ENABLED"), "1", StringComparison.Ordinal)) return;
         var caFile = Environment.GetEnvironmentVariable("LDAP_TEST_CA_FILE");
+        var certificateDirectory = Environment.GetEnvironmentVariable("LDAP_TEST_CA_DIRECTORY");
         var qualifyLdaps = string.Equals(Environment.GetEnvironmentVariable("LDAP_TEST_LDAPS"), "1", StringComparison.Ordinal);
         var host = Environment.GetEnvironmentVariable("LDAP_TEST_HOST") ?? "localhost";
+        var invalidCertificateHost = Environment.GetEnvironmentVariable("LDAP_TEST_INVALID_CERTIFICATE_HOST") ??
+            (string.Equals(host, "127.0.0.1", StringComparison.Ordinal) ? "127.0.0.2" : "127.0.0.1");
         var ldapsPort = GetPort("LDAP_TEST_LDAPS_PORT", 1636);
         var plainTextPort = GetPort("LDAP_TEST_PLAIN_PORT", 1389);
-        if (qualifyLdaps) Assert.False(string.IsNullOrWhiteSpace(caFile));
+        if (qualifyLdaps)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(caFile));
+            Assert.True(Directory.Exists(certificateDirectory));
+        }
         var cancellationToken = TestContext.Current.CancellationToken;
         var credentials = new StaticCredentialProvider(AdminCredential);
         var provider = new LdapDirectoryProvider(
-            Options(host, ldapsPort, qualifyLdaps ? LdapTransportMode.Ldaps : LdapTransportMode.PlainText, plainTextPort), credentials);
+            Options(host, ldapsPort, qualifyLdaps ? LdapTransportMode.Ldaps : LdapTransportMode.PlainText, plainTextPort,
+                certificateDirectory: qualifyLdaps ? certificateDirectory : null), credentials);
 
         Assert.Equal(DirectoryCapabilities.Search | DirectoryCapabilities.Groups | DirectoryCapabilities.AccountStatus, provider.Capabilities);
         var authenticated = await provider.AuthenticateAsync(new("employee1", "changeit"), cancellationToken);
+        if (authenticated.Status is AuthenticationStatus.Unavailable)
+            AssertEndpointCanBindAndSearch(host, ldapsPort, qualifyLdaps, certificateDirectory);
         Assert.Equal((AuthenticationStatus.Succeeded, (string?)null), (authenticated.Status, authenticated.ErrorCode));
 
         var search = await provider.SearchAsync("Employee", 10, cancellationToken);
@@ -45,7 +55,8 @@ public sealed class LdapDirectoryIntegrationTests
 
         if (qualifyLdaps)
         {
-            var badName = new LdapDirectoryProvider(Options("127.0.0.1", ldapsPort), credentials);
+            var badName = new LdapDirectoryProvider(
+                Options(invalidCertificateHost, ldapsPort, certificateDirectory: certificateDirectory), credentials);
             var rejectedCertificate = await badName.AuthenticateAsync(new("employee-renamed", "changeit"), cancellationToken);
             Assert.Equal(AuthenticationStatus.Unavailable, rejectedCertificate.Status);
         }
@@ -64,12 +75,14 @@ public sealed class LdapDirectoryIntegrationTests
         int port,
         LdapTransportMode transport = LdapTransportMode.Ldaps,
         int plainTextPort = 389,
-        TimeSpan? timeout = null) => new()
+        TimeSpan? timeout = null,
+        string? certificateDirectory = null) => new()
         {
             ProviderId = "openldap",
             Host = host,
             Port = port,
             Transport = transport,
+            CertificateDirectory = certificateDirectory,
             PlainTextPort = plainTextPort,
             Timeout = timeout ?? TimeSpan.FromSeconds(10),
             BaseDn = "dc=example,dc=test",
@@ -91,6 +104,31 @@ public sealed class LdapDirectoryIntegrationTests
 
     private static int GetPort(string variableName, int defaultValue) =>
         int.TryParse(Environment.GetEnvironmentVariable(variableName), out var value) ? value : defaultValue;
+
+    private static void AssertEndpointCanBindAndSearch(string host, int port, bool useSsl, string? certificateDirectory)
+    {
+        try
+        {
+            using var connection = new LdapConnection(new LdapDirectoryIdentifier(host, port), AdminCredential, AuthType.Basic);
+            connection.SessionOptions.ProtocolVersion = 3;
+            connection.SessionOptions.SecureSocketLayer = useSsl;
+            if (useSsl && certificateDirectory is not null && OperatingSystem.IsLinux())
+            {
+                connection.SessionOptions.TrustedCertificatesDirectory = certificateDirectory;
+                connection.SessionOptions.StartNewTlsSessionContext();
+            }
+            connection.Bind();
+            connection.SendRequest(new SearchRequest(
+                "dc=example,dc=test",
+                "(&(objectClass=inetOrgPerson)(uid=employee1))",
+                SearchScope.Subtree,
+                "entryUUID"));
+        }
+        catch (Exception exception)
+        {
+            Assert.Fail($"The LDAP endpoint failed its direct bind/search diagnostic: {exception}");
+        }
+    }
 
     private static void RenameEmployee(string host, int port)
     {

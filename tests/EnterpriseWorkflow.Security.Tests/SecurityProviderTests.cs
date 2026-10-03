@@ -37,6 +37,7 @@ public sealed class SecurityProviderTests
         var provider = new LdapDirectoryProvider(options, new StaticLdapCredentialProvider());
 
         Assert.Equal(LdapTransportMode.Ldaps, options.Transport);
+        Assert.Null(options.CertificateDirectory);
         Assert.Equal("entryUUID", options.SubjectAttribute);
         Assert.Equal(DirectoryCapabilities.Search | DirectoryCapabilities.Groups | DirectoryCapabilities.AccountStatus, provider.Capabilities);
     }

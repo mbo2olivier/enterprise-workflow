@@ -74,6 +74,7 @@ public sealed class LdapDirectoryOptions
     public required string Host { get; init; }
     public int Port { get; init; } = 636;
     public LdapTransportMode Transport { get; init; } = LdapTransportMode.Ldaps;
+    public string? CertificateDirectory { get; init; }
     public int PlainTextPort { get; init; } = 389;
     public required string BaseDn { get; init; }
     public string UserObjectFilter { get; init; } = "(objectClass=inetOrgPerson)";
@@ -103,6 +104,7 @@ public sealed class LdapDirectoryOptions
         Required(ProviderId, nameof(ProviderId));
         Required(Host, nameof(Host));
         Required(BaseDn, nameof(BaseDn));
+        if (CertificateDirectory is not null) Required(CertificateDirectory, nameof(CertificateDirectory));
         Filter(UserObjectFilter, nameof(UserObjectFilter));
         Attribute(LoginAttribute, nameof(LoginAttribute));
         Attribute(SubjectAttribute, nameof(SubjectAttribute));
