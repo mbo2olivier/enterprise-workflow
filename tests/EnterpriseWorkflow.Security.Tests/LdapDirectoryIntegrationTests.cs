@@ -13,15 +13,18 @@ public sealed class LdapDirectoryIntegrationTests
         if (!string.Equals(Environment.GetEnvironmentVariable("LDAP_TEST_ENABLED"), "1", StringComparison.Ordinal)) return;
         var caFile = Environment.GetEnvironmentVariable("LDAP_TEST_CA_FILE");
         var qualifyLdaps = string.Equals(Environment.GetEnvironmentVariable("LDAP_TEST_LDAPS"), "1", StringComparison.Ordinal);
+        var host = Environment.GetEnvironmentVariable("LDAP_TEST_HOST") ?? "localhost";
+        var ldapsPort = GetPort("LDAP_TEST_LDAPS_PORT", 1636);
+        var plainTextPort = GetPort("LDAP_TEST_PLAIN_PORT", 1389);
         if (qualifyLdaps) Assert.False(string.IsNullOrWhiteSpace(caFile));
         var cancellationToken = TestContext.Current.CancellationToken;
         var credentials = new StaticCredentialProvider(AdminCredential);
         var provider = new LdapDirectoryProvider(
-            Options("localhost", 1636, qualifyLdaps ? LdapTransportMode.Ldaps : LdapTransportMode.PlainText, 1389), credentials);
+            Options(host, ldapsPort, qualifyLdaps ? LdapTransportMode.Ldaps : LdapTransportMode.PlainText, plainTextPort), credentials);
 
         Assert.Equal(DirectoryCapabilities.Search | DirectoryCapabilities.Groups | DirectoryCapabilities.AccountStatus, provider.Capabilities);
         var authenticated = await provider.AuthenticateAsync(new("employee1", "changeit"), cancellationToken);
-        Assert.Equal(AuthenticationStatus.Succeeded, authenticated.Status);
+        Assert.Equal((AuthenticationStatus.Succeeded, (string?)null), (authenticated.Status, authenticated.ErrorCode));
 
         var search = await provider.SearchAsync("Employee", 10, cancellationToken);
         var employee = Assert.Single(AssertSuccess(search), item => item.Identity == authenticated.Identity);
@@ -35,23 +38,23 @@ public sealed class LdapDirectoryIntegrationTests
         Assert.Equal(AuthenticationStatus.Rejected, disabled.Status);
         Assert.Equal("security.account-disabled", disabled.ErrorCode);
 
-        RenameEmployee();
+        RenameEmployee(host, plainTextPort);
         var afterRename = AssertSuccess(await provider.FindAsync(employee.Identity, includeGroups: false, cancellationToken));
         Assert.Equal(employee.Identity, afterRename.Identity);
         Assert.Equal("Employee1", afterRename.DisplayName);
 
         if (qualifyLdaps)
         {
-            var badName = new LdapDirectoryProvider(Options("127.0.0.1", 1636), credentials);
+            var badName = new LdapDirectoryProvider(Options("127.0.0.1", ldapsPort), credentials);
             var rejectedCertificate = await badName.AuthenticateAsync(new("employee-renamed", "changeit"), cancellationToken);
             Assert.Equal(AuthenticationStatus.Unavailable, rejectedCertificate.Status);
         }
 
-        var unavailable = new LdapDirectoryProvider(Options("localhost", 65534, timeout: TimeSpan.FromMilliseconds(500)), credentials);
+        var unavailable = new LdapDirectoryProvider(Options(host, 65534, timeout: TimeSpan.FromMilliseconds(500)), credentials);
         var outage = await unavailable.AuthenticateAsync(new("employee-renamed", "changeit"), cancellationToken);
         Assert.Equal(AuthenticationStatus.Unavailable, outage.Status);
 
-        var plainText = new LdapDirectoryProvider(Options("localhost", 1636, LdapTransportMode.PlainText, 1389), credentials);
+        var plainText = new LdapDirectoryProvider(Options(host, ldapsPort, LdapTransportMode.PlainText, plainTextPort), credentials);
         var explicitPlainTextLogin = await plainText.AuthenticateAsync(new("employee-renamed", "changeit"), cancellationToken);
         Assert.Equal(AuthenticationStatus.Succeeded, explicitPlainTextLogin.Status);
     }
@@ -86,9 +89,12 @@ public sealed class LdapDirectoryIntegrationTests
 
     private static NetworkCredential AdminCredential => new("uid=admin,dc=example,dc=test", "L5a-qualification-only");
 
-    private static void RenameEmployee()
+    private static int GetPort(string variableName, int defaultValue) =>
+        int.TryParse(Environment.GetEnvironmentVariable(variableName), out var value) ? value : defaultValue;
+
+    private static void RenameEmployee(string host, int port)
     {
-        using var connection = new LdapConnection(new LdapDirectoryIdentifier("localhost", 1389), AdminCredential, AuthType.Basic);
+        using var connection = new LdapConnection(new LdapDirectoryIdentifier(host, port), AdminCredential, AuthType.Basic);
         connection.SessionOptions.ProtocolVersion = 3;
         connection.Bind();
         connection.SendRequest(new ModifyDNRequest(

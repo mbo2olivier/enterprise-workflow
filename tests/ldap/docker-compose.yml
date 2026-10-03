@@ -18,7 +18,7 @@ services:
     volumes:
       - ./certs/server.crt:/run/secrets/ldap/server.crt:ro
       - ./certs/server.key:/run/secrets/ldap/server.key:ro
-      - ./certs/server.crt:/run/secrets/ldap/ca.crt:ro
+      - ./certs/ca.crt:/run/secrets/ldap/ca.crt:ro
       - ./ldif:/opt/ldifs/custom:ro
     healthcheck:
       test: ["CMD-SHELL", "LDAPTLS_REQCERT=never ldapwhoami -x -H ldaps://localhost:636 -D 'uid=admin,dc=example,dc=test' -w 'L5a-qualification-only' >/dev/null"]
@@ -26,4 +26,3 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-
