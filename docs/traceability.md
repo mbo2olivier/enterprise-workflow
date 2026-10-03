@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a acquiert le binding exact ; L4b acquiert le worker séquentiel, les retries, le fencing après interruption et la redelivery outbox dédupliquée de T06/T07/T19. L5 acquiert les contrats, comptes locaux, profils, sessions, API protégée et stores SQLite/Oracle de T10/T11 ; seule la qualification AD réelle reste différée. Voir les preuves de lots sous [`docs/evidence`](evidence/).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a acquiert le binding exact ; L4b acquiert le worker séquentiel, les retries, le fencing après interruption et la redelivery outbox dédupliquée de T06/T07/T19. L5 acquiert les contrats, comptes locaux, profils, sessions, API protégée et stores SQLite/Oracle de T10/T11 ; la qualification AD historique reste non exécutée ; LDAP générique et droits par nœud sont de nouveaux lots L5a/L5b, sans preuve acquise. Voir les preuves de lots sous [`docs/evidence`](evidence/).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |
@@ -11,8 +11,9 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 | EF-05 Tâches/formulaires | 0004 ; runtime | L6, L8 | T08, T10, T20 |
 | EF-06 Timers/retries/annulation | 0008 | L4, L6 | T05–T09 |
 | EF-07 Modules | 0009 | L7a/b | T12, T14 |
-| EF-08 Administration et sécurité extensible | 0003 ; sécurité | L5, L8 | T10, T11 |
-| EF-09 Permissions et auto-approbation | 0003, 0011 ; sécurité | L5, L6, L8 | T08, T10, T11 |
+| EF-08 Administration et sécurité extensible LDAP | 0003, 0018 ; sécurité | L5, L5a, L8 | T10, T11, T22 |
+| EF-09 Permissions et auto-approbation | 0003, 0011, 0019 ; sécurité | L5, L5b, L6, L8 | T08, T10, T11, T23, T24 |
+| EF-16 Stages = nœuds et actions habilitées | 0019 ; recadrage | L5b, L6, L8 | T23, T24 |
 | EF-10 Installations indépendantes | 0005 | L7b, L10 | T17 |
 | EF-11 UI/thèmes | 0004, 0012 ; extensions | L8 | T10, T20 |
 | EF-12 CLI/templates | 0010 ; extensions | L9 | T14 |
@@ -31,6 +32,8 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 ## Décisions utilisateur
 
 S3 confirme .NET/plateformes, les deux providers, l’administration extensible, le Studio différé et une organisation par installation. S4 précise Oracle 19c minimum, local/distant selon extension, AD par identifiant/mot de passe et matrice distincte par provider. S5 confirme l’auto-approbation configurable et interdite par défaut (0011), et Razor/Blazor avec formulaires déclaratifs et composants personnalisés (0012). S6 accepte les ADR 0006 à 0008, confirme le retour au MVP séquentiel sans parallélisme et retient GitHub Actions. S7 valide D1 à D6 pour L2 (ADR 0013) et autorise Docker Compose. S8 valide 1A, 2A et 3A pour L4a (ADR 0014). S9 valide 1A à 5A puis 6A pour L4b : configuration intégrale, outbox bornée/dead letter, jalon attente/callback et jalon migration d’état (ADR 0015). Voir [cadrage](cadrage.md) pour les limites d’autorité de la source initiale.
+
+S12 remplace la cible obligatoire AD par LDAP et introduit les stages ; S13 précise stage = nœud. Voir ADR 0018/0019. Les arbitrages techniques R1–R4 sont proposés dans la spécification de recadrage.
 
 ## Préconditions encore ouvertes
 

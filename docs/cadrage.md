@@ -18,7 +18,11 @@ S10 : validation le 3 octobre 2026 des choix sécurité L5 1A à 5A, avec politi
 
 S11 : décision le 3 octobre 2026 de désigner explicitement l’approbateur au démarrage ou lors de l’activité concernée, parmi les identités habilitées par les profils internes. Q11 et l’arbitrage sur la source du responsable sont résolus ; les autres contrats G2a restent à formaliser. Voir [ADR 0017](adr/0017-designation-approbateur.md).
 
-S2 à S11 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
+S12 : recadrage du 3 octobre 2026 : compatibilité LDAP indépendante d’AD et habilitations de stages par workflow/nœud/action, à prioriser avant L6. Voir ADR 0018/0019 et [arbitrages R1–R4](spec-ldap-stages.md).
+
+S13 : précision ultérieure du porteur : les nœuds sont les stages dans l’administration. Aucune entité stage supplémentaire.
+
+S2 à S13 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
 
@@ -29,11 +33,12 @@ Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouv
 | D00 | Nom officiel Enterprise Workflow | S2 | Convention documentaire |
 | D01 | .NET 10, Windows/Linux/macOS, compilation depuis les sources et intention de binaires précompilés | S3.1 | [0001](adr/0001-dotnet-et-plateformes.md) |
 | D02 | SQLite et Oracle prioritaires dans le MVP | S3.2 | [0002](adr/0002-persistance.md) |
-| D03 | Administration intégrée, authentification et autorisation extensibles ; AD et API tierce | S3.3 | [0003](adr/0003-securite-extensible.md) |
+| D03 | Administration intégrée, authentification et autorisation extensibles ; LDAP et API tierce | S3.3, S12 | [0003](adr/0003-securite-extensible.md) |
 | D04 | MVP moteur durable, tâches humaines, formulaires simples, Kernel et CLI ; Studio ensuite | S3.4 | [0004](adr/0004-perimetre-mvp.md) |
 | D05 | Une installation par organisation ; réutilisation des modules par déploiement indépendant | S3.5 | [0005](adr/0005-isolation-organisation.md) |
 | D06 | Auto-approbation configurable par workflow, interdite par défaut | S5.1A | [0011](adr/0011-auto-approbation.md) |
 | D07 | UI métier et administration Razor/Blazor ; formulaires déclaratifs et composants Razor personnalisés | S5.2A | [0012](adr/0012-ui-razor-blazor.md) |
+| D09 | Extension LDAP indépendante d’AD ; stage = nœud et habilitations par workflow/nœud/action | S12/S13 | [0018](adr/0018-ldap-generique.md), [0019](adr/0019-workflow-stages.md) |
 | D08 | Handler global identifiant/version, résultats bornés et validation avant publication | S8.1A–3A | [0014](adr/0014-binding-handlers-l4a.md) |
 
 Décisions S6 : ADR 0006, 0007 et 0008 acceptés ; MVP séquentiel à décisions exclusives, sans boucles ni parallélisme ; dépôt GitHub et CI GitHub Actions. La proposition de parallélisme Q12 est retirée et n’est plus un arbitrage bloquant.
@@ -46,12 +51,14 @@ Le porteur emploie Runtime pour désigner l’application d’hébergement. La n
 | --- | --- | --- |
 | Q01 | Oracle à partir de 19c | 19c est le minimum produit ; chaque version supérieure doit être qualifiée |
 | Q02 | Local ou distant selon les extensions installées | Aucun magasin d’identifiants imposé au cœur ; administration adaptée aux capacités du fournisseur |
-| Q03 | AD par identifiant et mot de passe | Connecteur de vérification auprès du contrôleur ; SSO non requis au MVP |
+| Q03 | LDAP par identifiant et mot de passe (S12 remplace AD obligatoire) | Extension générique ; annuaire non AD réel pour qualification ; SSO non requis au MVP |
 | Q04 | Support distinct par adaptateur accepté | Win x86 et macOS Intel avec SQLite ; Oracle seulement sur plateformes qualifiées |
 
 Q05 est résolue pour l’auto-approbation par l’ADR 0011 ; Q09 est résolue pour la technologie UI par l’ADR 0012. La délégation reste hors de cet arbitrage ; la bibliothèque graphique et l’outillage frontend restent ouverts sous Q09b.
 
-Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. L’ADR 0016 accepte TLS validé, la composition des fournisseurs, le bootstrap, les sessions configurables et les profils internes. La bibliothèque LDAP et les signatures techniques restent à définir.
+Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. L’ADR 0016 accepte TLS validé, la composition des fournisseurs, le bootstrap, les sessions configurables et les profils internes. Le connecteur historique utilise System.DirectoryServices.Protocols ; sa généralisation et les nouveaux contrats d’habilitation sont prévus en L5a/L5b.
+
+Les arbitrages R1–R4 du [recadrage](spec-ldap-stages.md) complètent les questions ci-dessous, avec échéance avant les lots concernés.
 
 ## Décisions ultérieures
 
@@ -78,4 +85,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; les fonctions métier, la sécurité, les modules et l’UI restent ultérieurs.
+L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; le socle sécurité L5 est implémenté et qualifié localement, avec qualification AD historique non exécutée. LDAP générique L5a, habilitations par nœud L5b, fonctions métier, modules et UI restent à réaliser.

@@ -1,6 +1,6 @@
 # PRD — Enterprise Workflow
 
-Version 0.1 — 30 septembre 2026. Périmètre MVP confirmé ; critères détaillés proposés. Les [questions ouvertes](cadrage.md) s’appliquent.
+Version 0.2 — recadrage du 3 octobre 2026. Périmètre MVP confirmé ; critères détaillés proposés. Les [questions ouvertes](cadrage.md) s’appliquent.
 
 ## Problème et résultat
 
@@ -26,7 +26,7 @@ La distribution visée est open source. Le MVP ne revendique ni équivalence ave
 
 MVP : moteur durable, SDK minimal, SQLite et Oracle, tâches humaines et formulaires simples, Kernel modulaire, administration et sécurité extensible, CLI et modèles de projet. Le graphe séquentiel à décisions exclusives, sans boucles ni parallélisme, est accepté dans l’ADR 0007 ; la durabilité et les retries suivent l’ADR 0008 accepté. Les paramètres concrets et contrats de timers restent à préciser. Le Kernel porte la démonstration ; le mode embarqué utilise le même moteur.
 
-Le Studio appartient au produit et à la livraison suivante, sans conditionner les workflows écrits en C#. La qualification Oracle et AD exige des environnements correspondants.
+Le Studio appartient au produit et à la livraison suivante, sans conditionner les workflows écrits en C#. La qualification Oracle et LDAP exige des environnements correspondants ; un domaine AD n’est plus un prérequis du MVP LDAP.
 
 ## Exigences fonctionnelles
 
@@ -41,16 +41,23 @@ Le Studio appartient au produit et à la livraison suivante, sans conditionner l
 | EF-05 | Tâches humaines, formulaires et décisions exclusives | MVP et décisions exclusives confirmés | Approbation après redémarrage ; double soumission sans double progression |
 | EF-06 | Timers, retries bornés et annulation | Proposé | Échéance passée reprise ; retries plafonnés ; aucune suite après annulation validée |
 | EF-07 | Modules découverts au redémarrage | Source / confirmé | Nouveau module sans modification du Host ; incompatibilité diagnostiquée |
-| EF-08 | Administration et sécurité extensibles, AD/API | Confirmé | Administration protégée ; contrats et connecteurs qualifiés |
+| EF-08 | Administration et sécurité extensibles, LDAP/API | Confirmé | Administration protégée ; contrats et connecteurs qualifiés |
 | EF-09 | Permissions par ressource ; auto-approbation configurable par workflow, interdite par défaut | Source / auto-approbation confirmée | Refus serveur, y compris auto-approbation sans exception explicite ; exception soumise aux autres droits |
 | EF-10 | Une installation par organisation | Confirmé | Même module dans deux installations sans partage implicite de données ou d’accès |
 | EF-11 | Accueil, inbox, formulaires, suivi et thème ; UI métier/administration Razor/Blazor | Source / MVP et technologie confirmés | Formulaires déclaratifs et composants Razor personnalisés ; parcours complet ; logo, titre et couleurs configurables |
 | EF-12 | CLI et scaffolding | Source / MVP confirmé | Projet généré, compilé, validé, packagé et chargé depuis un répertoire propre |
 | EF-13 | Préservation des versions d’instances et de modules | Proposé | Coexistence prouvée ou remplacement incompatible bloqué |
 | EF-14 | Audit et diagnostic | Proposé | Acteur, action et corrélation disponibles sans secret |
+| EF-16 | Stages administratifs : habilitations par workflow, nœud et action ; stage = nœud | Confirmé S12/S13 ; mécanismes ADR 0019 proposés | Parcours clientèle → superviseur → back-office maker → validateur ; refus serveur des actions hors nœud ou non habilitées ; reprise et concurrence sur les deux bases |
 | EF-15 | Studio et export C# | Source / différé confirmé | Export compilable, modèle équivalent, absence du Studio en production |
 
-EF-08 utilise des extensions : comptes locaux ou identités distantes selon l’installation, sans incidence sur le cœur. AD vérifie un identifiant et un mot de passe. L’administration expose seulement les capacités de gestion prises en charge par l’extension. Aucune API tierce universelle n’est présumée existante.
+EF-08 utilise des extensions : comptes locaux ou identités distantes selon l’installation, sans incidence sur le cœur. L’extension LDAP vérifie un identifiant et un mot de passe sur TLS ; son schéma et ses capacités sont configurés. AD est un cas possible, soumis à qualification propre. L’administration expose seulement les capacités de gestion prises en charge par l’extension. Aucune API tierce universelle n’est présumée existante.
+
+## Stages et administration granulaire
+
+Un stage correspond au nœud dans l’administration (S13). L’administrateur habilite une identité ou un profil pour les actions déclarées de ce nœud dans un workflow précis. Un droit de démarrage, de consultation ou d’administration n’accorde pas implicitement le droit de traiter tous ses nœuds. Les mappings de groupes LDAP vers les profils restent facultatifs.
+
+Le serveur déduit le nœud actif depuis l’instance durable et contrôle action, habilitation, affectation, état et révision à chaque commande. L’inbox et la recherche des candidats appliquent les mêmes droits ; une ancienne sélection ne survit pas au retrait de l’habilitation. Le choix d’un destinataire ou d’un pool est distinct de l’éligibilité. Voir la [spécification de recadrage et les arbitrages](spec-ldap-stages.md).
 
 ## Exigences non fonctionnelles
 
@@ -59,7 +66,7 @@ EF-08 utilise des extensions : comptes locaux ou identités distantes selon l’
 | ENF-01 | Multiplateforme .NET 10 | Matrice OS/CPU/provider explicite et testée |
 | ENF-02 | Infrastructure minimale | Kernel et base suffisants ; pas de broker, conteneur ou backend de monitoring obligatoire |
 | ENF-03 | Atomicité et concurrence | Crashs, double claim et double complétion |
-| ENF-04 | Contrats extensibles bornés | Core indépendant d’EF, HTTP, AD et UI |
+| ENF-04 | Contrats extensibles bornés | Core indépendant d’EF, HTTP, LDAP et UI |
 | ENF-05 | Données et droits protégés | Tests négatifs, absence de secrets dans les logs/artefacts |
 | ENF-06 | Utilisabilité | Clavier, focus, labels et erreurs ; textes français externalisés |
 | ENF-07 | Exploitabilité | Migrations documentées et restauration exécutée |
@@ -71,7 +78,7 @@ La latence d’un timer se mesure depuis son échéance, sans garantie temps ré
 
 1. Le demandeur authentifié voit les processus qu’il peut démarrer.
 2. Il saisit dates et motif ; le serveur valide puis crée l’instance de manière idempotente.
-3. Une tâche est affectée au responsable. L’exemple utilise une relation simulée, pas un annuaire supposé.
+3. Une tâche est affectée à l’approbateur explicitement choisi parmi les candidats habilités pour ce nœud et cette action (ADR 0017/0019).
 4. Le Host est arrêté puis relancé pendant l’attente : tâche et historique persistent.
 5. Le responsable approuve ou refuse ; une double soumission ne produit qu’une seule suite.
 6. Une notification simulée avec clé d’idempotence stable termine la branche choisie.

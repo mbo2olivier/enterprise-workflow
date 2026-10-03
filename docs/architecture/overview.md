@@ -18,7 +18,7 @@ flowchart TB
     Host --> Loader[Chargeur de modules approuvés]
     Loader --> Registry
     App --> Security[Contrats de sécurité]
-    Security --> Providers[Extensions AD, locale, API]
+    Security --> Providers[Extensions LDAP, locale, API]
     App --> Runtime[Runtime durable]
     Runtime --> Registry
     Runtime --> Store[Contrats atomiques de stockage]

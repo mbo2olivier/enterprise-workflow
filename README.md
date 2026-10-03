@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L4b terminés localement ; L5 implémenté avec qualification AD réelle différée.** Le dépôt contient aussi les contrats et stores de sécurité SQLite/Oracle, les comptes locaux, profils, sessions révocables, le connecteur LDAPS et une API d’exemple protégée. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L4b terminés localement ; socle L5 implémenté ; recadrage LDAP générique et stages (stage = nœud) planifié en L5a/L5b avant L6.** Le dépôt contient aussi les contrats et stores de sécurité SQLite/Oracle, les comptes locaux, profils, sessions révocables, le connecteur LDAPS et une API d’exemple protégée. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -53,3 +53,5 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 - [Glossaire](docs/glossary.md)
 
 Les décisions **acceptées** proviennent des réponses explicites du porteur. Les mécanismes **proposés** restent à valider ; les points **en attente** ne sont pas résolus par défaut.
+
+Le [recadrage LDAP et stages](docs/spec-ldap-stages.md) précise les besoins confirmés, la viabilité de l’administration et les arbitrages techniques encore ouverts. Les preuves L5 sont historiques ; elles ne qualifient pas les nouvelles capacités.

@@ -25,3 +25,7 @@ G2a conserve ses autres exigences avant L6 : détails de politique d’affectati
 ## Validation attendue
 
 Identité AD habilitée par profil direct sans groupe AD ; recherche limitée aux candidats éligibles ; homonymes ; sélection manquante ; identité arbitraire soumise par API ; auto-approbation ; permission retirée entre sélection et activation ou complétion ; reprise conservant le destinataire choisi. Les refus doivent rester explicites, sans attribution implicite à une autre personne.
+
+## Recadrage du 3 octobre 2026
+
+L’[ADR 0018](0018-ldap-generique.md) remplace l’obligation AD par une extension LDAP indépendante ; les autres décisions sont conservées. L’[ADR 0019](0019-workflow-stages.md) précise l’habilitation par workflow/nœud/action (stage = nœud). Les personnes explicitement désignées sont sélectionnées dans ce contexte ; le mode pool reste proposé, pas accepté implicitement. Les preuves antérieures restent historiques.

@@ -22,7 +22,7 @@ Le porteur accepte ces restrictions : support distinct par adaptateur. Oracle 19
 | osx-arm64 | Première cible macOS proposée | À qualifier | À qualifier | Version macOS compatible avec .NET et provider, accès à Oracle réel |
 | osx-x64 | Cible macOS Intel proposée | À qualifier | Non revendiqué | SQLite et modules testés sur machine Intel |
 
-La matrice du connecteur AD sera ajoutée après prototype de sa bibliothèque LDAP. Un RID ne décrit pas à lui seul le support d’Oracle, d’AD ou d’un module tiers. Les distributions Linux non listées dans une release restent non qualifiées, même si une compilation réussit.
+La matrice de l’extension LDAP générique sera ajoutée en L5a, avec annuaire/version/schéma, transport, capacités et OS testés. Un LDAP non AD réel suffit à qualifier la cible retenue ; AD exige une preuve séparée seulement si revendiqué. Un RID ne décrit pas à lui seul le support d’Oracle, d’AD ou d’un module tiers. Les distributions Linux non listées dans une release restent non qualifiées, même si une compilation réussit.
 
 ## Artefacts proposés
 

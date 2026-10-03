@@ -1,6 +1,6 @@
 # Registre des ADR
 
-Les ADR 0001 à 0008, 0011 à 0017 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
+Les ADR 0001 à 0008, 0011 à 0019 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
 
 Une modification significative donnera lieu à un nouvel ADR qui remplace le précédent ; conserver l’historique et le motif. « Acceptée » signifie décision prise, pas fonctionnalité implémentée ou testée.
 
@@ -23,3 +23,5 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0015](0015-worker-retry-outbox-l4b.md) | Worker, retries, état et outbox L4b | Acceptée |
 | [0016](0016-securite-profils-l5.md) | Sécurité L5, sessions configurables et profils internes | Acceptée ; détails techniques signalés comme proposés |
 | [0017](0017-designation-approbateur.md) | Désignation explicite de l’approbateur ; Q11 résolue | Acceptée |
+| [0018](0018-ldap-generique.md) | LDAP indépendant d’AD ; remplace obligation AD de 0003/0016 | Besoin accepté S12 ; mécanismes proposés |
+| [0019](0019-workflow-stages.md) | Stage = nœud ; droits workflow/nœud/action | Besoin accepté S12/S13 ; mécanismes proposés |

@@ -119,3 +119,7 @@ Complétion contre annulation : la transaction gagnante change la révision ; l�
 ## Versionnement
 
 Définition, schéma JSON, contrats de nœuds, module et packages ont des versions distinctes. Hash de graphe et hash d’artefact sont tous deux requis. Une ancienne instance ne peut se poursuivre avec du code remplacé sous le même nom. Voir [modules](extensions.md) et ADR 0009.
+
+## Stages administratifs et actions humaines — cible L5b/L6
+
+Un stage correspond au nœud (S13), sans nouveau type de graphe. Avant L6, L5b fournit les habilitations workflow/version/nœud/action. Le contexte d’autorisation est dérivé de l’instance et de l’activation durables ; une commande vérifie aussi affectation/claim, état, révision et contraintes métier avant progression atomique. Les définitions techniques L2/L4 et leurs hashes restent compatibles. Voir [ADR 0019](../adr/0019-workflow-stages.md).

@@ -23,3 +23,6 @@
 | Autorisation | Permission ou refus d’une action sur une ressource |
 | Affectation | Désignation des candidats à une tâche |
 | Qualification | Preuves sur une combinaison explicite de versions et plateformes |
+| Stage | Nœud du workflow vu dans l’administration ; étape avec participants habilités et actions permises, sans entité distincte |
+| Habilitation de nœud | Droit d’une identité ou d’un profil sur une action précise d’un nœud et d’une version de workflow |
+| LDAP | Protocole d’accès à un annuaire ; schéma et capacités configurés par extension, indépendamment d’AD |

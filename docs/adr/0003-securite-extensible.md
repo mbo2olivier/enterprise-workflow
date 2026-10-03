@@ -27,3 +27,7 @@ Une même définition fonctionne avec extension locale et AD sans changement du 
 ## Complément accepté pour L5
 
 L’[ADR 0016](0016-securite-profils-l5.md) précise et remplace les propositions relatives à la composition, au bootstrap, aux sessions et au choix ASP.NET Core Identity. Il introduit les profils internes et leurs associations directes aux identités ou par groupes AD facultatifs. Les signatures techniques restent à définir.
+
+## Recadrage du 3 octobre 2026
+
+L’[ADR 0018](0018-ldap-generique.md) remplace l’obligation AD par une extension LDAP indépendante ; les autres décisions sont conservées. L’[ADR 0019](0019-workflow-stages.md) précise l’habilitation par workflow/nœud/action (stage = nœud). Les personnes explicitement désignées sont sélectionnées dans ce contexte ; le mode pool reste proposé, pas accepté implicitement. Les preuves antérieures restent historiques.

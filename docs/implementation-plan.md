@@ -1,6 +1,6 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement**. L5 est implémenté et qualifié localement sur SQLite et Oracle Enterprise 19.19 ; sa seule qualification différée est l’essai contre un domaine AD réel sur les plateformes cibles. Les lots L6 à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement**. L5 est implémenté et qualifié localement sur SQLite et Oracle Enterprise 19.19 ; la qualification historique AD reste non exécutée. Le recadrage S12/S13 introduit L5a (LDAP générique) et L5b (droits par nœud/action), à réaliser avant L6 ; le MVP n’exige plus un domaine AD réel. Les lots L6 à L11 ne sont pas démarrés.
 
 Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
@@ -12,7 +12,9 @@ G1 — franchie pour L4b : contrats L2 cadrés par D1 à D6 ; encodage et atomic
 
 G1a — avant tout workflow dépendant d’une réponse distante : décider du modèle durable requête/attente/callback, notamment corrélation, authentification du callback, idempotence, timeout, annulation et reprise. Une intention outbox L4b convient aux commandes asynchrones ; elle ne prétend pas fournir une réponse synchrone. Cette porte doit être franchie au plus tard avant d’ajouter un connecteur nécessitant cette réponse ; L6 doit vérifier si ses primitives d’attente peuvent être mutualisées sans confondre tâche humaine et callback technique.
 
-G2 — sécurité L5, franchie pour les décisions : contrats séparés, bootstrap local, sessions révocables entièrement configurables, AD en lecture seule et extension locale ASP.NET Core Identity acceptés dans l’ADR 0016. Les profils internes administrables permettent l’association directe identité/profil et le mapping facultatif groupe AD/profil. Les signatures et règles détaillées restent à formaliser pendant la conception L5. Un domaine AD réel et les stores SQLite/Oracle sont nécessaires à la qualification de sortie ; leur disponibilité n’est pas présumée.
+G2 — décisions historiques L5 franchies (ADR 0016). L’ADR 0018 remplace l’obligation AD par une extension LDAP générique, en lecture seule, avec profils directs et groupes facultatifs. Les preuves L5 ne qualifient pas cette nouvelle extension. L5a doit qualifier un annuaire LDAP non AD réel et ses capacités sur les plateformes revendiquées ; les stores SQLite/Oracle restent requis.
+
+G2s — avant L5a/L5b : besoins LDAP et stage = nœud acceptés (S12/S13). R1 à arrêter avant refactorisation LDAP ; R2/R3 avant contrats d’habilitation/affectation ; R4 avant sample bancaire L6. Contraintes, recommandations et alternatives : [recadrage](spec-ldap-stages.md). Aucune entité Stage supplémentaire à introduire.
 
 G2a — avant L6, arbitrage responsable franchi : Q11 est résolue par l’ADR 0017. L’administration habilite les approbateurs via les profils internes ; au démarrage ou à l’activité concernée, l’utilisateur désigne explicitement une identité parmi les personnes autorisées. Aucun recours obligatoire à l’attribut AD `manager`. Restent à formaliser avant L6 les tâches d’approbation, les détails de leur politique d’affectation versionnée, la référence durable `FormId/FormVersion`, le contrat des données soumises et la frontière validation métier L6/rendu UI L8. Auto-approbation configurable et interdite par défaut déjà acceptée (ADR 0011).
 
@@ -36,11 +38,13 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | L3b-Q — terminé localement | Qualification du minimum produit sur l’image officielle Oracle Enterprise 19.19 | L3b-I, accès registre | Migration et six tests d’intégration réussis sur 19.19 ; version et digest consignés dans la preuve |
 | L4a — terminé localement | Contrats d'exécution, résultats explicites, contexte borné, registre versionné initial et résolution par scope DI | L2 ; ADR 0014 | Un handler concret est enregistré, validé puis résolu par sa clé durable ; configuration invalide, clé absente ou ambiguë refusée explicitement |
 | L4b — terminé localement | Worker, Start/Service/End, retries configurables, idempotence et outbox bornée, utilisant exclusivement le registre L4a | L3a, L3b-I, L4a ; qualification finale avec L3b-Q ; ADR 0015 | Start → Service concret → End ; arrêt/reprise par expiration ; fencing et effet externe simulé dédupliqué sur SQLite, parcours complet qualifié sur Oracle 19.19 |
-| L5 — implémenté, qualification AD différée | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités et profils internes, associations directes et mappings AD facultatifs | L1, G2 ; L3 pour les stores concrets | Code, comptes locaux, sessions, endpoints, profils et stores SQLite/Oracle qualifiés ; login AD réel Windows/Linux/macOS restant |
-| L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5, G2a | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
+| L5 — socle historique implémenté | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités et profils internes, associations directes et mappings AD facultatifs | L1, G2 ; L3 pour les stores concrets | Code, comptes locaux, sessions, endpoints, profils et stores SQLite/Oracle qualifiés ; login AD réel historiquement non exécuté ; cible remplacée par qualification LDAP L5a |
+| L5a — prioritaire, non démarré | Extension LDAP générique : schéma/codec/capacités, compatibilité du connecteur AD existant, documentation et annuaire de test réel | L5 ; ADR 0018 ; R1 | Bind TLS, identité stable après renommage, recherche, profils directs, groupes facultatifs, statut/session et erreurs qualifiés sur LDAP non AD ; pas de revendication AD sans preuve |
+| L5b — prioritaire, non démarré | Habilitations workflow/version/nœud/action (stage = nœud), contexte serveur, catalogue d’actions, migrations, services/endpoints admin, filtrage candidats/inbox et audit | L5a ; ADR 0019 ; R2/R3 | Grants exacts, refus hors contexte et après retrait ; permissions globales sans accès métier implicite ; migrations SQLite/Oracle et compatibilité des définitions techniques |
+| L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5a, L5b, G2a ; R4 pour sample bancaire | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
 | L7a | Prototype loader, versions simultanées, dépendances, alimentation du registre L4a et ressources UI | L2, L4b ; UI Razor/Blazor ; G2b | Rapport prouvant coexistence ou recommandant drainage ; absence de collision silencieuse entre handlers ; décision G3 |
 | L7b | Kernel, loader et registre définitifs | L7a, G3, L5 | Nouveau module chargé au redémarrage ; retrait incompatible bloqué |
-| L8 | UI métier, schémas et rendu des formulaires, composants Razor personnalisés, thèmes et administration complète | L6, L7b, G2b | Parcours congé sur les deux bases ; formulaire/version de L6 rendu et validé côté serveur ; droits par ressource et capacités fournisseur respectés |
+| L8 | UI métier, schémas et rendu des formulaires, composants Razor personnalisés, thèmes et administration complète | L6, L7b, G2b | Parcours congé sur les deux bases ; formulaire/version de L6 rendu et validé côté serveur ; administration des droits workflow/nœud/action, inbox et candidats filtrés ; capacités LDAP respectées |
 | L9 | CLI, templates, pack et exemple embedded | L7b, L8 | Depuis copie propre : génération, build, validation, package, chargement |
 | L10 | Qualification, distribution et runbooks | L3b-Q, L9, G4 | Matrice publiée sur preuves, restauration exécutée, artefacts vérifiés ; MVP livrable |
 | L11 | Studio initial et export C# | MVP, choix bibliothèque/Q09b | Export compilable et modèle équivalent ; absent du Host production |
@@ -57,11 +61,15 @@ Le DSL persistant ne sérialise ni type CLR, ni lambda, ni instance de service. 
 
 L’ADR 0014 retient une clé globale `(HandlerId, HandlerVersion)`. Les applications et futurs modules qualifient leurs noms par domaine ; deux registrations sous une même clé sont refusées pendant la composition. Les résultats distinguent succès, échec retryable et échec permanent ; une décision réussie ajoute une issue déclarée. Le registre est figé après construction, les définitions exécutables sont validées avant publication et la résolution n’applique aucun fallback de version ou de rôle.
 
+## Priorité du recadrage LDAP et stages
+
+L5a et L5b sont les prochains lots avant L6 ; ils ne doivent pas attendre l’administration graphique L8. L5b expose les nœuds existants comme stages administratifs et les actions permises, sans modifier le graphe pour ajouter des stages. Les contrôles structurels de L6 restent indispensables en plus de l’autorisation L5b. Les anciennes preuves L5 sont conservées et les nouvelles capacités obtiennent leurs propres preuves (T22–T24).
+
 ## Tâches humaines et formulaires
 
 Une tâche humaine n'est pas un `Service` portant un champ JSON `form`. L6 ajoute un type de nœud et un DSL `HumanTask` explicites, avec affectation, issues autorisées, référence durable `FormId/FormVersion`, révision, données de soumission bornées et commande de complétion autorisée/idempotente. Son activation persiste une attente et ne conserve ni transaction ni worker pendant l'interaction humaine.
 
-L6 définit le contrat de désignation explicite de l’approbateur (ADR 0017), sa validation serveur et sa persistance par identité stable. L5 fournit les permissions/profils et la recherche des candidats habilités ; L8 fournit le sélecteur graphique.
+L6 définit le contrat de désignation explicite de l’approbateur (ADR 0017), sa validation serveur et sa persistance par identité stable. L5b fournit les permissions/profils contextualisés par workflow/version/nœud/action et la recherche des candidats habilités ; L8 fournit le sélecteur graphique.
 
 L6 définit la sémantique durable et la validation métier indépendante de l'UI. L8 ajoute les schémas déclaratifs de champs, leur rendu Razor/Blazor, la validation serveur de présentation, l'inbox, les pages de tâche et l'échappatoire vers un composant Razor personnalisé. Une ancienne instance continue à référencer la version exacte du formulaire avec laquelle elle a été créée.
 
@@ -80,7 +88,7 @@ Le sample courant de demande de congé doit être renommé/réécrit au prochain
 
 T1 — tranche technique durable : L1, L2, L3a, L4a et L4b, Start → Service concret résolu par le registre → End. Fournir commandes de reproduction, mapping clé/classe, état avant/après arrêt et tests. Oracle est une qualification distincte à terminer, pas une raison de présenter T1 comme MVP complet.
 
-T2 — tranche métier : L5, L6 et UI minimale de L8 ; demande, formulaire versionné, approbation après redémarrage et double clic. Cette UI peut utiliser un enregistrement direct L4a avant le loader complet pour tester les contrats.
+T2 — tranche métier : L5, L5a, L5b, L6 et UI minimale de L8 ; demande, formulaire versionné, approbation après redémarrage et double clic. Cette UI peut utiliser un enregistrement direct L4a avant le loader complet pour tester les contrats.
 
 T3 — produit modulaire : L7 à L10 ; module packagé, administration selon fournisseur, exemple embedded, SQLite et Oracle, distributions testées. Cette tranche atteint le MVP lorsque tous ses critères sont satisfaits.
 
@@ -108,7 +116,8 @@ Ajouter Runtime, adaptateurs, sécurité et Host au fil des lots ; ne pas créer
 | Code ancien indisponible | Artefacts immuables, coexistence prouvée ou drainage | L7b |
 | Handler textuel sans implémentation ou collision de clé | Identité arrêtée avant L4a, validation contre registre et refus des doublons | L4a |
 | Sample présentant une capacité non exécutable | Samples progressifs nommés par capacité et critères de sortie exécutés | Chaque lot |
-| AD non portable ou politiques incompatibles | Prototype sur plateformes cibles et domaine de test | L5 terminé |
+| Schéma/capacités LDAP non uniformes | Configuration explicite et annuaire non AD réel ; AD qualifié seulement si revendiqué | L5a |
+| Permission globale interprétée comme droit sur tous les nœuds | Grants exacts, refus par défaut et contexte serveur fiable | L5b/L6 |
 | Extension locale couplée au Core | Tests de références et fonctionnement sans comptes locaux | L5 terminé |
 | UI externe ou assets Razor non chargeables | Prototype ressources et contrat UI | L7b/L8 |
 | MVP annoncé sur seule base SQLite | Gate de qualification Oracle et tests end-to-end | L10 |

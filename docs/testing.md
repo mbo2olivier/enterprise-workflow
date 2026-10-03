@@ -18,7 +18,7 @@ Tests purs pour graphe, DSL, transitions et décisions de retry ; tests de contr
 | T08 | Tâche, double soumission et deux décisions concurrentes | Une seule décision et une seule suite ; résultat connu ou conflit | Host + chaque base |
 | T09 | Timer dépassé, arrêt, reprise et annulation concurrente | Aucun réveil anticipé ; pas de suite après annulation gagnante | Horloge contrôlée + bases |
 | T10 | Permissions et auto-approbation | Refus par défaut de sa propre approbation ; exception workflow respectant droits/affectation ; saisie non bloquée | Host + fournisseurs |
-| T11 | Local/AD/API et erreur fournisseur | Identité stable, capacités respectées, panne sans autorisation implicite | Contrats + AD réel pour qualification |
+| T11 | Local/LDAP/API et erreur fournisseur | Identité stable, capacités respectées, panne sans autorisation implicite | Contrats + LDAP non AD réel pour L5a ; AD si revendiqué |
 | T12 | Modules A/B, dépendances privées, version/hash changés | Anciennes instances inchangées ou déploiement bloqué ; assets disponibles | Loader + UI |
 | T13 | Création/migration/restauration | Instances, tâches, artefacts et audits cohérents après restauration | Chaque base |
 | T14 | Templates, CLI et archive RID | Build propre, validation, chargement et exécution du module | Runners cibles |
@@ -30,6 +30,14 @@ Tests purs pour graphe, DSL, transitions et décisions de retry ; tests de contr
 | T20 | UI Razor/Blazor, formulaires, accessibilité et thèmes | Déclaratif et composant personnalisé ; validation serveur ; clavier, labels, focus, erreurs et contraste | UI navigateur |
 | T21 | Charge et logs | Mesures reproductibles, payloads/secrets masqués | Environnement décrit |
 
+T22–T24 sont des critères nouveaux, **non exécutés**, et ne sont pas couverts par les preuves historiques L5.
+
+| ID | Test | Résultat attendu | Environnement |
+| --- | --- | --- | --- |
+| T22 | LDAP générique : bind, schéma, codecs, renommage, recherche, groupes absents/présents, statut, TLS et panne | Identités stables ; profils directs utilisables sans groupes ; capacités honnêtes ; certificat avec mauvais nom refusé ; pas de repli en clair | LDAP non AD réel + OS revendiqués ; contrats et stores SQLite/Oracle |
+| T23 | Grants par workflow/version/nœud/action ; visibilité et candidats ; faux contexte API ; révocation | Refus hors contexte même avec permission globale ; profil admin sans droit métier ; droits relus ; contexte dérivé côté serveur | Services/API L5b + SQLite/Oracle |
+| T24 | Clientèle → superviseur → maker → validateur ; affectation, concurrence, reprise et versions | Destinataire conservé ; un claim/une complétion gagnants ; droits retirés refusés ; ancien nœud/ancienne activation rejeté ; séparation maker/checker si R4 retenue | Runtime L6 + SQLite/Oracle puis UI L8 |
+
 ## Injection d’incidents
 
 Placer des points d’arrêt contrôlés avant/après claim, avant l’appel métier, après effet externe, avant/après commit et après envoi outbox avant marquage livré. Terminer le processus worker réellement pour une partie des cas ; une exception attrapée n’équivaut pas toujours à un arrêt brutal.
@@ -40,7 +48,7 @@ Tester également rollback lors d’une erreur au milieu du commit : aucun état
 
 ## Sécurité
 
-Local : mot de passe invalide, compte désactivé, verrouillage, sessions révoquées et absence de mot de passe par défaut. AD : compte inconnu/désactivé, mot de passe vide, certificat invalide, timeout, groupes et résolution du sujet stable. API : réponse invalide, identité manquante, erreurs HTTP, timeout et schéma non supporté.
+Local : mot de passe invalide, compte désactivé, verrouillage, sessions révoquées et absence de mot de passe par défaut. LDAP : compte inconnu/désactivé selon capacité déclarée, mot de passe vide, certificat invalide, timeout, groupes et résolution du sujet stable. API : réponse invalide, identité manquante, erreurs HTTP, timeout et schéma non supporté.
 
 Tester l’auto-approbation sans configuration, avec interdiction explicite et avec autorisation explicite ; vérifier les appels directs à l’API, les droits ordinaires et la non-régression des tâches de saisie. Pour le versionnement proposé, une nouvelle politique ne modifie pas les instances existantes.
 
@@ -52,7 +60,7 @@ La première CI utilise GitHub Actions. Les commandes de compilation et de test 
 
 Sur chaque changement : restore verrouillé, build, tests purs et architecture, tests SQLite, templates et packaging pertinents. Oracle doit avoir une exécution d’intégration disponible avec identifiants injectés de manière sûre ; si elle ne peut tourner sur une contribution externe, le résultat requis doit être fourni dans une pipeline de confiance avant release. Une étape ignorée ne vaut pas succès.
 
-Avant release : Oracle 19c et autres versions revendiquées, AD réel, archives sur OS/CPU annoncés, migration et restauration, UI et exemple embedded. Les tests de contrats sont mutualisés, les assertions spécifiques aux providers restent visibles.
+Avant release : Oracle 19c et autres versions revendiquées, LDAP non AD réel (AD uniquement si revendiqué), archives sur OS/CPU annoncés, migration et restauration, UI et exemple embedded. Les tests de contrats sont mutualisés, les assertions spécifiques aux providers restent visibles.
 
 ## Performance et rapport
 

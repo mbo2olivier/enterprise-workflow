@@ -23,3 +23,7 @@ La source du responsable hiérarchique, initialement ouverte sous Q11, est déso
 G2 devient la porte sécurité L5, franchie pour les choix ci-dessus ; G2a porte les contrats métier avant L6, notamment affectation et responsable ; G2b porte le rendu UI avant L7a/L8. Les prérequis de qualification AD restent opérationnels et ne sont pas présumés disponibles.
 
 L5 doit vérifier les parcours local et AD, identité AD avec profil direct sans groupes, groupe AD mappé vers un profil, gestion autorisée et auditée des profils/associations, refus d’accès sans permission, révocation, indisponibilité et protection du dernier accès administratif. Tester les stores locaux et de profils sur SQLite et Oracle. Une acceptation documentaire ne constitue pas une preuve d’implémentation.
+
+## Recadrage du 3 octobre 2026
+
+L’[ADR 0018](0018-ldap-generique.md) remplace l’obligation AD par une extension LDAP indépendante ; les autres décisions sont conservées. L’[ADR 0019](0019-workflow-stages.md) précise l’habilitation par workflow/nœud/action (stage = nœud). Les personnes explicitement désignées sont sélectionnées dans ce contexte ; le mode pool reste proposé, pas accepté implicitement. Les preuves antérieures restent historiques.
