@@ -5,11 +5,14 @@
     <Project Path="src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Runtime.Abstractions/EnterpriseWorkflow.Runtime.Abstractions.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
     <Project Path="src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EnterpriseWorkflow.Core.Tests/EnterpriseWorkflow.Core.Tests.csproj" />
     <Project Path="tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/EnterpriseWorkflow.Persistence.Sqlite.Tests.csproj" />
+    <Project Path="tests/EnterpriseWorkflow.Runtime.Tests/EnterpriseWorkflow.Runtime.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MinimalWorkflow/MinimalWorkflow.csproj" />

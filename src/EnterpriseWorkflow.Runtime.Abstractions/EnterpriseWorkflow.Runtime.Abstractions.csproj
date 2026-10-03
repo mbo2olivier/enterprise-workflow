@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Pure execution contracts for Enterprise Workflow node handlers.</Description>
+    <RootNamespace>EnterpriseWorkflow.Runtime</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

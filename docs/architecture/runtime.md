@@ -1,6 +1,25 @@
 # Modèle et exécution durable
 
-Statut : conventions L2 acceptées et implémentées selon l’ADR 0013. Les contrats du worker L4 et les preuves SQL L3 restent à finaliser ; l’API du store demeure révisable avant ces qualifications.
+Statut : conventions L2 et binding L4a implémentés selon les ADR 0013 et 0014. Les stores L3 sont qualifiés ; le worker, le polling et les politiques de retry appartiennent à L4b.
+
+## Binding d’exécution L4a
+
+`EnterpriseWorkflow.Runtime.Abstractions` expose deux interfaces pures : `IServiceNodeHandler` et `IDecisionNodeHandler`. Elles reçoivent un `NodeExecutionContext` borné contenant les identités durables d’instance et d’activation, le nœud, le numéro de tentative, l’état complet et la configuration canonique. L’activation reste stable à travers les retries ; la tentative sert au diagnostic et ne doit pas devenir une nouvelle clé d’effet.
+
+Les résultats ne contiennent ni destination ni délai : succès avec mise à jour d’état facultative, échec retryable ou permanent avec code technique ; une décision réussie fournit en plus son issue nommée. L4b vérifiera cette issue contre les transitions déclarées et appliquera la politique de retry.
+
+`EnterpriseWorkflow.Runtime` construit un registre immuable de clés globales `(HandlerId, HandlerVersion)`. La composition DI refuse immédiatement un doublon. `WorkflowDefinitionBindingValidator` refuse avant publication une clé absente ou un rôle Service/Decision incompatible. `IScopedWorkflowHandlerResolver` exige ensuite la version exacte et crée un scope distinct par tentative ; aucun fallback vers une autre version ou un autre rôle n’existe.
+
+```csharp
+services.AddEnterpriseWorkflowHandlers(registry => registry
+    .AddService<PostInvoiceHandler>("finance.post-invoice", 1)
+    .AddDecision<RouteInvoiceHandler>("finance.route-invoice", 1));
+
+var registry = serviceProvider.GetRequiredService<IWorkflowHandlerRegistry>();
+WorkflowDefinitionBindingValidator.Validate(definition, registry).EnsureValid();
+```
+
+L’appel au store de publication vient seulement après cette porte. Le store reste une primitive atomique de bas niveau et ne dépend pas du conteneur DI.
 
 ## Définition canonique
 

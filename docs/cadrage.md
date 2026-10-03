@@ -10,7 +10,9 @@ S6 : acceptation des ADR 0006 et 0008, choix GitHub/GitHub Actions, puis confirm
 
 S7 : validation de L2-D1 à L2-D6 le 1er octobre 2026 ; aucune instance Oracle disponible, Docker installé et environnement de test Docker Compose autorisé. Voir [ADR 0013](adr/0013-contrats-l2.md).
 
-S2 à S7 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées. Aucun nom d’API de ce dossier ne désigne une API déjà livrée.
+S8 : validation des recommandations L4a 1A, 2A et 3A le 1er octobre 2026 : clé globale identifiant/version, résultats bornés sans contrôle de transition et registre immuable validé avant publication. Voir [ADR 0014](adr/0014-binding-handlers-l4a.md).
+
+S2 à S8 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
 
@@ -26,6 +28,7 @@ Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouv
 | D05 | Une installation par organisation ; réutilisation des modules par déploiement indépendant | S3.5 | [0005](adr/0005-isolation-organisation.md) |
 | D06 | Auto-approbation configurable par workflow, interdite par défaut | S5.1A | [0011](adr/0011-auto-approbation.md) |
 | D07 | UI métier et administration Razor/Blazor ; formulaires déclaratifs et composants Razor personnalisés | S5.2A | [0012](adr/0012-ui-razor-blazor.md) |
+| D08 | Handler global identifiant/version, résultats bornés et validation avant publication | S8.1A–3A | [0014](adr/0014-binding-handlers-l4a.md) |
 
 Décisions S6 : ADR 0006, 0007 et 0008 acceptés ; MVP séquentiel à décisions exclusives, sans boucles ni parallélisme ; dépôt GitHub et CI GitHub Actions. La proposition de parallélisme Q12 est retirée et n’est plus un arbitrage bloquant.
 
@@ -69,4 +72,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-L1 est implémenté et le porteur confirme la réussite de la CI GitHub. L2 est implémenté localement selon les décisions D1 à D6, avec 42 tests réussis. Aucun adaptateur SQL ni environnement Oracle n’est livré à ce stade.
+L1 à L4a sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le périmètre L3 ; L4a fournit les contrats, le registre, la validation avant publication et la résolution scoped. Le worker L4b et les fonctions métier ultérieures ne sont pas livrés.

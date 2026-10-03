@@ -8,6 +8,8 @@ Choisir l’archive correspondant au RID, à l’OS et aux providers qualifiés.
 
 Configurer stockage, catalogue de modules, fournisseur d’authentification/autorisation, adresse d’écoute, logs et paramètres worker. Les secrets proviennent du mécanisme approuvé de l’installation, sans présence dans les modules ni dans le dépôt. Les paramètres ont un schéma et une validation au démarrage.
 
+Construire le registre L4a en un seul passage avec `AddEnterpriseWorkflowHandlers`. Une clé globale dupliquée ou une seconde configuration du registre doit arrêter la composition. Avant toute publication exécutable, appeler `WorkflowDefinitionBindingValidator.Validate(...).EnsureValid()` ; une clé absente ou un rôle incompatible empêche la readiness. Chaque tentative résout ensuite son handler exact dans un scope DI court, disposé après l’appel métier.
+
 Lancer les migrations explicitement avant le worker. Pour SQLite, la racine de composition construit `SqliteWorkflowDatabase` avec sa chaîne de connexion et attend `MigrateAsync`, puis construit `SqliteWorkflowStore`. Oracle suit le même cycle avec `OracleWorkflowDatabase` et `OracleWorkflowStore`; le compte de migration doit pouvoir créer les objets décrits dans le dictionnaire Oracle. Aucun store ne crée ni ne modifie le schéma implicitement. Démarrer le Host et vérifier readiness, accès au catalogue et extension de sécurité active. Une base inaccessible, un schéma incompatible ou un module requis absent ne doit pas produire un service déclaré prêt.
 
 Les dictionnaires des schémas [SQLite](architecture/sqlite-schema.md) et [Oracle](architecture/oracle-schema.md) permettent d’identifier les tables, clés et index lors d’un diagnostic. Ils ne constituent pas une autorisation de modifier les lignes manuellement.

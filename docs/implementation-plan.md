@@ -1,6 +1,6 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L3b sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). L3b passe sur Oracle Free et sur l’image officielle Oracle Enterprise 19.19 ARM64. Les lots L4 à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4a sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). L3b passe sur Oracle Free et sur l’image officielle Oracle Enterprise 19.19 ARM64. Les lots L4b à L11 ne sont pas démarrés.
 
 Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
@@ -8,7 +8,7 @@ Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot
 
 G0 — franchie : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séquentiel sans parallélisme. `global.json` accepte les SDK stables à partir de `10.0.100` dans les feature bands .NET 10 ; les preuves locales utilisent `10.0.102`. GitHub Actions utilise les runners `ubuntu-24.04`, `windows-2025` et `macos-15`. La réponse sur la licence peut attendre la publication.
 
-G1 — contrats L2 cadrés par D1 à D6 : limites, déduplication sans purge automatique et temps UTC à la milliseconde acceptés. L3 fixe l’encodage SQL commun et éprouve l’atomicité sur SQLite, Oracle Free et Oracle Enterprise 19.19. Les durées de bail/retry et le polling restent à finaliser en L4. Avant L4a, arrêter la clé d'identité d'un handler (unicité globale ou qualification par module/version), les résultats d'exécution et le moment où une référence de handler est validée contre le registre disponible.
+G1 — franchie pour L4a : contrats L2 cadrés par D1 à D6 ; encodage et atomicité qualifiés en L3 ; identité globale `(HandlerId, HandlerVersion)`, résultats bornés et validation avant publication acceptés dans l’ADR 0014. Les durées de bail/retry et le polling restent à finaliser avant le worker L4b.
 
 G2 — avant sécurité/UI : arrêter contrats de fournisseurs, bootstrap, durée de session/révocation, source des responsables Q11 et mode de rendu UI Q09b. Auto-approbation configurable et interdite par défaut (ADR 0011), Razor/Blazor (ADR 0012), besoin local/distant et mode AD sont déjà résolus. Définir avant L6 les tâches d'approbation, leur affectation, le versionnement de leur politique, la référence durable `FormId/FormVersion`, le contrat des données soumises et la frontière entre validation métier L6 et rendu UI L8.
 
@@ -26,7 +26,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | L3a — terminé localement | Adaptateur SQLite et migrations | L2 | Création/claim/commit/reprise sur base fichier réelle |
 | L3b-I — terminé localement | Adaptateur Oracle, mappings, migration et composition Oracle Free légère | L2, Docker | Même suite de conformité réussie sur Oracle Free réel ; différences documentées ; aucun test ignoré présenté comme réussi |
 | L3b-Q — terminé localement | Qualification du minimum produit sur l’image officielle Oracle Enterprise 19.19 | L3b-I, accès registre | Migration et six tests d’intégration réussis sur 19.19 ; version et digest consignés dans la preuve |
-| L4a | Contrats d'exécution, résultats explicites, contexte borné, registre versionné initial et résolution par scope DI | L2 ; G1 sur l'identité des handlers | Un handler concret est enregistré, validé puis résolu par sa clé durable ; configuration invalide, clé absente ou ambiguë refusée explicitement |
+| L4a — terminé localement | Contrats d'exécution, résultats explicites, contexte borné, registre versionné initial et résolution par scope DI | L2 ; ADR 0014 | Un handler concret est enregistré, validé puis résolu par sa clé durable ; configuration invalide, clé absente ou ambiguë refusée explicitement |
 | L4b | Worker, Start/Service/End, retries, idempotence et outbox, utilisant exclusivement le registre L4a | L3a, L3b-I, L4a ; qualification finale avec L3b-Q | Start → Service concret → End ; arrêt brutal puis reprise ; fencing et effet externe simulé dédupliqué |
 | L5 | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités | L1, G2 ; L3 pour les stores concrets | Contrats communs ; login AD réel ; comptes locaux hors Core ; endpoints administratifs protégés |
 | L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5, G2 | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
@@ -47,7 +47,7 @@ Le DSL persistant ne sérialise ni type CLR, ni lambda, ni instance de service. 
 2. **L4a — binding runtime explicite** : une application enregistre directement une classe concrète sous une clé de handler. À la publication ou au démarrage, le registre refuse les références absentes, incompatibles ou ambiguës. Pour chaque tentative, le worker ouvre un scope DI, résout le handler exact, lui fournit un contexte borné et consomme un résultat explicite.
 3. **L7 — binding par module** : le loader découvre les déclarations approuvées, enregistre leurs services avant la construction du Host et alimente le même registre. Le chargement dynamique ne change pas la sémantique d'exécution établie en L4a.
 
-La clé exacte doit être décidée avant L4a. Si les identifiants de handlers ne sont pas globalement uniques, la référence canonique doit inclure l'identité et la version du module, plutôt que de tenter d'inférer le module depuis la liste générale d'artefacts. Deux registrations sous une même clé ne doivent jamais s'écraser silencieusement.
+L’ADR 0014 retient une clé globale `(HandlerId, HandlerVersion)`. Les applications et futurs modules qualifient leurs noms par domaine ; deux registrations sous une même clé sont refusées pendant la composition. Les résultats distinguent succès, échec retryable et échec permanent ; une décision réussie ajoute une issue déclarée. Le registre est figé après construction, les définitions exécutables sont validées avant publication et la résolution n’applique aucun fallback de version ou de rôle.
 
 ## Tâches humaines et formulaires
 
