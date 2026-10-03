@@ -45,11 +45,23 @@ public enum AuthenticationStatus { Succeeded, Rejected, Unavailable, LockedOut }
 public sealed record AuthenticationResult(AuthenticationStatus Status, IdentityReference? Identity = null, string? ErrorCode = null);
 public sealed record PasswordCredential(string UserName, string Password);
 
+[Flags]
+public enum DirectoryCapabilities
+{
+    None = 0,
+    Search = 1,
+    Groups = 2,
+    AccountStatus = 4,
+}
+
+public enum DirectoryAccountStatus { Unknown, Enabled, Disabled }
+
 public sealed record DirectoryIdentity(
     IdentityReference Identity,
     string DisplayName,
     string? Email,
-    IReadOnlySet<string> GroupIds);
+    IReadOnlySet<string> GroupIds,
+    DirectoryAccountStatus AccountStatus = DirectoryAccountStatus.Unknown);
 
 public enum ProviderOutcome { Succeeded, NotFound, Conflict, Forbidden, Unavailable }
 public sealed record ProviderResult<T>(ProviderOutcome Outcome, T? Value = default, string? ErrorCode = null);

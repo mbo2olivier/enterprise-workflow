@@ -39,11 +39,11 @@ L’implémentation autorise plusieurs profils par identité et calcule l’unio
 
 Q11 est résolue par l’[ADR 0017](../adr/0017-designation-approbateur.md) : une permission d’approbation portée par les profils habilite les candidats. Au démarrage ou lors de l’activité concernée, l’utilisateur recherche par nom et choisit explicitement un approbateur autorisé. Le serveur valide le candidat et persiste son identité stable, puis revalide droits et affectation à l’activation et à la complétion. Aucun attribut AD `manager` n’est requis. L’habilitation par profil et l’affectation à une tâche restent deux contrôles distincts.
 
-## Extension LDAP générique — cible après recadrage
+## Extension LDAP générique
 
-Le besoin cible LDAP, indépendant d’AD. Le contrat détaillé, la matrice de viabilité de l’administration et la qualification L5a sont dans l’[ADR 0018](../adr/0018-ldap-generique.md). Authentification identifiant/mot de passe sur TLS validé, schéma et codecs explicites, identités stables, recherche bornée et groupes facultatifs. Aucune écriture dans l’annuaire au MVP ; les profils et habilitations sont administrés localement.
+`LdapDirectoryProvider` implémente LDAPv3 en lecture seule. `LdapDirectoryOptions` configure filtre utilisateur, attributs, codecs `Utf8String`, `GuidLittleEndian`, `Hexadecimal` ou `Base64`, stratégie de groupes et statut. Les capacités recherche/groupes/statut sont annoncées explicitement. L’identité stable repose par défaut sur `entryUUID` ; aucun DN, login ou email ne sert de repli.
 
-Le connecteur actuel `ActiveDirectoryProvider` utilise `System.DirectoryServices.Protocols` et LDAPS mais conserve des hypothèses AD : `objectGUID`, conversion binaire `Guid` et groupes référencés par DN. Il reste une implémentation historique, pas une preuve de compatibilité universelle LDAP. La qualification non AD réelle remplace l’obligation d’un domaine AD ; le support AD réclame sa propre preuve si revendiqué.
+Le transport par défaut est LDAPS. Le mode `PlainText` doit être choisi explicitement ; il n’existe aucun downgrade automatique après erreur TLS. Les credentials de service restent fournis par `ILdapServiceCredentialProvider`, les referrals sont désactivés et les recherches, groupes et timeouts sont bornés. StartTLS et groupes imbriqués sont hors L5a. L’ancien connecteur AD est supprimé conformément à R1 ; AD n’est pas revendiqué.
 
 ## Extension locale
 

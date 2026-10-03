@@ -1,5 +1,5 @@
-using Xunit;
 using System.Net;
+using Xunit;
 
 namespace EnterpriseWorkflow.Security.Tests;
 
@@ -15,6 +15,67 @@ public sealed class SecurityProviderTests
         };
 
         Assert.Throws<InvalidOperationException>(options.Validate);
+    }
+
+    [Fact]
+    public void LdapConfigurationIsGenericStrictAndCapabilityDriven()
+    {
+        var options = new LdapDirectoryOptions
+        {
+            ProviderId = "corporate-ldap",
+            Host = "ldap.example.test",
+            BaseDn = "dc=example,dc=test",
+            AccountStatusAttribute = "employeeType",
+            EnabledAccountStatusValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "active" },
+            GroupResolution = LdapGroupResolutionStrategy.GroupSearch,
+            GroupBaseDn = "ou=groups,dc=example,dc=test",
+            GroupObjectFilter = "(objectClass=groupOfUniqueNames)",
+            GroupMemberAttribute = "uniqueMember",
+        };
+
+        options.Validate();
+        var provider = new LdapDirectoryProvider(options, new StaticLdapCredentialProvider());
+
+        Assert.Equal(LdapTransportMode.Ldaps, options.Transport);
+        Assert.Equal("entryUUID", options.SubjectAttribute);
+        Assert.Equal(DirectoryCapabilities.Search | DirectoryCapabilities.Groups | DirectoryCapabilities.AccountStatus, provider.Capabilities);
+    }
+
+    [Fact]
+    public void LdapConfigurationRejectsFilterInjectionAndAccidentalPlainTextSetup()
+    {
+        Assert.Throws<InvalidOperationException>(() => new LdapDirectoryOptions
+        {
+            ProviderId = "ldap",
+            Host = "localhost",
+            BaseDn = "dc=example,dc=test",
+            UserObjectFilter = "objectClass=*",
+        }.Validate());
+        Assert.Throws<InvalidOperationException>(() => new LdapDirectoryOptions
+        {
+            ProviderId = "ldap",
+            Host = "localhost",
+            BaseDn = "dc=example,dc=test",
+            Transport = LdapTransportMode.PlainText,
+            PlainTextPort = 0,
+        }.Validate());
+    }
+
+    [Fact]
+    public void LdapIdentifierCodecsRoundTripStableValuesIntoSafeFilters()
+    {
+        var guid = Guid.Parse("3f2504e0-4f89-41d3-9a0c-0305e82c3301");
+        var guidBytes = guid.ToByteArray();
+        var bytes = new byte[] { 0, 42, 92, 255 };
+
+        Assert.Equal(guid.ToString("N"), LdapDirectoryProvider.Decode(guidBytes, LdapAttributeValueCodec.GuidLittleEndian));
+        Assert.Equal(string.Concat(guidBytes.Select(value => $"\\{value:x2}")),
+            LdapDirectoryProvider.EncodeFilterValue(guid.ToString("N"), LdapAttributeValueCodec.GuidLittleEndian));
+        Assert.Equal("002a5cff", LdapDirectoryProvider.Decode(bytes, LdapAttributeValueCodec.Hexadecimal));
+        Assert.Equal("\\00\\2a\\5c\\ff", LdapDirectoryProvider.EncodeFilterValue("002a5cff", LdapAttributeValueCodec.Hexadecimal));
+        Assert.Equal(Convert.ToBase64String(bytes), LdapDirectoryProvider.Decode(bytes, LdapAttributeValueCodec.Base64));
+        Assert.Equal("\\00\\2a\\5c\\ff", LdapDirectoryProvider.EncodeFilterValue(Convert.ToBase64String(bytes), LdapAttributeValueCodec.Base64));
+        Assert.Equal("alice\\2a\\28admin\\29", LdapDirectoryProvider.EncodeFilterValue("alice*(admin)", LdapAttributeValueCodec.Utf8String));
     }
 
     [Fact]
@@ -39,7 +100,7 @@ public sealed class SecurityProviderTests
     }
 
     [Fact]
-    public async Task DirectProfileRemainsUsableWhenOptionalAdGroupsAreUnavailable()
+    public async Task DirectProfileRemainsUsableWhenOptionalLdapGroupsAreUnavailable()
     {
         var identity = new IdentityReference("ad", "subject-1");
         var store = new ProfileStore(identity, WorkflowPermissions.Approve);
@@ -59,11 +120,15 @@ public sealed class SecurityProviderTests
     {
         Assert.Throws<InvalidOperationException>(() => new ExampleApiAuthenticationProvider(new()
         {
-            ProviderId = "api", BaseAddress = new Uri("https://identity.example/"), EnablePasswordCredentialForwarding = false,
+            ProviderId = "api",
+            BaseAddress = new Uri("https://identity.example/"),
+            EnablePasswordCredentialForwarding = false,
         }));
         using var provider = new ExampleApiAuthenticationProvider(new()
         {
-            ProviderId = "api", BaseAddress = new Uri("https://identity.example/"), EnablePasswordCredentialForwarding = true,
+            ProviderId = "api",
+            BaseAddress = new Uri("https://identity.example/"),
+            EnablePasswordCredentialForwarding = true,
         }, new ResponseHandler(new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{\"authenticated\":true,\"subjectId\":\"api-user-1\"}", System.Text.Encoding.UTF8, "application/json"),
@@ -76,6 +141,12 @@ public sealed class SecurityProviderTests
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class StaticLdapCredentialProvider : ILdapServiceCredentialProvider
+    {
+        public ValueTask<NetworkCredential> GetCredentialAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new NetworkCredential("uid=service,dc=example,dc=test", "unused"));
     }
 
     private sealed class ResponseHandler(HttpResponseMessage response) : HttpMessageHandler
@@ -106,6 +177,7 @@ public sealed class SecurityProviderTests
     private sealed class UnavailableDirectory : IIdentityDirectory
     {
         public string ProviderId => "ad";
+        public DirectoryCapabilities Capabilities => DirectoryCapabilities.Groups | DirectoryCapabilities.Search;
         public ValueTask<ProviderResult<DirectoryIdentity>> FindAsync(IdentityReference identity, bool includeGroups, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ProviderResult<DirectoryIdentity>(ProviderOutcome.Unavailable));
         public ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken) =>

@@ -9,6 +9,7 @@ public interface IAuthenticationProvider
 public interface IIdentityDirectory
 {
     string ProviderId { get; }
+    DirectoryCapabilities Capabilities { get; }
     ValueTask<ProviderResult<DirectoryIdentity>> FindAsync(IdentityReference identity, bool includeGroups, CancellationToken cancellationToken);
     ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken);
 }

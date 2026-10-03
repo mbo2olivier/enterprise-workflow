@@ -1,0 +1,29 @@
+services:
+  openldap:
+    image: vegardit/openldap:2.6.x@sha256:ffe216e09673d9b3f561a6b02e691bab44a2f9849f7d3bb8be16957f6f826dae
+    hostname: openldap
+    environment:
+      LDAP_INIT_ORG_DN: dc=example,dc=test
+      LDAP_INIT_ORG_NAME: Enterprise Workflow Qualification
+      LDAP_INIT_ROOT_USER_DN: uid=admin,dc=example,dc=test
+      LDAP_INIT_ROOT_USER_PW: L5a-qualification-only
+      LDAP_TLS_ENABLED: "true"
+      LDAP_LDAPS_ENABLED: "true"
+      LDAP_TLS_VERIFY_CLIENT: never
+      LDAP_TLS_SSF: "0"
+      LDAP_BACKUP_TIME: ""
+    ports:
+      - "1389:389"
+      - "1636:636"
+    volumes:
+      - ./certs/server.crt:/run/secrets/ldap/server.crt:ro
+      - ./certs/server.key:/run/secrets/ldap/server.key:ro
+      - ./certs/server.crt:/run/secrets/ldap/ca.crt:ro
+      - ./ldif:/opt/ldifs/custom:ro
+    healthcheck:
+      test: ["CMD-SHELL", "LDAPTLS_REQCERT=never ldapwhoami -x -H ldaps://localhost:636 -D 'uid=admin,dc=example,dc=test' -w 'L5a-qualification-only' >/dev/null"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+

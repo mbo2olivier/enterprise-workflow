@@ -51,7 +51,7 @@ Le Studio appartient au produit et à la livraison suivante, sans conditionner l
 | EF-16 | Stages administratifs : habilitations par workflow, nœud et action ; stage = nœud | Confirmé S12/S13 ; mécanismes ADR 0019 proposés | Parcours clientèle → superviseur → back-office maker → validateur ; refus serveur des actions hors nœud ou non habilitées ; reprise et concurrence sur les deux bases |
 | EF-15 | Studio et export C# | Source / différé confirmé | Export compilable, modèle équivalent, absence du Studio en production |
 
-EF-08 utilise des extensions : comptes locaux ou identités distantes selon l’installation, sans incidence sur le cœur. L’extension LDAP vérifie un identifiant et un mot de passe sur TLS ; son schéma et ses capacités sont configurés. AD est un cas possible, soumis à qualification propre. L’administration expose seulement les capacités de gestion prises en charge par l’extension. Aucune API tierce universelle n’est présumée existante.
+EF-08 utilise des extensions : comptes locaux ou identités distantes selon l’installation, sans incidence sur le cœur. L’extension LDAP vérifie un identifiant et un mot de passe sur LDAPS par défaut ; LDAP clair exige une sélection explicite de l’installation et n’est jamais utilisé comme downgrade automatique. Son schéma et ses capacités sont configurés. AD est un cas possible, soumis à qualification propre. L’administration expose seulement les capacités de gestion prises en charge par l’extension. Aucune API tierce universelle n’est présumée existante.
 
 ## Stages et administration granulaire
 

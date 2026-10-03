@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Internal profile authorization and local/Active Directory security providers.</Description>
+    <Description>Internal profile authorization and local, LDAP, and HTTP API security providers.</Description>
     <RootNamespace>EnterpriseWorkflow.Security</RootNamespace>
   </PropertyGroup>
   <ItemGroup>

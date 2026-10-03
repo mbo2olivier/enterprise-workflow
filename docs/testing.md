@@ -34,7 +34,7 @@ T22–T24 sont des critères nouveaux, **non exécutés**, et ne sont pas couver
 
 | ID | Test | Résultat attendu | Environnement |
 | --- | --- | --- | --- |
-| T22 | LDAP générique : bind, schéma, codecs, renommage, recherche, groupes absents/présents, statut, TLS et panne | Identités stables ; profils directs utilisables sans groupes ; capacités honnêtes ; certificat avec mauvais nom refusé ; pas de repli en clair | LDAP non AD réel + OS revendiqués ; contrats et stores SQLite/Oracle |
+| T22 | LDAP générique : bind, schéma, codecs, renommage, recherche, groupes absents/présents, statut, TLS et panne | Identités stables ; profils directs utilisables sans groupes ; capacités honnêtes ; certificat avec mauvais nom refusé ; clair uniquement par sélection explicite, aucun downgrade automatique | LDAP non AD réel sur le job Linux ; contrats sans instance sur Windows/macOS |
 | T23 | Grants par workflow/version/nœud/action ; visibilité et candidats ; faux contexte API ; révocation | Refus hors contexte même avec permission globale ; profil admin sans droit métier ; droits relus ; contexte dérivé côté serveur | Services/API L5b + SQLite/Oracle |
 | T24 | Clientèle → superviseur → maker → validateur ; affectation, concurrence, reprise et versions | Destinataire conservé ; un claim/une complétion gagnants ; droits retirés refusés ; ancien nœud/ancienne activation rejeté ; séparation maker/checker si R4 retenue | Runtime L6 + SQLite/Oracle puis UI L8 |
 

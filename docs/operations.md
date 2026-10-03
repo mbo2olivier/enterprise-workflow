@@ -20,7 +20,7 @@ Le processus peut être intégré à l’hébergement choisi par l’utilisateur
 
 ## Premier administrateur
 
-Configurer le fournisseur avant création du premier droit d’administration. Bootstrap local explicite avec sujet stable ; pas de compte universel précréé. Une extension locale gère son credential ; AD reste propriétaire du mot de passe distant. Les détails seront fixés au lot L5 avec tests de réexécution et d’impossibilité de bootstrap public permanent.
+Configurer le fournisseur avant création du premier droit d’administration. Bootstrap local explicite avec sujet stable ; pas de compte universel précréé. Une extension locale gère son credential ; l’annuaire LDAP reste propriétaire du mot de passe distant. L5 protège la réexécution et n’expose aucun bootstrap public permanent.
 
 ## Ajouter ou mettre à jour un module
 
@@ -50,7 +50,7 @@ Une restauration n’est validée qu’après reprise d’une instance en attent
 | Host non prêt | Base, version de schéma, module requis, fournisseur | Corriger la cause ; pas de suppression silencieuse de module |
 | Travail bloqué | Échéance, état, bail/génération, santé worker | Attendre/reprendre via protocole de bail ; pas de modification SQL manuelle |
 | Tâche non visible | Identité fournisseur/sujet, affectation, permission, statut | Corriger le mapping par procédure auditée |
-| Connexion AD en échec | TLS, disponibilité, politiques, configuration | Diagnostiquer sans log de mot de passe ; pas de repli local automatique |
+| Connexion LDAP en échec | TLS, disponibilité, schéma, attributs, politiques | Diagnostiquer sans log de mot de passe ; aucun downgrade automatique ; `PlainText` exige une sélection explicite et reste déconseillé hors environnement maîtrisé |
 | Message non livré | État outbox, délai, erreur et destination | Retry borné prévu ; visibilité de l’échec final |
 | Module ancien manquant | Références des instances et catalogue d’artefacts | Restaurer l’artefact exact ; ne pas substituer la dernière DLL |
 

@@ -37,10 +37,19 @@ public sealed class SecuritySessionManager(
         if (session.Identity.ProviderId != SecurityProviderIds.Local && checkedAt + policy.RemoteStatusRevalidationInterval <= now)
         {
             if (!directories.TryGetValue(session.Identity.ProviderId, out var directory)) return new(SessionValidationStatus.Unavailable, ErrorCode: "security.directory-unavailable");
-            var identity = await directory.FindAsync(session.Identity, includeGroups: false, cancellationToken).ConfigureAwait(false);
-            if (identity.Outcome is ProviderOutcome.Unavailable) return new(SessionValidationStatus.Unavailable, ErrorCode: identity.ErrorCode);
-            if (identity.Outcome is not ProviderOutcome.Succeeded) { await store.RevokeSessionAsync(session.TokenDigest, session.Identity, cancellationToken).ConfigureAwait(false); return new(SessionValidationStatus.Revoked, ErrorCode: "security.remote-identity-revoked"); }
-            checkedAt = now;
+            if (directory.Capabilities.HasFlag(DirectoryCapabilities.AccountStatus))
+            {
+                var identity = await directory.FindAsync(session.Identity, includeGroups: false, cancellationToken).ConfigureAwait(false);
+                if (identity.Outcome is ProviderOutcome.Unavailable) return new(SessionValidationStatus.Unavailable, ErrorCode: identity.ErrorCode);
+                if (identity.Outcome is not ProviderOutcome.Succeeded || identity.Value?.AccountStatus is DirectoryAccountStatus.Disabled)
+                {
+                    await store.RevokeSessionAsync(session.TokenDigest, session.Identity, cancellationToken).ConfigureAwait(false);
+                    return new(SessionValidationStatus.Revoked, ErrorCode: "security.remote-identity-revoked");
+                }
+                if (identity.Value?.AccountStatus is not DirectoryAccountStatus.Enabled)
+                    return new(SessionValidationStatus.Unavailable, ErrorCode: "security.remote-status-unknown");
+                checkedAt = now;
+            }
         }
 
         var updated = await store.UpdateSessionAsync(session with { LastSeenAtUtc = now, RemoteStatusCheckedAtUtc = checkedAt }, cancellationToken).ConfigureAwait(false);

@@ -1,0 +1,10 @@
+dn: uid=employee1,ou=Internal,ou=Users,dc=example,dc=test
+changetype: modify
+add: employeeType
+employeeType: active
+
+dn: uid=guest1,ou=External,ou=Users,dc=example,dc=test
+changetype: modify
+add: employeeType
+employeeType: disabled
+

@@ -56,7 +56,7 @@ Le porteur emploie Runtime pour désigner l’application d’hébergement. La n
 
 Q05 est résolue pour l’auto-approbation par l’ADR 0011 ; Q09 est résolue pour la technologie UI par l’ADR 0012. La délégation reste hors de cet arbitrage ; la bibliothèque graphique et l’outillage frontend restent ouverts sous Q09b.
 
-Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. L’ADR 0016 accepte TLS validé, la composition des fournisseurs, le bootstrap, les sessions configurables et les profils internes. Le connecteur historique utilise System.DirectoryServices.Protocols ; sa généralisation et les nouveaux contrats d’habilitation sont prévus en L5a/L5b.
+Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. L’ADR 0016 accepte la composition des fournisseurs, le bootstrap, les sessions configurables et les profils internes. L’ADR 0018 précise LDAPS par défaut et le clair sur sélection explicite. Le connecteur générique fondé sur System.DirectoryServices.Protocols est livré en L5a ; les nouveaux contrats d’habilitation restent prévus en L5b.
 
 Les arbitrages R1–R4 du [recadrage](spec-ldap-stages.md) complètent les questions ci-dessous, avec échéance avant les lots concernés.
 
@@ -85,4 +85,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; le socle sécurité L5 est implémenté et qualifié localement, avec qualification AD historique non exécutée. LDAP générique L5a, habilitations par nœud L5b, fonctions métier, modules et UI restent à réaliser.
+L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; le socle sécurité L5 est implémenté et qualifié localement. LDAP générique L5a est implémenté avec qualification OpenLDAP locale en clair explicite et job LDAPS Linux intégré. Les habilitations par nœud L5b, fonctions métier, modules et UI restent à réaliser.
