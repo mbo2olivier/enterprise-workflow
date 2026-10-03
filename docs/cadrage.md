@@ -14,7 +14,11 @@ S8 : validation des recommandations L4a 1A, 2A et 3A le 1er octobre 2026 : clé 
 
 S9 : validation le 3 octobre 2026 des recommandations L4b 1A à 5A puis 6A : snapshot atomique au claim, politique entièrement configurable, exceptions inattendues permanentes, intentions outbox atomiques avec dead letter bornée, conservation de version d’état et portes futures explicites pour attente/callback et migration d’état. Voir [ADR 0015](adr/0015-worker-retry-outbox-l4b.md).
 
-S2 à S8 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
+S10 : validation le 3 octobre 2026 des choix sécurité L5 1A à 5A, avec politique de sécurité entièrement configurable, profils internes associables directement aux identités ou aux groupes AD facultatifs, et scission de G2 en sécurité, contrats métier et rendu UI. Voir [ADR 0016](adr/0016-securite-profils-l5.md). Le mode précis de rendu et la source des responsables ne sont pas sélectionnés par cet accord.
+
+S11 : décision le 3 octobre 2026 de désigner explicitement l’approbateur au démarrage ou lors de l’activité concernée, parmi les identités habilitées par les profils internes. Q11 et l’arbitrage sur la source du responsable sont résolus ; les autres contrats G2a restent à formaliser. Voir [ADR 0017](adr/0017-designation-approbateur.md).
+
+S2 à S11 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
 
@@ -47,7 +51,7 @@ Le porteur emploie Runtime pour désigner l’application d’hébergement. La n
 
 Q05 est résolue pour l’auto-approbation par l’ADR 0011 ; Q09 est résolue pour la technologie UI par l’ADR 0012. La délégation reste hors de cet arbitrage ; la bibliothèque graphique et l’outillage frontend restent ouverts sous Q09b.
 
-Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. Le protocole sécurisé exact, la bibliothèque LDAP, les contrats techniques et leurs capacités restent des propositions d’implémentation.
+Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. L’ADR 0016 accepte TLS validé, la composition des fournisseurs, le bootstrap, les sessions configurables et les profils internes. La bibliothèque LDAP et les signatures techniques restent à définir.
 
 ## Décisions ultérieures
 
@@ -58,7 +62,7 @@ Ces décisions sont intégrées aux ADR 0001 à 0003, 0011 et 0012. Le protocole
 | Q08 | Licence, gouvernance et identifiants NuGet/CLI | Avant publication |
 | Q09b | Mode de rendu Razor/Blazor, bibliothèque graphique du Studio et outillage frontend de build | Mode de rendu avant UI ; bibliothèque avant Studio |
 | Q10 | Résolue pour L1 : SDK minimal 10.0.100 avec roll-forward vers les feature bands stables .NET 10 ; preuves locales sur 10.0.102 ; runners `ubuntu-24.04`, `windows-2025`, `macos-15` ; GitHub Actions | À revoir lors de la qualification de distribution L10 |
-| Q11 | Source des responsables et mapping des groupes | Avant affectation corporate |
+| Q11 | Résolue : approbateur explicitement choisi parmi les identités habilitées par profils internes (ADR 0017), sans attribut AD manager obligatoire | Arbitrage responsable franchi ; réalisation L5/L6/L8 |
 
 Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement validés restent des propositions, sans acceptation par défaut.
 

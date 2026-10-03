@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><RootNamespace>EnterpriseWorkflow.Security.Persistence.Sqlite</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+</Project>

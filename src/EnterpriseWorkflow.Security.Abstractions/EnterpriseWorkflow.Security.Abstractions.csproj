@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Provider-neutral authentication, authorization and identity-directory contracts.</Description>
+    <RootNamespace>EnterpriseWorkflow.Security</RootNamespace>
+  </PropertyGroup>
+</Project>

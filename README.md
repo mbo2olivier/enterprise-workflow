@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L4b implémentés localement.** Le dépôt contient le modèle canonique, la DSL C#, les stores SQLite/Oracle, le registre de handlers versionnés, le worker durable configurable et l’outbox fenced à retries bornés. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L4b terminés localement ; L5 implémenté avec qualification AD réelle différée.** Le dépôt contient aussi les contrats et stores de sécurité SQLite/Oracle, les comptes locaux, profils, sessions révocables, le connecteur LDAPS et une API d’exemple protégée. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -35,6 +35,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 10. [Preuve du lot L3b](docs/evidence/l3b.md)
 11. [Preuve du lot L4a](docs/evidence/l4a.md)
 12. [Preuve du lot L4b](docs/evidence/l4b.md)
+13. [Preuve du lot L5](docs/evidence/l5.md)
 
 ## Documents de référence
 

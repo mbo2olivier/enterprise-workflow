@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><RootNamespace>EnterpriseWorkflow.Security.Persistence.Oracle</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" />
+  </ItemGroup>
+</Project>

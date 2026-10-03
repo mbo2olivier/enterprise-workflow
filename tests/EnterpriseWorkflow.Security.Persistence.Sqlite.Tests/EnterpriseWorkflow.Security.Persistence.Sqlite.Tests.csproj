@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject><RootNamespace>EnterpriseWorkflow.Security.Persistence.Sqlite.Tests</RootNamespace></PropertyGroup>
+  <ItemGroup><PackageReference Include="Microsoft.NET.Test.Sdk" /><PackageReference Include="xunit.v3" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj" /><ProjectReference Include="../../src/EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj" /></ItemGroup>
+</Project>

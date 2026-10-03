@@ -7,14 +7,22 @@
     <Project Path="src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
     <Project Path="src/EnterpriseWorkflow.Runtime.Abstractions/EnterpriseWorkflow.Runtime.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Security.Abstractions/EnterpriseWorkflow.Security.Abstractions.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Security.Persistence.Oracle/EnterpriseWorkflow.Security.Persistence.Oracle.csproj" />
     <Project Path="src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EnterpriseWorkflow.Core.Tests/EnterpriseWorkflow.Core.Tests.csproj" />
     <Project Path="tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/EnterpriseWorkflow.Persistence.Sqlite.Tests.csproj" />
     <Project Path="tests/EnterpriseWorkflow.Runtime.Tests/EnterpriseWorkflow.Runtime.Tests.csproj" />
+    <Project Path="tests/EnterpriseWorkflow.Security.Tests/EnterpriseWorkflow.Security.Tests.csproj" />
+    <Project Path="tests/EnterpriseWorkflow.Security.Persistence.Sqlite.Tests/EnterpriseWorkflow.Security.Persistence.Sqlite.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/ExecutableWorkflow/ExecutableWorkflow.csproj" />
+    <Project Path="samples/SecurityApi/SecurityApi.csproj" />
   </Folder>
 </Solution>

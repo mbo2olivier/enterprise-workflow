@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup><RootNamespace>EnterpriseWorkflow.SecurityApi</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj" />
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj" />
+  </ItemGroup>
+</Project>

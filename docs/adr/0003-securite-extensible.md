@@ -23,3 +23,7 @@ Identité stable par fournisseur et sujet. UI administrative adaptée aux capaci
 ## Validation attendue
 
 Une même définition fonctionne avec extension locale et AD sans changement du moteur. Tests négatifs, panne du fournisseur, collisions d’identité, réinitialisation non supportée. Voir [sécurité](../architecture/security.md).
+
+## Complément accepté pour L5
+
+L’[ADR 0016](0016-securite-profils-l5.md) précise et remplace les propositions relatives à la composition, au bootstrap, aux sessions et au choix ASP.NET Core Identity. Il introduit les profils internes et leurs associations directes aux identités ou par groupes AD facultatifs. Les signatures techniques restent à définir.

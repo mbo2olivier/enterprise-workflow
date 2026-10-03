@@ -20,6 +20,11 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Runtime.Abstractions"] =
                 ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core", "EnterpriseWorkflow.Persistence.Abstractions"],
             ["EnterpriseWorkflow.Runtime"] = ["EnterpriseWorkflow.Core", "EnterpriseWorkflow.Runtime.Abstractions"],
+            ["EnterpriseWorkflow.Security.Abstractions"] = [],
+            ["EnterpriseWorkflow.Security"] = ["EnterpriseWorkflow.Security.Abstractions"],
+            ["EnterpriseWorkflow.Security.Persistence"] = ["EnterpriseWorkflow.Security.Abstractions"],
+            ["EnterpriseWorkflow.Security.Persistence.Oracle"] = ["EnterpriseWorkflow.Security.Persistence"],
+            ["EnterpriseWorkflow.Security.Persistence.Sqlite"] = ["EnterpriseWorkflow.Security.Persistence"],
             ["EnterpriseWorkflow.Sdk"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
         };
 
@@ -73,6 +78,11 @@ public sealed class ArchitectureTests
                 (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),
                 (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.Hosting.Abstractions"),
                 (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.Options"),
+                (Project: "EnterpriseWorkflow.Security", Package: "System.DirectoryServices.Protocols"),
+                (Project: "EnterpriseWorkflow.Security.Persistence", Package: "Microsoft.EntityFrameworkCore"),
+                (Project: "EnterpriseWorkflow.Security.Persistence", Package: "Microsoft.EntityFrameworkCore.Relational"),
+                (Project: "EnterpriseWorkflow.Security.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
+                (Project: "EnterpriseWorkflow.Security.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite"),
             ],
             packageReferences.Select(item => (item.Project, item.Package)).OrderBy(item => item.Project, StringComparer.Ordinal));
     }

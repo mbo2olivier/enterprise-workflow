@@ -12,5 +12,6 @@
     <ProjectReference Include="../../src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj" />
     <ProjectReference Include="../../src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
     <ProjectReference Include="../../src/EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Security.Persistence.Oracle/EnterpriseWorkflow.Security.Persistence.Oracle.csproj" />
   </ItemGroup>
 </Project>

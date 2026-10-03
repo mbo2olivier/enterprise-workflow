@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><RootNamespace>EnterpriseWorkflow.Security.Persistence</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Security.Abstractions/EnterpriseWorkflow.Security.Abstractions.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). L3b et L4b passent sur l’image officielle Oracle Enterprise 19.19 ARM64. Les lots L5 à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement**. L5 est implémenté et qualifié localement sur SQLite et Oracle Enterprise 19.19 ; sa seule qualification différée est l’essai contre un domaine AD réel sur les plateformes cibles. Les lots L6 à L11 ne sont pas démarrés.
 
 Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
@@ -12,7 +12,11 @@ G1 — franchie pour L4b : contrats L2 cadrés par D1 à D6 ; encodage et atomic
 
 G1a — avant tout workflow dépendant d’une réponse distante : décider du modèle durable requête/attente/callback, notamment corrélation, authentification du callback, idempotence, timeout, annulation et reprise. Une intention outbox L4b convient aux commandes asynchrones ; elle ne prétend pas fournir une réponse synchrone. Cette porte doit être franchie au plus tard avant d’ajouter un connecteur nécessitant cette réponse ; L6 doit vérifier si ses primitives d’attente peuvent être mutualisées sans confondre tâche humaine et callback technique.
 
-G2 — avant sécurité/UI : arrêter contrats de fournisseurs, bootstrap, durée de session/révocation, source des responsables Q11 et mode de rendu UI Q09b. Auto-approbation configurable et interdite par défaut (ADR 0011), Razor/Blazor (ADR 0012), besoin local/distant et mode AD sont déjà résolus. Définir avant L6 les tâches d'approbation, leur affectation, le versionnement de leur politique, la référence durable `FormId/FormVersion`, le contrat des données soumises et la frontière entre validation métier L6 et rendu UI L8.
+G2 — sécurité L5, franchie pour les décisions : contrats séparés, bootstrap local, sessions révocables entièrement configurables, AD en lecture seule et extension locale ASP.NET Core Identity acceptés dans l’ADR 0016. Les profils internes administrables permettent l’association directe identité/profil et le mapping facultatif groupe AD/profil. Les signatures et règles détaillées restent à formaliser pendant la conception L5. Un domaine AD réel et les stores SQLite/Oracle sont nécessaires à la qualification de sortie ; leur disponibilité n’est pas présumée.
+
+G2a — avant L6, arbitrage responsable franchi : Q11 est résolue par l’ADR 0017. L’administration habilite les approbateurs via les profils internes ; au démarrage ou à l’activité concernée, l’utilisateur désigne explicitement une identité parmi les personnes autorisées. Aucun recours obligatoire à l’attribut AD `manager`. Restent à formaliser avant L6 les tâches d’approbation, les détails de leur politique d’affectation versionnée, la référence durable `FormId/FormVersion`, le contrat des données soumises et la frontière validation métier L6/rendu UI L8. Auto-approbation configurable et interdite par défaut déjà acceptée (ADR 0011).
+
+G2b — avant prototype UI/modules L7a et rendu L8 : arrêter le mode de rendu Razor/Blazor Q09b et le contrat de ressources UI. Razor/Blazor est déjà accepté (ADR 0012) ; le mode précis reste ouvert. Bibliothèque graphique du Studio et outillage spécifique à celui-ci peuvent attendre L11.
 
 G3 — avant modules définitifs : trancher coexistence ou drainage à partir du prototype (Q07) ; une incapacité à charger deux versions doit être remontée, pas dissimulée.
 
@@ -32,11 +36,11 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | L3b-Q — terminé localement | Qualification du minimum produit sur l’image officielle Oracle Enterprise 19.19 | L3b-I, accès registre | Migration et six tests d’intégration réussis sur 19.19 ; version et digest consignés dans la preuve |
 | L4a — terminé localement | Contrats d'exécution, résultats explicites, contexte borné, registre versionné initial et résolution par scope DI | L2 ; ADR 0014 | Un handler concret est enregistré, validé puis résolu par sa clé durable ; configuration invalide, clé absente ou ambiguë refusée explicitement |
 | L4b — terminé localement | Worker, Start/Service/End, retries configurables, idempotence et outbox bornée, utilisant exclusivement le registre L4a | L3a, L3b-I, L4a ; qualification finale avec L3b-Q ; ADR 0015 | Start → Service concret → End ; arrêt/reprise par expiration ; fencing et effet externe simulé dédupliqué sur SQLite, parcours complet qualifié sur Oracle 19.19 |
-| L5 | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités | L1, G2 ; L3 pour les stores concrets | Contrats communs ; login AD réel ; comptes locaux hors Core ; endpoints administratifs protégés |
-| L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5, G2 | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
-| L7a | Prototype loader, versions simultanées, dépendances, alimentation du registre L4a et ressources UI | L2, L4b ; UI Razor/Blazor ; mode de rendu Q09b | Rapport prouvant coexistence ou recommandant drainage ; absence de collision silencieuse entre handlers ; décision G3 |
+| L5 — implémenté, qualification AD différée | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités et profils internes, associations directes et mappings AD facultatifs | L1, G2 ; L3 pour les stores concrets | Code, comptes locaux, sessions, endpoints, profils et stores SQLite/Oracle qualifiés ; login AD réel Windows/Linux/macOS restant |
+| L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5, G2a | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
+| L7a | Prototype loader, versions simultanées, dépendances, alimentation du registre L4a et ressources UI | L2, L4b ; UI Razor/Blazor ; G2b | Rapport prouvant coexistence ou recommandant drainage ; absence de collision silencieuse entre handlers ; décision G3 |
 | L7b | Kernel, loader et registre définitifs | L7a, G3, L5 | Nouveau module chargé au redémarrage ; retrait incompatible bloqué |
-| L8 | UI métier, schémas et rendu des formulaires, composants Razor personnalisés, thèmes et administration complète | L6, L7b, G2 | Parcours congé sur les deux bases ; formulaire/version de L6 rendu et validé côté serveur ; droits par ressource et capacités fournisseur respectés |
+| L8 | UI métier, schémas et rendu des formulaires, composants Razor personnalisés, thèmes et administration complète | L6, L7b, G2b | Parcours congé sur les deux bases ; formulaire/version de L6 rendu et validé côté serveur ; droits par ressource et capacités fournisseur respectés |
 | L9 | CLI, templates, pack et exemple embedded | L7b, L8 | Depuis copie propre : génération, build, validation, package, chargement |
 | L10 | Qualification, distribution et runbooks | L3b-Q, L9, G4 | Matrice publiée sur preuves, restauration exécutée, artefacts vérifiés ; MVP livrable |
 | L11 | Studio initial et export C# | MVP, choix bibliothèque/Q09b | Export compilable et modèle équivalent ; absent du Host production |
@@ -56,6 +60,8 @@ L’ADR 0014 retient une clé globale `(HandlerId, HandlerVersion)`. Les applica
 ## Tâches humaines et formulaires
 
 Une tâche humaine n'est pas un `Service` portant un champ JSON `form`. L6 ajoute un type de nœud et un DSL `HumanTask` explicites, avec affectation, issues autorisées, référence durable `FormId/FormVersion`, révision, données de soumission bornées et commande de complétion autorisée/idempotente. Son activation persiste une attente et ne conserve ni transaction ni worker pendant l'interaction humaine.
+
+L6 définit le contrat de désignation explicite de l’approbateur (ADR 0017), sa validation serveur et sa persistance par identité stable. L5 fournit les permissions/profils et la recherche des candidats habilités ; L8 fournit le sélecteur graphique.
 
 L6 définit la sémantique durable et la validation métier indépendante de l'UI. L8 ajoute les schémas déclaratifs de champs, leur rendu Razor/Blazor, la validation serveur de présentation, l'inbox, les pages de tâche et l'échappatoire vers un composant Razor personnalisé. Une ancienne instance continue à référencer la version exacte du formulaire avec laquelle elle a été créée.
 

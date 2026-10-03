@@ -1,6 +1,6 @@
 # Schéma physique SQLite du framework
 
-Statut : schéma initial L3a complété par l’outbox L4b. Les sources exécutables sont les migrations `202610010001_InitialSqlite` et `202610030002_AddOutbox` du projet `EnterpriseWorkflow.Persistence.Sqlite`.
+Statut : schéma workflow L3a/L4b et schéma sécurité L5 séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
 
 Cette page décrit les tables possédées par le framework, leurs relations et leur usage. Elles ne constituent pas une API SQL publique : une application doit passer par `IWorkflowStore` et exécuter les migrations fournies. Une modification directe peut contourner le fencing, l’idempotence, les révisions et l’audit.
 
@@ -197,6 +197,23 @@ Chaque ligne est une intention externe créée dans la même transaction que le 
 | `DeliveredAtUnixMilliseconds` | `INTEGER` | oui | Acquittement réussi |
 
 Contrainte unique (`ActivationId`, `OperationId`). Index de polling (`Status`, `DueAtUnixMilliseconds`). Les clés étrangères vers instance et activation sont en cascade. `Failed` est terminal pour le dispatcher automatique mais ne change pas l’état métier de l’instance ; un rejeu administratif futur devra être explicite et audité.
+
+## Tables de sécurité L5
+
+Ces tables sont possédées par `ISecurityProfileStore`, `ILocalAccountStore` et `ISecuritySessionStore`, jamais par `IWorkflowStore`.
+
+| Table | Rôle et clés principales |
+| --- | --- |
+| `EwSecurityProfiles` | Profils internes (`Id`), libellé et indicateur d’accès administratif |
+| `EwSecurityPermissions` | Permissions d’un profil ; clé (`ProfileId`, `PermissionId`) |
+| `EwSecurityIdentityProfiles` | Associations directes ; clé (`ProviderId`, `SubjectId`, `ProfileId`) |
+| `EwSecurityGroupProfiles` | Mappings facultatifs de groupes stables ; clé (`ProviderId`, `GroupId`, `ProfileId`) |
+| `EwSecurityLocalAccounts` | Comptes locaux, hash Identity, verrouillage, activation et révision ; nom normalisé unique |
+| `EwSecuritySessions` | Digest SHA-256 du jeton, identité, bornes temporelles, révocation et révision |
+| `EwSecurityAudit` | Mutations de profils, associations, comptes, bootstrap, récupération et révocations |
+| `__EwSecurityMigrationsHistory` | Historique EF distinct du schéma sécurité |
+
+Le mot de passe et le jeton de session en clair ne sont jamais persistés. Le bootstrap, la récupération et la protection du dernier administrateur s’exécutent sous transaction sérialisable.
 
 ## `__EFMigrationsHistory`
 

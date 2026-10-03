@@ -1,6 +1,6 @@
 # Schéma physique Oracle du framework
 
-Statut : schéma L3b ciblant Oracle Database 19c, complété par l’outbox L4b. Les sources exécutables sont `202610010002_InitialOracle` et `202610030003_AddOutbox` du projet `EnterpriseWorkflow.Persistence.Oracle`.
+Statut : schéma workflow L3b/L4b et schéma sécurité L5 séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
 
 Les tables appartiennent au schéma Oracle configuré dans la chaîne de connexion. Elles ne sont pas une API SQL publique : les mutations passent par `IWorkflowStore`, afin de préserver transactions, révisions, idempotence et fencing.
 
@@ -140,6 +140,23 @@ Une intention est insérée atomiquement avec le commit réussi du nœud. Le dis
 | `DELIVERED_AT_MS` | `NUMBER(19)` | oui | Acquittement réussi |
 
 Contrainte unique (`ACTIVATION_ID`, `OPERATION_ID`), index (`STATUS`, `DUE_AT_MS`) et clés étrangères en cascade. Les claims concurrents utilisent `FOR UPDATE SKIP LOCKED`. Un message `Failed` reste consultable et n’altère pas une instance déjà terminale.
+
+## Tables de sécurité L5
+
+La migration `202610030005_InitialSecurityOracle` crée les tables ci-dessous dans le même schéma configuré, sous la responsabilité exclusive du store sécurité.
+
+| Table | Rôle et clés principales |
+| --- | --- |
+| `EwSecurityProfiles` | Profils internes et indicateur d’accès administratif |
+| `EwSecurityPermissions` | Permissions par profil |
+| `EwSecurityIdentityProfiles` | Profils directement associés à `(ProviderId, SubjectId)` |
+| `EwSecurityGroupProfiles` | Profils associés à un identifiant stable de groupe AD |
+| `EwSecurityLocalAccounts` | Comptes locaux, hash Identity, verrouillage, activation et révision |
+| `EwSecuritySessions` | Digests de jetons, expiration, revalidation distante, révocation et révision |
+| `EwSecurityAudit` | Audit minimal des mutations de sécurité |
+| `EW_SECURITY_MIGRATIONS` | Historique EF propre aux migrations de sécurité |
+
+Les noms sont cités car EF les crée comme identifiants délimités. Les appels applicatifs passent par les contrats L5 ; une mutation SQL directe peut contourner audit, concurrence ou protection du dernier administrateur.
 
 ## Table de migrations
 

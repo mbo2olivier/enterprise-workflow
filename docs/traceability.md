@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a acquiert le binding exact ; L4b acquiert le worker séquentiel, les retries, le fencing après interruption et la redelivery outbox dédupliquée de T06/T07/T19. Voir les [preuves L2](evidence/l2.md), [L3a](evidence/l3a.md), [L3b](evidence/l3b.md), [L4a](evidence/l4a.md) et [L4b](evidence/l4b.md).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a acquiert le binding exact ; L4b acquiert le worker séquentiel, les retries, le fencing après interruption et la redelivery outbox dédupliquée de T06/T07/T19. L5 acquiert les contrats, comptes locaux, profils, sessions, API protégée et stores SQLite/Oracle de T10/T11 ; seule la qualification AD réelle reste différée. Voir les preuves de lots sous [`docs/evidence`](evidence/).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |
@@ -34,4 +34,4 @@ S3 confirme .NET/plateformes, les deux providers, l’administration extensible,
 
 ## Préconditions encore ouvertes
 
-Q06, Q07, Q08, Q09b et Q11 restent tracées au cadrage et aux portes du plan. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Ces points n’annulent pas les décisions confirmées. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
+Q06, Q07, Q08 et Q09b restent tracées au cadrage et aux portes du plan. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Ces points n’annulent pas les décisions confirmées. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.

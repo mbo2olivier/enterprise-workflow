@@ -1,0 +1,84 @@
+using Microsoft.Data.Sqlite;
+using Xunit;
+
+namespace EnterpriseWorkflow.Security.Persistence.Sqlite.Tests;
+
+public sealed class SqliteSecurityStoreTests
+{
+    [Fact]
+    public async Task ProfilesAssignmentsPermissionsAuditAndLastAdministratorAreDurable()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = fixture.Database.CreateStore();
+        var actor = new IdentityReference(SecurityProviderIds.Local, "bootstrap");
+        var profile = new SecurityProfile("administrators", "Administrateurs", new HashSet<PermissionId> { WorkflowPermissions.ManageAccess }, true);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.UpsertProfileAsync(profile, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.AssignIdentityAsync(actor, profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
+        var permissions = await store.ResolvePermissionsAsync(actor, null, TestContext.Current.CancellationToken);
+        Assert.Contains(WorkflowPermissions.ManageAccess, permissions.Value!);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.MapGroupAsync(new("ad", "group-1"), profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
+        var groupPermissions = await store.ResolvePermissionsAsync(new("ad", "member-1"), new HashSet<string> { "group-1" }, TestContext.Current.CancellationToken);
+        Assert.Contains(WorkflowPermissions.ManageAccess, groupPermissions.Value!);
+        var refused = await store.UnassignIdentityAsync(actor, profile.Id, actor, TestContext.Current.CancellationToken);
+        Assert.Equal(ProviderOutcome.Conflict, refused.Outcome); Assert.Equal("security.last-administrator", refused.ErrorCode);
+        Assert.Equal(3, (await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Count);
+    }
+
+    [Fact]
+    public async Task LocalAccountUsesOptimisticRevision()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = fixture.Database.CreateStore(); var actor = new IdentityReference(SecurityProviderIds.Local, "bootstrap");
+        var account = new LocalAccount(new(SecurityProviderIds.Local, "one"), "Alice", "ALICE", "hash", true, 0, null, 0);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.CreateAsync(account, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.UpdateAsync(account with { FailedAccessCount = 1 }, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(ProviderOutcome.Conflict, (await store.UpdateAsync(account with { FailedAccessCount = 2 }, TestContext.Current.CancellationToken)).Outcome);
+    }
+
+    [Fact]
+    public async Task BootstrapCannotBeRepeatedAndSessionsCanBeRevoked()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = fixture.Database.CreateStore(); var identity = new IdentityReference(SecurityProviderIds.Local, "first-admin");
+        var account = new LocalAccount(identity, "Admin", "ADMIN", "hash", true, 0, null, 0);
+        var profile = new SecurityProfile("administrators", "Administrateurs", new HashSet<PermissionId> { WorkflowPermissions.ManageAccess }, true);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.BootstrapAsync(account, profile, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal("security.already-bootstrapped", (await store.BootstrapAsync(account, profile, TestContext.Current.CancellationToken)).ErrorCode);
+        var now = new DateTimeOffset(2026, 10, 3, 12, 0, 0, TimeSpan.Zero);
+        var session = new SecuritySession(new string('b', 64), identity, now, now, now.AddHours(8), now, false, 0);
+        await store.CreateSessionAsync(session, TestContext.Current.CancellationToken);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.RevokeSessionAsync(session.TokenDigest, identity, TestContext.Current.CancellationToken)).Outcome);
+        Assert.True((await store.FindSessionAsync(session.TokenDigest, TestContext.Current.CancellationToken)).Value!.Revoked);
+    }
+
+    [Fact]
+    public async Task SessionTokenIsOpaqueAndIdleExpirationIsEnforced()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var time = new MutableTimeProvider(new(2026, 10, 3, 12, 0, 0, TimeSpan.Zero));
+        var manager = new SecuritySessionManager(fixture.Database.CreateStore(time), new SecurityPolicyOptions
+        {
+            IdleSessionTimeout = TimeSpan.FromMinutes(2), AbsoluteSessionLifetime = TimeSpan.FromHours(1), RemoteStatusRevalidationInterval = TimeSpan.FromMinutes(5),
+        }, new Dictionary<string, IIdentityDirectory>(), time);
+        var identity = new IdentityReference(SecurityProviderIds.Local, "session-user");
+        var issued = await manager.IssueAsync(identity, TestContext.Current.CancellationToken);
+        Assert.Equal(64, issued.Value!.Token.Length);
+        Assert.Equal(SessionValidationStatus.Valid, (await manager.ValidateAsync(issued.Value.Token, TestContext.Current.CancellationToken)).Status);
+        time.UtcNow = time.UtcNow.AddMinutes(3);
+        Assert.Equal(SessionValidationStatus.Expired, (await manager.ValidateAsync(issued.Value.Token, TestContext.Current.CancellationToken)).Status);
+    }
+
+    private sealed class Fixture : IAsyncDisposable
+    {
+        private readonly string _path = Path.Combine(Path.GetTempPath(), $"ew-security-{Guid.NewGuid():N}.db");
+        public SqliteSecurityDatabase Database { get; }
+        public Fixture() { var cs = new SqliteConnectionStringBuilder { DataSource = _path, Pooling = false }.ToString(); Database = new(cs); }
+        public ValueTask DisposeAsync() { SqliteConnection.ClearAllPools(); foreach (var path in new[] { _path, _path + "-wal", _path + "-shm" }) if (File.Exists(path)) File.Delete(path); return ValueTask.CompletedTask; }
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public DateTimeOffset UtcNow { get; set; } = utcNow;
+        public override DateTimeOffset GetUtcNow() => UtcNow;
+    }
+}
