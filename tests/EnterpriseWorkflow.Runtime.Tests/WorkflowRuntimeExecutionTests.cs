@@ -41,7 +41,7 @@ public sealed class WorkflowRuntimeExecutionTests
             options.RetryBaseDelay = TimeSpan.FromMilliseconds(1);
             options.RetryMaximumDelay = TimeSpan.FromMilliseconds(10);
             options.AttemptTimeout = TimeSpan.FromSeconds(10);
-            options.OutboxLeaseDuration = TimeSpan.FromMilliseconds(20);
+            options.OutboxLeaseDuration = TimeSpan.FromSeconds(5);
             options.OutboxIdlePollingInterval = TimeSpan.FromMilliseconds(10);
             options.OutboxMaximumAttempts = 4;
             options.OutboxRetryBaseDelay = TimeSpan.FromMilliseconds(1);
@@ -79,7 +79,13 @@ public sealed class WorkflowRuntimeExecutionTests
             TestContext.Current.CancellationToken)).Value);
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await transport.DeliverAsync(interrupted, TestContext.Current.CancellationToken));
-        await Task.Delay(TimeSpan.FromMilliseconds(30), TestContext.Current.CancellationToken);
+        await using (var context = database.CreateDbContext())
+        {
+            var expired = await context.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "EwOutbox" SET "LeaseExpiresAtUnixMilliseconds" = 0 WHERE "Id" = {interrupted.MessageId.Value.ToString("N")}""",
+                TestContext.Current.CancellationToken);
+            Assert.Equal(1, expired);
+        }
 
         var outbox = provider.GetRequiredService<IWorkflowOutboxPump>();
         Assert.True(await outbox.DeliverNextAsync(new TechnicalId("test.outbox"), TestContext.Current.CancellationToken));
