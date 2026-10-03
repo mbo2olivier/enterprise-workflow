@@ -1,6 +1,6 @@
 # Schéma physique Oracle du framework
 
-Statut : schéma L3b ciblant Oracle Database 19c, validé sur Oracle Free `23.26.3` et qualifié sur Oracle Enterprise `19.19.0.0.0`. La source exécutable est la migration `202610010002_InitialOracle` du projet `EnterpriseWorkflow.Persistence.Oracle`.
+Statut : schéma L3b ciblant Oracle Database 19c, complété par l’outbox L4b. Les sources exécutables sont `202610010002_InitialOracle` et `202610030003_AddOutbox` du projet `EnterpriseWorkflow.Persistence.Oracle`.
 
 Les tables appartiennent au schéma Oracle configuré dans la chaîne de connexion. Elles ne sont pas une API SQL publique : les mutations passent par `IWorkflowStore`, afin de préserver transactions, révisions, idempotence et fencing.
 
@@ -14,6 +14,8 @@ erDiagram
     EW_ACTIVATIONS ||--|| EW_WORK_ITEMS : "travail logique"
     EW_INSTANCES ||--o{ EW_START_RECEIPTS : "résultat idempotent"
     EW_INSTANCES ||--o{ EW_AUDITS : "trace"
+    EW_INSTANCES ||--o{ EW_OUTBOX : "effets"
+    EW_ACTIVATIONS ||--o{ EW_OUTBOX : "émet"
 ```
 
 ## Tables fonctionnelles
@@ -112,12 +114,39 @@ Clé primaire : `RECEIPT_KEY`. L’empreinte évite un index composite dépassan
 
 Suppression en cascade avec l’instance. Index `IX_EW_AUDIT_INSTANCE_SEQ` sur (`INSTANCE_ID`, `SEQUENCE`).
 
+### `EW_OUTBOX`
+
+Une intention est insérée atomiquement avec le commit réussi du nœud. Le dispatcher applique un bail fenced indépendant et livre avec une clé stable.
+
+| Colonne | Type Oracle | Null | Rôle |
+| --- | --- | --- | --- |
+| `ID` | `CHAR(32 CHAR)` | non | Message durable, clé primaire |
+| `INSTANCE_ID` | `CHAR(32 CHAR)` | non | Instance source |
+| `ACTIVATION_ID` | `CHAR(32 CHAR)` | non | Activation logique source |
+| `OPERATION_ID` | `VARCHAR2(128 CHAR)` | non | Opération unique dans l’activation |
+| `DESTINATION` | `VARCHAR2(128 CHAR)` | non | Destination logique |
+| `CONTENT_TYPE` | `VARCHAR2(128 CHAR)` | non | Type du contenu |
+| `PAYLOAD_JSON` | `CLOB` | non | Payload JSON canonique |
+| `IDEMPOTENCY_KEY` | `CHAR(64 CHAR)` | non | SHA-256 stable pour la déduplication du destinataire |
+| `STATUS` | `NUMBER(10)` | non | `0 Ready`, `1 Leased`, `2 Delivered`, `3 Failed` |
+| `ATTEMPT` | `NUMBER(10)` | non | Claims de livraison |
+| `DUE_AT_MS` | `NUMBER(19)` | non | Prochaine échéance UTC |
+| `OWNER_ID` | `VARCHAR2(128 CHAR)` | oui | Dispatcher propriétaire |
+| `GENERATION` | `NUMBER(19)` | non | Génération de fencing |
+| `LEASE_TOKEN` | `CHAR(32 CHAR)` | oui | Token du bail |
+| `LEASE_EXPIRES_AT_MS` | `NUMBER(19)` | oui | Expiration selon Oracle |
+| `LAST_ERROR_CODE` | `VARCHAR2(128 CHAR)` | oui | Dernière erreur ou cause de dead letter |
+| `CREATED_AT_MS` | `NUMBER(19)` | non | Création atomique |
+| `DELIVERED_AT_MS` | `NUMBER(19)` | oui | Acquittement réussi |
+
+Contrainte unique (`ACTIVATION_ID`, `OPERATION_ID`), index (`STATUS`, `DUE_AT_MS`) et clés étrangères en cascade. Les claims concurrents utilisent `FOR UPDATE SKIP LOCKED`. Un message `Failed` reste consultable et n’altère pas une instance déjà terminale.
+
 ## Table de migrations
 
-Oracle EF Core maintient `__EFMigrationsHistory`. La migration initiale est `202610010002_InitialOracle`. `OracleWorkflowDatabase.MigrateAsync` doit être exécuté explicitement avec un compte autorisé à créer les objets ; le store ne lance aucune migration automatiquement.
+Oracle EF Core maintient `__EFMigrationsHistory`. Les migrations sont `202610010002_InitialOracle` et `202610030003_AddOutbox`. `OracleWorkflowDatabase.MigrateAsync` doit être exécuté explicitement avec un compte autorisé à créer les objets ; le store ne lance aucune migration automatiquement.
 
 ## Propriété et privilèges
 
 Le schéma de migration a besoin, pour cette version, de `CREATE SESSION`, `CREATE TABLE`, `CREATE SEQUENCE`, `CREATE TRIGGER` et d’un quota sur le tablespace cible. Le compte d’exécution final pourra être séparé et limité aux opérations `SELECT`, `INSERT`, `UPDATE` et au droit de verrouiller les tables possédées ; cette séparation sera qualifiée avec le Host et le déploiement de production.
 
-Comme pour SQLite, les tâches humaines, timers et l’outbox seront ajoutés par des migrations ultérieures. Les noms et types Oracle sont volontairement distincts du schéma physique SQLite.
+Comme pour SQLite, les tâches humaines et timers seront ajoutés par des migrations ultérieures. Les noms et types Oracle sont volontairement distincts du schéma physique SQLite.

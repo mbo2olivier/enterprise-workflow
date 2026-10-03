@@ -1,6 +1,6 @@
 # Architecture générale
 
-Statut : L1 à L4a implémentés localement ; le worker et les composants ultérieurs restent une proposition technique. Les contrats de store sont éprouvés sur SQLite, Oracle Free et Oracle Enterprise 19.19, et le binding runtime est validé avant publication.
+Statut : L1 à L4b implémentés localement ; les composants métier et de sécurité ultérieurs restent une proposition technique. Les stores et le worker/outbox sont éprouvés sur SQLite et Oracle Enterprise 19.19, et le binding runtime est validé avant publication.
 
 ## Responsabilités et intégration
 
@@ -39,7 +39,7 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 | Sdk | Builders C# | Core, Abstractions |
 | Persistence.Abstractions | Opérations atomiques et données de stockage pures | Core, Abstractions |
 | Runtime.Abstractions | Contextes et résultats bornés, interfaces Service/Decision sans DI | Core, Persistence.Abstractions, Abstractions |
-| Runtime | Registre global immuable, validation de binding et résolution par scope DI ; worker en L4b | Core, Runtime.Abstractions |
+| Runtime | Registre global immuable, validation de binding, résolution scoped, worker configurable et dispatcher outbox | Core, Runtime.Abstractions |
 | Application | Commandes, lectures et contrôles d’accès | Runtime, Security.Abstractions |
 | Security.Abstractions | Identité, permissions et capacités | Abstractions |
 | Security.* | Connecteurs et autorisation ; intégration sessions séparée | Security.Abstractions ; dépendances externes locales au connecteur |

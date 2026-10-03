@@ -71,6 +71,8 @@ public sealed class ArchitectureTests
                 (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
                 (Project: "EnterpriseWorkflow.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite"),
                 (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),
+                (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.Hosting.Abstractions"),
+                (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.Options"),
             ],
             packageReferences.Select(item => (item.Project, item.Package)).OrderBy(item => item.Project, StringComparer.Ordinal));
     }

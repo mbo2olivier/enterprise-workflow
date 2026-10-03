@@ -15,6 +15,6 @@
     <Project Path="tests/EnterpriseWorkflow.Runtime.Tests/EnterpriseWorkflow.Runtime.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
-    <Project Path="samples/MinimalWorkflow/MinimalWorkflow.csproj" />
+    <Project Path="samples/ExecutableWorkflow/ExecutableWorkflow.csproj" />
   </Folder>
 </Solution>

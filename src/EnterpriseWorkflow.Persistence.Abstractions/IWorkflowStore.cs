@@ -16,7 +16,7 @@ public interface IWorkflowStore
         CancellationToken cancellationToken);
 
     /// <summary>Claims at most one due work item and advances its fencing generation atomically.</summary>
-    ValueTask<StoreResult<WorkLease>> ClaimDueWorkAsync(
+    ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(
         ClaimDueWorkCommand command,
         CancellationToken cancellationToken);
 
@@ -34,5 +34,14 @@ public interface IWorkflowStore
     ValueTask<StoreResult<CancelInstanceResult>> CancelInstanceAsync(
         CancelInstanceCommand command,
         CancellationToken cancellationToken);
-}
 
+    /// <summary>Claims at most one due outbox message using a fenced delivery lease.</summary>
+    ValueTask<StoreResult<OutboxLease>> ClaimDueOutboxAsync(
+        ClaimDueOutboxCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Commits delivery or schedules a retry for the current outbox lease.</summary>
+    ValueTask<StoreResult<CommitOutboxResult>> CommitOutboxAsync(
+        CommitOutboxCommand command,
+        CancellationToken cancellationToken);
+}

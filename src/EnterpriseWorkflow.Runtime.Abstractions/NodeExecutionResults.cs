@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using EnterpriseWorkflow.Abstractions;
+using EnterpriseWorkflow.Core.Model;
 
 namespace EnterpriseWorkflow.Runtime;
 
@@ -15,17 +17,72 @@ public enum NodeExecutionDisposition
     PermanentFailure,
 }
 
+/// <summary>A bounded external-effect intent durably enqueued after a successful service node.</summary>
+public sealed record ExternalEffectIntent
+{
+    /// <summary>Maximum UTF-8 size of one external-effect payload.</summary>
+    public const int MaximumPayloadBytes = 256 * 1_024;
+
+    /// <summary>Creates an immutable intent. The operation identifier must be unique within one activation.</summary>
+    public ExternalEffectIntent(
+        TechnicalId operationId,
+        TechnicalId destination,
+        string contentType,
+        CanonicalJson payload)
+    {
+        if (!TechnicalId.IsValid(operationId.Value))
+        {
+            throw new ArgumentException("The operation identifier is invalid.", nameof(operationId));
+        }
+
+        if (!TechnicalId.IsValid(destination.Value))
+        {
+            throw new ArgumentException("The destination identifier is invalid.", nameof(destination));
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        if (contentType.Length > 128)
+        {
+            throw new ArgumentOutOfRangeException(nameof(contentType), "The content type cannot exceed 128 characters.");
+        }
+
+        OperationId = operationId;
+        Destination = destination;
+        ContentType = contentType;
+        Payload = payload ?? throw new ArgumentNullException(nameof(payload));
+        if (Payload.CanonicalByteCount > MaximumPayloadBytes)
+        {
+            throw new ArgumentOutOfRangeException(nameof(payload),
+                $"The external-effect payload cannot exceed {MaximumPayloadBytes} UTF-8 bytes.");
+        }
+    }
+
+    /// <summary>Gets the stable operation identifier within the node activation.</summary>
+    public TechnicalId OperationId { get; }
+
+    /// <summary>Gets the logical destination resolved by an outbox transport.</summary>
+    public TechnicalId Destination { get; }
+
+    /// <summary>Gets the payload media type.</summary>
+    public string ContentType { get; }
+
+    /// <summary>Gets the canonical JSON payload.</summary>
+    public CanonicalJson Payload { get; }
+}
+
 /// <summary>Result returned by a service-node handler.</summary>
 public sealed class ServiceNodeResult
 {
     private ServiceNodeResult(
         NodeExecutionDisposition disposition,
         NodeStateUpdate stateUpdate,
-        TechnicalId? errorCode)
+        TechnicalId? errorCode,
+        ImmutableArray<ExternalEffectIntent> effects)
     {
         Disposition = disposition;
         StateUpdate = stateUpdate;
         ErrorCode = errorCode;
+        Effects = effects;
     }
 
     /// <summary>Gets the bounded outcome category.</summary>
@@ -37,17 +94,31 @@ public sealed class ServiceNodeResult
     /// <summary>Gets the qualified machine-readable failure code.</summary>
     public TechnicalId? ErrorCode { get; }
 
+    /// <summary>Gets external effects to enqueue atomically after a successful attempt.</summary>
+    public ImmutableArray<ExternalEffectIntent> Effects { get; }
+
     /// <summary>Creates a successful result. The runtime chooses the next node.</summary>
-    public static ServiceNodeResult Success(NodeStateUpdate? stateUpdate = null) =>
-        new(NodeExecutionDisposition.Succeeded, stateUpdate ?? NodeStateUpdate.Unchanged, null);
+    public static ServiceNodeResult Success(
+        NodeStateUpdate? stateUpdate = null,
+        IEnumerable<ExternalEffectIntent>? effects = null)
+    {
+        var immutableEffects = effects?.ToImmutableArray() ?? [];
+        if (immutableEffects.Any(item => item is null) ||
+            immutableEffects.Select(item => item.OperationId.Value).Distinct(StringComparer.Ordinal).Count() != immutableEffects.Length)
+        {
+            throw new ArgumentException("Effect operation identifiers must be unique within one result.", nameof(effects));
+        }
+
+        return new(NodeExecutionDisposition.Succeeded, stateUpdate ?? NodeStateUpdate.Unchanged, null, immutableEffects);
+    }
 
     /// <summary>Creates a retryable failure. The worker owns delay and retry limits.</summary>
     public static ServiceNodeResult Retryable(TechnicalId errorCode) =>
-        new(NodeExecutionDisposition.RetryableFailure, NodeStateUpdate.Unchanged, Validate(errorCode));
+        new(NodeExecutionDisposition.RetryableFailure, NodeStateUpdate.Unchanged, Validate(errorCode), []);
 
     /// <summary>Creates a permanent failure.</summary>
     public static ServiceNodeResult PermanentFailure(TechnicalId errorCode) =>
-        new(NodeExecutionDisposition.PermanentFailure, NodeStateUpdate.Unchanged, Validate(errorCode));
+        new(NodeExecutionDisposition.PermanentFailure, NodeStateUpdate.Unchanged, Validate(errorCode), []);
 
     private static TechnicalId Validate(TechnicalId errorCode) => TechnicalId.IsValid(errorCode.Value)
         ? errorCode

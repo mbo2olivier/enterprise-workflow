@@ -2,8 +2,10 @@ using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Persistence.Oracle;
+using EnterpriseWorkflow.Runtime;
 using EnterpriseWorkflow.Sdk;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EnterpriseWorkflow.Persistence.Oracle.Tests;
@@ -53,7 +55,7 @@ public sealed class OracleWorkflowStoreTests
 
         Assert.Single(claims, result => result.Outcome is StoreOutcome.Succeeded);
         Assert.Single(claims, result => result.Outcome is StoreOutcome.NotFound);
-        var winner = Assert.IsType<WorkLease>(claims.Single(result => result.Outcome is StoreOutcome.Succeeded).Value);
+        var winner = Assert.IsType<ClaimedWork>(claims.Single(result => result.Outcome is StoreOutcome.Succeeded).Value).Lease;
         Assert.Equal(StoreOutcome.Succeeded,
             (await fixture.Store.CommitNodeResultAsync(Complete(winner), TestContext.Current.CancellationToken)).Outcome);
     }
@@ -62,22 +64,22 @@ public sealed class OracleWorkflowStoreTests
     public async Task ExpiredOwnerIsFencedAndDatabaseCanResumeToCompletion()
     {
         var fixture = await CreateStartedStoreAsync();
-        var oldLease = Assert.IsType<WorkLease>((await fixture.Store.ClaimDueWorkAsync(
+        var oldLease = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker.old"), TimeSpan.FromMilliseconds(1)),
-            TestContext.Current.CancellationToken)).Value);
+            TestContext.Current.CancellationToken)).Value).Lease;
         await Task.Delay(TimeSpan.FromMilliseconds(30), TestContext.Current.CancellationToken);
         var reopened = CreateStore(fixture.ConnectionString);
-        var newLease = Assert.IsType<WorkLease>((await reopened.ClaimDueWorkAsync(
+        var newLease = Assert.IsType<ClaimedWork>((await reopened.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker.new"), TimeSpan.FromSeconds(30)),
-            TestContext.Current.CancellationToken)).Value);
+            TestContext.Current.CancellationToken)).Value).Lease;
         var staleCommit = await fixture.Store.CommitNodeResultAsync(Complete(oldLease), TestContext.Current.CancellationToken);
         var continued = await reopened.CommitNodeResultAsync(new CommitNodeResultCommand(
             newLease.WorkItemId, newLease.Token, newLease.Generation, newLease.InstanceRevision,
             NodeCommitKind.Continue, WorkflowState.Create("{\"step\":1}", 1),
             new NextWork(new TechnicalId("end"), newLease.StoreUtcNow), null), TestContext.Current.CancellationToken);
-        var finalLease = Assert.IsType<WorkLease>((await reopened.ClaimDueWorkAsync(
+        var finalLease = Assert.IsType<ClaimedWork>((await reopened.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker.final"), TimeSpan.FromSeconds(30)),
-            TestContext.Current.CancellationToken)).Value);
+            TestContext.Current.CancellationToken)).Value).Lease;
         var completed = await reopened.CommitNodeResultAsync(Complete(finalLease), TestContext.Current.CancellationToken);
 
         Assert.Equal(oldLease.WorkItemId, newLease.WorkItemId);
@@ -91,9 +93,9 @@ public sealed class OracleWorkflowStoreTests
     public async Task CancellationInvalidatesOutstandingLeaseAtomically()
     {
         var fixture = await CreateStartedStoreAsync();
-        var lease = Assert.IsType<WorkLease>((await fixture.Store.ClaimDueWorkAsync(
+        var lease = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker"), TimeSpan.FromSeconds(30)),
-            TestContext.Current.CancellationToken)).Value);
+            TestContext.Current.CancellationToken)).Value).Lease;
         var cancelled = await fixture.Store.CancelInstanceAsync(new CancelInstanceCommand(
             lease.InstanceId, lease.InstanceRevision, new ActorIdentity(new TechnicalId("local"), "operator"),
             lease.StoreUtcNow), TestContext.Current.CancellationToken);
@@ -107,9 +109,9 @@ public sealed class OracleWorkflowStoreTests
     public async Task RevisionConflictDoesNotPartiallyCommitAndCurrentOwnerCanRetry()
     {
         var fixture = await CreateStartedStoreAsync();
-        var lease = Assert.IsType<WorkLease>((await fixture.Store.ClaimDueWorkAsync(
+        var lease = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker"), TimeSpan.FromSeconds(30)),
-            TestContext.Current.CancellationToken)).Value);
+            TestContext.Current.CancellationToken)).Value).Lease;
         var conflict = await fixture.Store.CommitNodeResultAsync(
             Complete(lease) with { ExpectedInstanceRevision = lease.InstanceRevision + 1 },
             TestContext.Current.CancellationToken);
@@ -117,6 +119,75 @@ public sealed class OracleWorkflowStoreTests
 
         Assert.Equal(StoreOutcome.Conflict, conflict.Outcome);
         Assert.Equal(StoreOutcome.Succeeded, retried.Outcome);
+    }
+
+    [Fact]
+    public async Task OutboxIsAtomicAndExpiredDeliveryOwnerIsFenced()
+    {
+        var fixture = await CreateStartedStoreAsync();
+        var work = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
+            new ClaimDueWorkCommand(new TechnicalId("worker"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken)).Value);
+        var committed = await fixture.Store.CommitNodeResultAsync(new CommitNodeResultCommand(
+            work.Lease.WorkItemId, work.Lease.Token, work.Lease.Generation, work.Lease.InstanceRevision,
+            NodeCommitKind.Complete, null, null, null,
+            [new OutboxWrite(new TechnicalId("notify"), new TechnicalId("receiver"), "application/json", "{\"ok\":true}")]),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Succeeded, committed.Outcome);
+
+        var oldLease = Assert.IsType<OutboxLease>((await fixture.Store.ClaimDueOutboxAsync(
+            new ClaimDueOutboxCommand(new TechnicalId("dispatcher.old"), TimeSpan.FromMilliseconds(10)),
+            TestContext.Current.CancellationToken)).Value);
+        await Task.Delay(TimeSpan.FromMilliseconds(30), TestContext.Current.CancellationToken);
+        var newLease = Assert.IsType<OutboxLease>((await fixture.Store.ClaimDueOutboxAsync(
+            new ClaimDueOutboxCommand(new TechnicalId("dispatcher.new"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken)).Value);
+
+        var stale = await fixture.Store.CommitOutboxAsync(new CommitOutboxCommand(
+            oldLease.MessageId, oldLease.Token, oldLease.Generation, OutboxCommitKind.Delivered, null, null),
+            TestContext.Current.CancellationToken);
+        var delivered = await fixture.Store.CommitOutboxAsync(new CommitOutboxCommand(
+            newLease.MessageId, newLease.Token, newLease.Generation, OutboxCommitKind.Delivered, null, null),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(oldLease.IdempotencyKey, newLease.IdempotencyKey);
+        Assert.Equal(oldLease.Generation + 1, newLease.Generation);
+        Assert.Equal(StoreOutcome.Conflict, stale.Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, delivered.Outcome);
+    }
+
+    [Fact]
+    public async Task RuntimeExecutesStartServiceEndAndDeliversOutboxOnOracle()
+    {
+        var fixture = await ResetDatabaseAsync();
+        var definition = Assert.IsType<WorkflowDefinition>(WorkflowBuilder.Create("oracle.runtime", 1)
+            .Start("start").Service("service", "oracle.execute").End("end")
+            .Then("start", "service").Then("service", "end").Validate().Definition);
+        Assert.Equal(StoreOutcome.Succeeded, (await fixture.Store.PublishDefinitionAsync(
+            new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await fixture.Store.StartInstanceAsync(
+            CreateStartCommand(definition, "runtime-request"), TestContext.Current.CancellationToken)).Outcome);
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IWorkflowStore>(fixture.Store);
+        services.AddEnterpriseWorkflowHandlers(registry => registry.AddService<OracleRuntimeHandler>("oracle.execute", 1));
+        services.AddEnterpriseWorkflowRuntime<OracleTestTransport>(options =>
+        {
+            options.LeaseDuration = TimeSpan.FromSeconds(10);
+            options.LeaseRenewalInterval = TimeSpan.FromSeconds(2);
+        });
+        await using var provider = services.BuildServiceProvider();
+        var pump = provider.GetRequiredService<IWorkflowExecutionPump>();
+        var owner = new TechnicalId("oracle.runtime.worker");
+        Assert.True(await pump.ExecuteNextAsync(owner, TestContext.Current.CancellationToken));
+        Assert.True(await pump.ExecuteNextAsync(owner, TestContext.Current.CancellationToken));
+        Assert.True(await pump.ExecuteNextAsync(owner, TestContext.Current.CancellationToken));
+        Assert.False(await pump.ExecuteNextAsync(owner, TestContext.Current.CancellationToken));
+
+        var outbox = provider.GetRequiredService<IWorkflowOutboxPump>();
+        Assert.True(await outbox.DeliverNextAsync(new TechnicalId("oracle.runtime.outbox"), TestContext.Current.CancellationToken));
+        Assert.False(await outbox.DeliverNextAsync(new TechnicalId("oracle.runtime.outbox"), TestContext.Current.CancellationToken));
+        Assert.Equal(1, Assert.IsType<OracleTestTransport>(provider.GetRequiredService<IExternalEffectTransport>()).Deliveries);
     }
 
     [Fact]
@@ -192,5 +263,25 @@ public sealed class OracleWorkflowStoreTests
     {
         public string? BusinessKey { get; set; }
         public string? CorrelationId { get; set; }
+    }
+
+    private sealed class OracleRuntimeHandler : IServiceNodeHandler
+    {
+        public ValueTask<ServiceNodeResult> ExecuteAsync(NodeExecutionContext context, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(ServiceNodeResult.Success(effects:
+            [
+                new ExternalEffectIntent(new TechnicalId("notify"), new TechnicalId("oracle.receiver"),
+                    "application/json", CanonicalJson.CreateObject("{\"qualified\":true}", 1024)),
+            ]));
+    }
+
+    private sealed class OracleTestTransport : IExternalEffectTransport
+    {
+        public int Deliveries { get; private set; }
+        public ValueTask<ExternalEffectDeliveryResult> DeliverAsync(OutboxLease message, CancellationToken cancellationToken)
+        {
+            Deliveries++;
+            return ValueTask.FromResult(ExternalEffectDeliveryResult.Success());
+        }
     }
 }

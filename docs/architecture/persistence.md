@@ -24,7 +24,7 @@ Un modèle commun ne suffit pas à rendre le SQL portable. La transaction d’é
 
 Chaque méthode renvoie un résultat structuré : réussite, résultat idempotent, conflit, absence ou indisponibilité. Un échec SQL avant commit annule toutes les écritures. Une réponse perdue après commit est récupérée via idempotence ou état durable.
 
-Le projet `EnterpriseWorkflow.Persistence.Abstractions` expose en L2 publication immuable, démarrage idempotent, claim, renouvellement, commit conditionnel et annulation. Les tâches humaines, timers et détails d’outbox ne sont pas figés avant leurs lots fonctionnels. Les règles pures testées classent répétition identique/conflit, contrôlent token + génération + expiration de bail, imposent UTC à la milliseconde et codent les transitions d’instance terminales.
+Le projet `EnterpriseWorkflow.Persistence.Abstractions` expose publication immuable, démarrage idempotent, claim avec snapshot d’exécution, renouvellement, commit conditionnel, annulation et claim/commit fenced de l’outbox L4b. Les tâches humaines et timers ne sont pas figés avant L6. Les règles contrôlent répétition, token + génération + expiration, UTC à la milliseconde et transitions terminales.
 
 La révocation de droits externes ne peut pas être rendue atomique avec une transaction SQL locale. Recontrôler l’autorisation au moment de la commande ; protéger aussi l’affectation et la révision persistées au commit. Les garanties de fraîcheur sont documentées dans le contrat de sécurité.
 

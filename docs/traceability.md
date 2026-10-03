@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et le contrôle de frontières T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis sur SQLite et Oracle en L3. L4a acquiert le binding exact, les collisions, la validation avant publication et les scopes DI ; voir les [preuves L2](evidence/l2.md), [L3a](evidence/l3a.md), [L3b](evidence/l3b.md) et [L4a](evidence/l4a.md).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a acquiert le binding exact ; L4b acquiert le worker séquentiel, les retries, le fencing après interruption et la redelivery outbox dédupliquée de T06/T07/T19. Voir les [preuves L2](evidence/l2.md), [L3a](evidence/l3a.md), [L3b](evidence/l3b.md), [L4a](evidence/l4a.md) et [L4b](evidence/l4b.md).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |
@@ -30,7 +30,7 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 
 ## Décisions utilisateur
 
-S3 confirme .NET/plateformes, les deux providers, l’administration extensible, le Studio différé et une organisation par installation. S4 précise Oracle 19c minimum, local/distant selon extension, AD par identifiant/mot de passe et matrice distincte par provider. S5 confirme l’auto-approbation configurable et interdite par défaut (0011), et Razor/Blazor avec formulaires déclaratifs et composants personnalisés (0012). S6 accepte les ADR 0006 à 0008, confirme le retour au MVP séquentiel sans parallélisme et retient GitHub Actions. S7 valide D1 à D6 pour L2 (ADR 0013) et autorise Docker Compose. S8 valide 1A, 2A et 3A pour l’identité, les résultats et la validation des handlers L4a (ADR 0014). Voir [cadrage](cadrage.md) pour les limites d’autorité de la source initiale.
+S3 confirme .NET/plateformes, les deux providers, l’administration extensible, le Studio différé et une organisation par installation. S4 précise Oracle 19c minimum, local/distant selon extension, AD par identifiant/mot de passe et matrice distincte par provider. S5 confirme l’auto-approbation configurable et interdite par défaut (0011), et Razor/Blazor avec formulaires déclaratifs et composants personnalisés (0012). S6 accepte les ADR 0006 à 0008, confirme le retour au MVP séquentiel sans parallélisme et retient GitHub Actions. S7 valide D1 à D6 pour L2 (ADR 0013) et autorise Docker Compose. S8 valide 1A, 2A et 3A pour L4a (ADR 0014). S9 valide 1A à 5A puis 6A pour L4b : configuration intégrale, outbox bornée/dead letter, jalon attente/callback et jalon migration d’état (ADR 0015). Voir [cadrage](cadrage.md) pour les limites d’autorité de la source initiale.
 
 ## Préconditions encore ouvertes
 

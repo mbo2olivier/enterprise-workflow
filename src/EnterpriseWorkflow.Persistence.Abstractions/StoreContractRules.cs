@@ -3,6 +3,7 @@ namespace EnterpriseWorkflow.Persistence;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using EnterpriseWorkflow.Abstractions;
 
 /// <summary>
@@ -10,6 +11,9 @@ using EnterpriseWorkflow.Abstractions;
 /// </summary>
 public static class StoreContractRules
 {
+    /// <summary>Maximum UTF-8 size accepted for one durable outbox payload.</summary>
+    public const int MaximumOutboxPayloadBytes = 256 * 1_024;
+
     /// <summary>Normalizes optional text because Oracle persists an empty string as null.</summary>
     public static string? NormalizeOptionalText(string? value) => string.IsNullOrEmpty(value) ? null : value;
 
@@ -64,6 +68,34 @@ public static class StoreContractRules
     /// <summary>Checks the accepted UTC and millisecond precision contract.</summary>
     public static bool HasUtcMillisecondPrecision(DateTimeOffset value) =>
         value.Offset == TimeSpan.Zero && value.Ticks % TimeSpan.TicksPerMillisecond == 0;
+
+    /// <summary>Checks provider-independent shape and size constraints for one outbox write.</summary>
+    public static bool IsValidOutboxWrite(OutboxWrite write)
+    {
+        ArgumentNullException.ThrowIfNull(write);
+        if (!TechnicalId.IsValid(write.OperationId.Value) || !TechnicalId.IsValid(write.Destination.Value) ||
+            string.IsNullOrWhiteSpace(write.ContentType) || write.ContentType.Length > 128 ||
+            write.PayloadJson is null ||
+            Encoding.UTF8.GetByteCount(write.PayloadJson) > MaximumOutboxPayloadBytes)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(write.PayloadJson, new JsonDocumentOptions
+            {
+                AllowTrailingCommas = false,
+                CommentHandling = JsonCommentHandling.Disallow,
+                MaxDepth = 64,
+            });
+            return document.RootElement.ValueKind is JsonValueKind.Object;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>Checks the accepted instance transition table.</summary>
     public static bool CanTransition(WorkflowInstanceStatus from, WorkflowInstanceStatus to) =>

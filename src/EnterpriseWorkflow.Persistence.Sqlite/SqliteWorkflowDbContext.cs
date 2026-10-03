@@ -17,6 +17,8 @@ public sealed class SqliteWorkflowDbContext(DbContextOptions<SqliteWorkflowDbCon
 
     internal DbSet<AuditRow> Audits => Set<AuditRow>();
 
+    internal DbSet<OutboxRow> Outbox => Set<OutboxRow>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ConfigureEnterpriseWorkflowSqlite();
@@ -36,6 +38,7 @@ public static class SqliteWorkflowModelBuilderExtensions
         ConfigureWorkItem(modelBuilder);
         ConfigureReceipt(modelBuilder);
         ConfigureAudit(modelBuilder);
+        ConfigureOutbox(modelBuilder);
         return modelBuilder;
     }
 
@@ -123,6 +126,27 @@ public static class SqliteWorkflowModelBuilderExtensions
         entity.HasIndex(row => new { row.InstanceId, row.Sequence });
         entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
     }
+
+    private static void ConfigureOutbox(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<OutboxRow>();
+        entity.ToTable("EwOutbox");
+        entity.HasKey(row => row.Id);
+        entity.Property(row => row.Id).HasMaxLength(32);
+        entity.Property(row => row.InstanceId).HasMaxLength(32);
+        entity.Property(row => row.ActivationId).HasMaxLength(32);
+        entity.Property(row => row.OperationId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.Destination).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.ContentType).HasMaxLength(128);
+        entity.Property(row => row.IdempotencyKey).HasMaxLength(64);
+        entity.Property(row => row.OwnerId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.LeaseToken).HasMaxLength(32);
+        entity.Property(row => row.LastErrorCode).HasMaxLength(128);
+        entity.HasIndex(row => new { row.ActivationId, row.OperationId }).IsUnique();
+        entity.HasIndex(row => new { row.Status, row.DueAtUnixMilliseconds });
+        entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
+        entity.HasOne<ActivationRow>().WithMany().HasForeignKey(row => row.ActivationId).OnDelete(DeleteBehavior.Cascade);
+    }
 }
 
 internal sealed class DefinitionRow
@@ -199,4 +223,26 @@ internal sealed class AuditRow
     public long OccurredAtUnixMilliseconds { get; set; }
     public string? ActorProviderId { get; set; }
     public string? ActorSubjectId { get; set; }
+}
+
+internal sealed class OutboxRow
+{
+    public required string Id { get; set; }
+    public required string InstanceId { get; set; }
+    public required string ActivationId { get; set; }
+    public required string OperationId { get; set; }
+    public required string Destination { get; set; }
+    public required string ContentType { get; set; }
+    public required string PayloadJson { get; set; }
+    public required string IdempotencyKey { get; set; }
+    public int Status { get; set; }
+    public int Attempt { get; set; }
+    public long DueAtUnixMilliseconds { get; set; }
+    public string? OwnerId { get; set; }
+    public long Generation { get; set; }
+    public string? LeaseToken { get; set; }
+    public long? LeaseExpiresAtUnixMilliseconds { get; set; }
+    public string? LastErrorCode { get; set; }
+    public long CreatedAtUnixMilliseconds { get; set; }
+    public long? DeliveredAtUnixMilliseconds { get; set; }
 }

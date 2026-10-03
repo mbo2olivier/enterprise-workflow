@@ -1,6 +1,6 @@
 # Schéma physique SQLite du framework
 
-Statut : schéma initial implémenté par L3a. La source exécutable est la migration `202610010001_InitialSqlite` du projet `EnterpriseWorkflow.Persistence.Sqlite`.
+Statut : schéma initial L3a complété par l’outbox L4b. Les sources exécutables sont les migrations `202610010001_InitialSqlite` et `202610030002_AddOutbox` du projet `EnterpriseWorkflow.Persistence.Sqlite`.
 
 Cette page décrit les tables possédées par le framework, leurs relations et leur usage. Elles ne constituent pas une API SQL publique : une application doit passer par `IWorkflowStore` et exécuter les migrations fournies. Une modification directe peut contourner le fencing, l’idempotence, les révisions et l’audit.
 
@@ -14,6 +14,8 @@ erDiagram
     EwActivations ||--|| EwWorkItems : "travail logique"
     EwInstances ||--o{ EwStartReceipts : "résultat idempotent"
     EwInstances ||--o{ EwAudits : "trace"
+    EwInstances ||--o{ EwOutbox : "effets"
+    EwActivations ||--o{ EwOutbox : "émet"
 ```
 
 | Table | Rôle | Conservation attendue |
@@ -24,6 +26,7 @@ erDiagram
 | `EwWorkItems` | File durable, échéance et bail fenced des workers | Avec l’instance ; aucun purgeur automatique en L3a |
 | `EwStartReceipts` | Déduplication des commandes de démarrage | Sans purge automatique au MVP initial |
 | `EwAudits` | Journal des mutations critiques du store | Avec l’instance dans le schéma L3a |
+| `EwOutbox` | Intentions d’effets externes et état de livraison fenced | Avec l’instance ; les échecs restent visibles |
 | `__EFMigrationsHistory` | Versions de schéma déjà appliquées par EF Core | Pendant toute la vie de la base |
 | `sqlite_sequence` | Compteur interne SQLite utilisé par l’`AUTOINCREMENT` de `EwAudits` | Gérée exclusivement par SQLite |
 
@@ -168,6 +171,33 @@ Le journal L3a enregistre les mutations critiques dans la même transaction que 
 
 Clé étrangère `InstanceId` vers `EwInstances` avec suppression en cascade. Index : (`InstanceId`, `Sequence`). Ce journal fournit une trace fonctionnelle transactionnelle ; L3a ne revendique pas un journal cryptographiquement inviolable ni une conservation indépendante après suppression d’une instance.
 
+## `EwOutbox`
+
+Chaque ligne est une intention externe créée dans la même transaction que le succès du nœud. Sa livraison possède un bail et un fencing indépendants du worker métier.
+
+| Colonne | Type SQLite | Null | Description |
+| --- | --- | --- | --- |
+| `Id` | `TEXT` | non | `Guid` du message, clé primaire |
+| `InstanceId` | `TEXT` | non | Instance ayant produit l’intention |
+| `ActivationId` | `TEXT` | non | Activation logique stable |
+| `OperationId` | `TEXT COLLATE BINARY` | non | Nom d’opération unique dans l’activation |
+| `Destination` | `TEXT COLLATE BINARY` | non | Destination logique résolue par le transport |
+| `ContentType` | `TEXT` | non | Type du contenu |
+| `PayloadJson` | `TEXT` | non | Payload JSON canonique |
+| `IdempotencyKey` | `TEXT` | non | SHA-256 stable de l’instance, activation et opération |
+| `Status` | `INTEGER` | non | `0 Ready`, `1 Leased`, `2 Delivered`, `3 Failed` |
+| `Attempt` | `INTEGER` | non | Nombre de claims de livraison |
+| `DueAtUnixMilliseconds` | `INTEGER` | non | Prochaine échéance de livraison |
+| `OwnerId` | `TEXT COLLATE BINARY` | oui | Dispatcher propriétaire |
+| `Generation` | `INTEGER` | non | Génération de fencing |
+| `LeaseToken` | `TEXT` | oui | Token de la génération courante |
+| `LeaseExpiresAtUnixMilliseconds` | `INTEGER` | oui | Expiration selon l’horloge SQLite |
+| `LastErrorCode` | `TEXT` | oui | Dernière erreur de transport ou cause de dead letter |
+| `CreatedAtUnixMilliseconds` | `INTEGER` | non | Création atomique avec le commit du nœud |
+| `DeliveredAtUnixMilliseconds` | `INTEGER` | oui | Acquittement réussi |
+
+Contrainte unique (`ActivationId`, `OperationId`). Index de polling (`Status`, `DueAtUnixMilliseconds`). Les clés étrangères vers instance et activation sont en cascade. `Failed` est terminal pour le dispatcher automatique mais ne change pas l’état métier de l’instance ; un rejeu administratif futur devra être explicite et audité.
+
 ## `__EFMigrationsHistory`
 
 EF Core crée et maintient cette table technique lors de `SqliteWorkflowDatabase.MigrateAsync`. Elle contient l’identifiant de migration et la version EF utilisée. La migration L3a enregistrée est `202610010001_InitialSqlite`.
@@ -177,7 +207,7 @@ EF Core crée et maintient cette table technique lors de `SqliteWorkflowDatabase
 | `MigrationId` | `TEXT` | non | Identifiant unique et ordonné de la migration appliquée |
 | `ProductVersion` | `TEXT` | non | Version EF Core ayant produit la migration |
 
-Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Cette table ne doit pas être éditée ou supprimée manuellement.
+Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations enregistrées sont `202610010001_InitialSqlite` et `202610030002_AddOutbox`. Cette table ne doit pas être éditée ou supprimée manuellement.
 
 ## Table interne `sqlite_sequence`
 
@@ -189,13 +219,15 @@ SQLite crée cette table système parce que `EwAudits.Sequence` utilise `AUTOINC
 | --- | --- | --- |
 | `PublishDefinitionAsync` | `EwDefinitions` | `EwDefinitions` |
 | `StartInstanceAsync` | `EwStartReceipts`, `EwDefinitions` | `EwInstances`, `EwActivations`, `EwWorkItems`, `EwStartReceipts`, `EwAudits` |
-| `ClaimDueWorkAsync` | `EwWorkItems`, `EwInstances`, `EwActivations` | bail/génération dans `EwWorkItems`, tentative dans `EwActivations`, éventuellement statut/révision et audit |
+| `ClaimDueWorkAsync` | `EwWorkItems`, `EwInstances`, `EwActivations`, `EwDefinitions` | bail/génération dans `EwWorkItems`, tentative dans `EwActivations`, éventuellement statut/révision et audit ; retourne le snapshot d’exécution cohérent |
 | `RenewLeaseAsync` | `EwWorkItems`, `EwInstances` | expiration dans `EwWorkItems` |
-| `CommitNodeResultAsync` | `EwWorkItems`, `EwInstances`, `EwActivations` | état, révision, activation, travail courant, suite éventuelle et `EwAudits` |
+| `CommitNodeResultAsync` | `EwWorkItems`, `EwInstances`, `EwActivations` | état, révision, activation, travail courant, suite éventuelle, `EwOutbox` et `EwAudits` |
 | `CancelInstanceAsync` | `EwInstances`, travaux et activations actifs | instance annulée, invalidation des travaux/activations et `EwAudits` |
+| `ClaimDueOutboxAsync` | `EwOutbox` | bail, génération et tentative de livraison |
+| `CommitOutboxAsync` | `EwOutbox` | acquittement, retry planifié ou passage durable en `Failed` |
 
 Toutes ces mutations utilisent une transaction d’écriture SQLite courte. Une condition de bail, de statut ou de révision non satisfaite provoque un rollback sans écriture partielle.
 
 ## Évolutions prévues
 
-Le schéma L3a ne contient pas encore les tables de tâches humaines, timers ou outbox : elles seront ajoutées par des migrations correspondant aux lots L4 et L6. Oracle L3b possède son [propre schéma physique](oracle-schema.md) et ses propres migrations ; cette page ne doit pas être utilisée comme promesse de noms ou de types Oracle.
+Le schéma L4b ne contient pas encore les tables de tâches humaines ou timers : elles seront ajoutées par les migrations de L6. Oracle possède son [propre schéma physique](oracle-schema.md) et ses propres migrations ; cette page ne doit pas être utilisée comme promesse de noms ou de types Oracle.

@@ -1,12 +1,12 @@
 # Modèle et exécution durable
 
-Statut : conventions L2 et binding L4a implémentés selon les ADR 0013 et 0014. Les stores L3 sont qualifiés ; le worker, le polling et les politiques de retry appartiennent à L4b.
+Statut : conventions L2, binding L4a et worker/outbox L4b implémentés selon les ADR 0013 à 0015. Les stores SQLite et Oracle portent le même contrat atomique ; leur qualification L4b est documentée dans la preuve du lot.
 
 ## Binding d’exécution L4a
 
 `EnterpriseWorkflow.Runtime.Abstractions` expose deux interfaces pures : `IServiceNodeHandler` et `IDecisionNodeHandler`. Elles reçoivent un `NodeExecutionContext` borné contenant les identités durables d’instance et d’activation, le nœud, le numéro de tentative, l’état complet et la configuration canonique. L’activation reste stable à travers les retries ; la tentative sert au diagnostic et ne doit pas devenir une nouvelle clé d’effet.
 
-Les résultats ne contiennent ni destination ni délai : succès avec mise à jour d’état facultative, échec retryable ou permanent avec code technique ; une décision réussie fournit en plus son issue nommée. L4b vérifiera cette issue contre les transitions déclarées et appliquera la politique de retry.
+Les résultats ne contiennent ni prochain nœud ni délai : succès avec mise à jour d’état facultative, échec retryable ou permanent avec code technique ; une décision réussie fournit en plus son issue nommée. Un succès Service peut joindre des `ExternalEffectIntent` bornées avec opération, destination, type de contenu et JSON canonique. L4b vérifie les transitions et applique seul la politique de retry.
 
 `EnterpriseWorkflow.Runtime` construit un registre immuable de clés globales `(HandlerId, HandlerVersion)`. La composition DI refuse immédiatement un doublon. `WorkflowDefinitionBindingValidator` refuse avant publication une clé absente ou un rôle Service/Decision incompatible. `IScopedWorkflowHandlerResolver` exige ensuite la version exacte et crée un scope distinct par tentative ; aucun fallback vers une autre version ou un autre rôle n’existe.
 
@@ -84,7 +84,7 @@ sequenceDiagram
     C->>S: Créer instance + travail + reçu + audit
     S-->>C: Résultat après commit
     W->>S: Réclamer un travail éligible
-    S-->>W: Travail + génération + bail
+    S-->>W: Travail + génération + bail + définition/état/tentative
     W->>N: Exécuter hors transaction SQL longue
     N-->>W: Résultat explicite
     W->>S: Commit conditionnel résultat + suite + audit/outbox
@@ -95,18 +95,22 @@ Une transaction de commit vérifie statut de l’instance, révision, générati
 
 L’horloge de référence des baux doit être cohérente entre claim, renouvellement et commit. D5 acceptée : temps fourni par le store, à implémenter et tester par provider ; `TimeProvider` pour le moteur et les tests. Ne pas comparer des horloges de workers non synchronisées en prétendant garantir le fencing.
 
-Polling SQL et `BackgroundService` sont suffisants pour démarrer. Un signal mémoire accélère éventuellement le réveil ; un redémarrage doit fonctionner sans lui. Aucun DbContext ni transaction n’est conservé durant une attente ou un appel réseau métier.
+Le worker et le dispatcher sont des `BackgroundService` à concurrence bornée. Le polling SQL reste la source de vérité ; un redémarrage fonctionne sans signal mémoire. Aucun DbContext ni transaction n’est conservé durant un handler ou un appel externe. Le bail métier est renouvelé pendant le handler ; perte du bail ou arrêt du Host annule au mieux le handler et interdit son commit.
+
+Les valeurs par défaut L4b sont concurrence 1, bail 30 s, renouvellement 10 s, polling 250 ms, cinq tentatives, délai exponentiel avec full jitter depuis 1 s et plafond 30 s, timeout cinq minutes. L’outbox utilise concurrence 1, bail 30 s, polling 250 ms, dix tentatives, délai depuis 1 s et plafond une minute. Toutes ces valeurs sont des options de composition validées au démarrage et peuvent être adaptées par chaque entreprise.
 
 ## Idempotence et effets externes
 
 - Une activation peut être réexécutée après incident : sémantique au moins une fois.
 - Une clé d’effet est stable, par exemple installation + instance + activation + nom de l’opération ; le numéro de tentative n’en fait pas partie.
 - La destination doit accepter cette clé ou la duplication doit être tolérée/traitée par l’intégration.
-- L’outbox rend l’intention atomique avec le moteur ; le destinataire peut recevoir plusieurs livraisons.
+- L’outbox rend l’intention atomique avec le moteur ; le destinataire peut recevoir plusieurs livraisons. Erreur permanente ou tentatives épuisées place l’intention en `Failed` sans modifier l’instance métier.
 - Les reçus de démarrage sont scoped par installation, acteur stable et type de commande ; empreinte de la requête et résultat sont conservés. D5 accepte l’absence de purge automatique au MVP initial ; toute expiration future exigera une décision explicite.
 - Pour une tâche : requête identique avec même clé rend le résultat connu après contrôle d’accès ; même clé avec autre contenu ou autre décision après clôture rend un conflit. Aucun deuxième réveil.
 
-Un défaut transitoire autorise un retry avec délai progressif, jitter et plafond configurable. Erreur métier produit une issue prévue ; erreur permanente ou retries épuisés produisent Failed. Les valeurs par défaut sont à fixer et tester avant L4.
+Un défaut transitoire explicite autorise un retry avec délai progressif, jitter et plafond configurable. Une exception non gérée est permanente ; un timeout est retryable. Erreur permanente ou retries épuisés produisent `Failed`. Un remplacement d’état conserve sa version de schéma jusqu’à la définition d’un mécanisme de migration explicite.
+
+L’outbox couvre les commandes et événements asynchrones. Elle ne couvre pas une requête distante dont la réponse doit déterminer immédiatement la suite : la porte G1a du plan impose de décider corrélation, callback, timeout, sécurité et reprise avant d’introduire ce besoin.
 
 ## Courses à résoudre
 

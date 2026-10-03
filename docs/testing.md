@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : stratégie de validation. Les 59 tests locaux par défaut des lots L1 à L4a ont été exécutés avec succès le 1er octobre 2026 : architecture, modèle, DSL, stores SQLite et registre/runtime L4a. Les six tests d’intégration Oracle supplémentaires passent sur Oracle Free `23.26.3` et sur Oracle Enterprise `19.19.0.0.0` ; ils restent volontairement explicites, car ils exigent Docker et des identifiants injectés. Les tests fonctionnels du worker restent futurs.
+Statut : stratégie de validation. Les **62 tests locaux** des lots L1 à L4b passent le 3 octobre 2026 : architecture, modèle, DSL, SQLite, registre, worker, retries, état et outbox. Les **8 tests Oracle explicites** passent sur Oracle Enterprise `19.19.0.0.0`, dont migration outbox, fencing de livraison et parcours runtime `Start → Service → End`. Oracle Free reste la qualification L3b-I historique ; Docker et une chaîne injectée restent requis pour la suite Oracle.
 
 ## Pyramide
 

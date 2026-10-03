@@ -1,8 +1,11 @@
 using System.Data;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Core.Model;
+using EnterpriseWorkflow.Core.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Oracle.ManagedDataAccess.Client;
@@ -158,14 +161,14 @@ public sealed class OracleWorkflowStore : IWorkflowStore
     }
 
     /// <inheritdoc />
-    public async ValueTask<StoreResult<WorkLease>> ClaimDueWorkAsync(
+    public async ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(
         ClaimDueWorkCommand command,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
         if (!IsWholePositiveMilliseconds(command.LeaseDuration))
         {
-            return StoreResults.Conflict<WorkLease>("EW3006_INVALID_LEASE_DURATION");
+            return StoreResults.Conflict<ClaimedWork>("EW3006_INVALID_LEASE_DURATION");
         }
 
         return await ExecuteAsync(async context =>
@@ -176,7 +179,7 @@ public sealed class OracleWorkflowStore : IWorkflowStore
             if (itemId is null)
             {
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-                return StoreResults.NotFound<WorkLease>("EW3007_NO_DUE_WORK");
+                return StoreResults.NotFound<ClaimedWork>("EW3007_NO_DUE_WORK");
             }
 
             var item = await context.WorkItems.FindAsync([itemId], cancellationToken).ConfigureAwait(false)
@@ -185,6 +188,9 @@ public sealed class OracleWorkflowStore : IWorkflowStore
                 ?? throw new InvalidOperationException("The claimed work item has no instance.");
             var activation = await context.Activations.FindAsync([item.ActivationId], cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The claimed work item has no activation.");
+            var definitionRow = await context.Definitions.FindAsync(
+                [instance.DefinitionId, instance.DefinitionVersion], cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The claimed instance has no published definition.");
             var token = Guid.NewGuid();
             item.Status = (int)WorkItemStatus.Leased;
             item.OwnerId = command.OwnerId.Value;
@@ -203,7 +209,10 @@ public sealed class OracleWorkflowStore : IWorkflowStore
 
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return StoreResults.Succeeded(ToLease(item, instance.Revision, now));
+            var definition = PublishedWorkflowDefinitionReader.Read(
+                definitionRow.CanonicalJson, definitionRow.DefinitionId, definitionRow.Version, definitionRow.Sha256);
+            var state = WorkflowState.Create(instance.StateJson, instance.StateSchemaVersion);
+            return StoreResults.Succeeded(new ClaimedWork(ToLease(item, instance.Revision, now), definition, state, activation.Attempt));
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -305,6 +314,7 @@ public sealed class OracleWorkflowStore : IWorkflowStore
             }
 
             ApplyCommit(context, command, item, activation, instance, now);
+            AddOutbox(context, command, item, now);
             AddAudit(context, instance.Id, "NodeCommitted", instance.Revision, now);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -367,6 +377,98 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async ValueTask<StoreResult<OutboxLease>> ClaimDueOutboxAsync(
+        ClaimDueOutboxCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (!IsWholePositiveMilliseconds(command.LeaseDuration))
+        {
+            return StoreResults.Conflict<OutboxLease>("EW3020_INVALID_OUTBOX_LEASE_DURATION");
+        }
+
+        return await ExecuteAsync(async context =>
+        {
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
+            var id = await LockNextDueOutboxAsync(context, transaction, now, cancellationToken).ConfigureAwait(false);
+            if (id is null)
+            {
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return StoreResults.NotFound<OutboxLease>("EW3021_NO_DUE_OUTBOX");
+            }
+
+            var row = await context.Outbox.FindAsync([id], cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The locked outbox message no longer exists.");
+            var token = Guid.NewGuid();
+            row.Status = (int)OutboxMessageStatus.Leased;
+            row.OwnerId = command.OwnerId.Value;
+            row.Generation = checked(row.Generation + 1);
+            row.Attempt = checked(row.Attempt + 1);
+            row.LeaseToken = FormatGuid(token);
+            row.LeaseExpiresAtUnixMilliseconds = checked(now + (long)command.LeaseDuration.TotalMilliseconds);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return StoreResults.Succeeded(ToOutboxLease(row, token, now));
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<StoreResult<CommitOutboxResult>> CommitOutboxAsync(
+        CommitOutboxCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if ((command.Kind is OutboxCommitKind.Retry && (command.RetryAtUtc is null || !IsUtcMillisecond(command.RetryAtUtc.Value))) ||
+            (command.Kind is not OutboxCommitKind.Retry && command.RetryAtUtc is not null))
+        {
+            return StoreResults.Conflict<CommitOutboxResult>("EW3022_INVALID_OUTBOX_COMMIT");
+        }
+
+        return await ExecuteAsync(async context =>
+        {
+            await using var transaction = await BeginTransactionAsync(context, cancellationToken).ConfigureAwait(false);
+            var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
+            var id = FormatGuid(command.MessageId.Value);
+            if (!await LockOutboxAsync(context, transaction, id, cancellationToken).ConfigureAwait(false))
+            {
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return StoreResults.NotFound<CommitOutboxResult>("EW3023_OUTBOX_NOT_FOUND");
+            }
+
+            var row = await context.Outbox.FindAsync([id], cancellationToken).ConfigureAwait(false)!;
+            if (!IsCurrentOutboxLease(row!, command.Token, command.Generation, now))
+            {
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return StoreResults.Conflict<CommitOutboxResult>("EW3024_STALE_OUTBOX_LEASE");
+            }
+
+            if (command.Kind is OutboxCommitKind.Delivered)
+            {
+                row!.Status = (int)OutboxMessageStatus.Delivered;
+                row.DeliveredAtUnixMilliseconds = now;
+                row.LastErrorCode = null;
+            }
+            else if (command.Kind is OutboxCommitKind.Retry)
+            {
+                row!.Status = (int)OutboxMessageStatus.Ready;
+                row.DueAtUnixMilliseconds = command.RetryAtUtc!.Value.ToUnixTimeMilliseconds();
+                row.LastErrorCode = StoreContractRules.NormalizeOptionalText(command.ErrorCode);
+            }
+            else
+            {
+                row!.Status = (int)OutboxMessageStatus.Failed;
+                row.LastErrorCode = StoreContractRules.NormalizeOptionalText(command.ErrorCode);
+            }
+
+            ClearOutboxLease(row!);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return StoreResults.Succeeded(new CommitOutboxResult((OutboxMessageStatus)row.Status, row.Attempt));
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
     private static void ApplyCommit(OracleWorkflowDbContext context, CommitNodeResultCommand command,
         WorkItemRow item, ActivationRow activation, InstanceRow instance, long now)
     {
@@ -402,6 +504,33 @@ public sealed class OracleWorkflowStore : IWorkflowStore
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(command), command.Kind, "Unknown commit kind.");
+        }
+    }
+
+    private static void AddOutbox(
+        OracleWorkflowDbContext context,
+        CommitNodeResultCommand command,
+        WorkItemRow item,
+        long now)
+    {
+        foreach (var write in command.Outbox ?? [])
+        {
+            context.Outbox.Add(new OutboxRow
+            {
+                Id = FormatGuid(Guid.NewGuid()),
+                InstanceId = item.InstanceId,
+                ActivationId = item.ActivationId,
+                OperationId = write.OperationId.Value,
+                Destination = write.Destination.Value,
+                ContentType = write.ContentType,
+                PayloadJson = write.PayloadJson,
+                IdempotencyKey = ComputeOutboxIdempotencyKey(item.InstanceId, item.ActivationId, write.OperationId.Value),
+                Status = (int)OutboxMessageStatus.Ready,
+                Attempt = 0,
+                DueAtUnixMilliseconds = now,
+                Generation = 0,
+                CreatedAtUnixMilliseconds = now,
+            });
         }
     }
 
@@ -441,6 +570,22 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         else if (command.NextWork is not null)
         {
             return "EW3014_NEXT_WORK_NOT_ALLOWED";
+        }
+
+        if ((command.Outbox?.Count ?? 0) > 0 && command.Kind is NodeCommitKind.Retry or NodeCommitKind.Fail)
+        {
+            return "EW3017_OUTBOX_REQUIRES_SUCCESS";
+        }
+
+        if (command.Outbox is not null && command.Outbox
+            .GroupBy(item => item.OperationId.Value, StringComparer.Ordinal).Any(group => group.Count() > 1))
+        {
+            return "EW3018_DUPLICATE_OUTBOX_OPERATION";
+        }
+
+        if (command.Outbox is not null && command.Outbox.Any(item => !StoreContractRules.IsValidOutboxWrite(item)))
+        {
+            return "EW3019_INVALID_OUTBOX_WRITE";
         }
 
         return null;
@@ -490,6 +635,38 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         const string sql = "SELECT \"ID\" FROM \"EW_INSTANCES\" WHERE \"ID\" = :instance_id FOR UPDATE";
         await using var command = CreateCommand(context, transaction, sql);
         command.Parameters.Add(new OracleParameter("instance_id", OracleDbType.Char, 32) { Value = instanceId });
+        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;
+    }
+
+    private static async Task<string?> LockNextDueOutboxAsync(
+        OracleWorkflowDbContext context,
+        IDbContextTransaction transaction,
+        long now,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT "ID"
+            FROM "EW_OUTBOX"
+            WHERE (("STATUS" = 0 AND "DUE_AT_MS" <= :now_ms)
+                OR ("STATUS" = 1 AND "LEASE_EXPIRES_AT_MS" <= :now_ms))
+            ORDER BY "DUE_AT_MS", "CREATED_AT_MS", "ID"
+            FOR UPDATE SKIP LOCKED
+            """;
+        await using var command = CreateCommand(context, transaction, sql);
+        command.Parameters.Add(new OracleParameter("now_ms", OracleDbType.Int64) { Value = now });
+        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false);
+        return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? reader.GetString(0) : null;
+    }
+
+    private static async Task<bool> LockOutboxAsync(
+        OracleWorkflowDbContext context,
+        IDbContextTransaction transaction,
+        string id,
+        CancellationToken cancellationToken)
+    {
+        const string sql = "SELECT \"ID\" FROM \"EW_OUTBOX\" WHERE \"ID\" = :outbox_id FOR UPDATE";
+        await using var command = CreateCommand(context, transaction, sql);
+        command.Parameters.Add(new OracleParameter("outbox_id", OracleDbType.Char, 32) { Value = id });
         return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;
     }
 
@@ -555,10 +732,22 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         item.Generation, new LeaseToken(ParseGuid(item.LeaseToken!)), DateTimeOffset.FromUnixTimeMilliseconds(now),
         DateTimeOffset.FromUnixTimeMilliseconds(item.LeaseExpiresAtUnixMilliseconds!.Value), revision);
 
+    private static OutboxLease ToOutboxLease(OutboxRow row, Guid token, long now) => new(
+        new OutboxMessageId(ParseGuid(row.Id)), new WorkflowInstanceId(ParseGuid(row.InstanceId)),
+        new NodeActivationId(ParseGuid(row.ActivationId)), new TechnicalId(row.OperationId),
+        new TechnicalId(row.Destination), row.ContentType, row.PayloadJson, row.IdempotencyKey, row.Attempt,
+        row.Generation, new LeaseToken(token), DateTimeOffset.FromUnixTimeMilliseconds(now),
+        DateTimeOffset.FromUnixTimeMilliseconds(row.LeaseExpiresAtUnixMilliseconds!.Value));
+
     private static bool IsCurrentLease(WorkItemRow item, LeaseToken token, long generation, long now) =>
         item.Status == (int)WorkItemStatus.Leased && item.Generation == generation &&
         string.Equals(item.LeaseToken, FormatGuid(token.Value), StringComparison.Ordinal) &&
         item.LeaseExpiresAtUnixMilliseconds > now;
+
+    private static bool IsCurrentOutboxLease(OutboxRow row, LeaseToken token, long generation, long now) =>
+        row.Status == (int)OutboxMessageStatus.Leased && row.Generation == generation &&
+        string.Equals(row.LeaseToken, FormatGuid(token.Value), StringComparison.Ordinal) &&
+        row.LeaseExpiresAtUnixMilliseconds > now;
 
     private static void ClearLease(WorkItemRow item)
     {
@@ -566,6 +755,16 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         item.LeaseToken = null;
         item.LeaseExpiresAtUnixMilliseconds = null;
     }
+
+    private static void ClearOutboxLease(OutboxRow row)
+    {
+        row.OwnerId = null;
+        row.LeaseToken = null;
+        row.LeaseExpiresAtUnixMilliseconds = null;
+    }
+
+    private static string ComputeOutboxIdempotencyKey(string instanceId, string activationId, string operationId) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes($"{instanceId}:{activationId}:{operationId}")));
 
     private static void AddAudit(OracleWorkflowDbContext context, string instanceId, string eventType,
         long revision, long now, ActorIdentity? actor = null) => context.Audits.Add(new AuditRow

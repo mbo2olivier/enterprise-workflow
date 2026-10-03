@@ -12,6 +12,8 @@ public sealed class OracleWorkflowDbContext(DbContextOptions<OracleWorkflowDbCon
     internal DbSet<StartReceiptRow> StartReceipts => Set<StartReceiptRow>();
     internal DbSet<AuditRow> Audits => Set<AuditRow>();
 
+    internal DbSet<OutboxRow> Outbox => Set<OutboxRow>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.ConfigureEnterpriseWorkflowOracle();
 }
@@ -29,6 +31,7 @@ public static class OracleWorkflowModelBuilderExtensions
         ConfigureWorkItem(modelBuilder);
         ConfigureReceipt(modelBuilder);
         ConfigureAudit(modelBuilder);
+        ConfigureOutbox(modelBuilder);
         return modelBuilder;
     }
 
@@ -149,6 +152,37 @@ public static class OracleWorkflowModelBuilderExtensions
             .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_EW_AUDIT_INSTANCE");
     }
 
+    private static void ConfigureOutbox(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<OutboxRow>();
+        entity.ToTable("EW_OUTBOX");
+        entity.HasKey(row => row.Id).HasName("PK_EW_OUTBOX");
+        Text(entity.Property(row => row.Id), "ID", 32, fixedLength: true);
+        Text(entity.Property(row => row.InstanceId), "INSTANCE_ID", 32, fixedLength: true);
+        Text(entity.Property(row => row.ActivationId), "ACTIVATION_ID", 32, fixedLength: true);
+        Text(entity.Property(row => row.OperationId), "OPERATION_ID", 128);
+        Text(entity.Property(row => row.Destination), "DESTINATION", 128);
+        Text(entity.Property(row => row.ContentType), "CONTENT_TYPE", 128);
+        entity.Property(row => row.PayloadJson).HasColumnName("PAYLOAD_JSON").HasColumnType("CLOB");
+        Text(entity.Property(row => row.IdempotencyKey), "IDEMPOTENCY_KEY", 64, fixedLength: true);
+        entity.Property(row => row.Status).HasColumnName("STATUS").HasColumnType("NUMBER(10)");
+        entity.Property(row => row.Attempt).HasColumnName("ATTEMPT").HasColumnType("NUMBER(10)");
+        Number19(entity.Property(row => row.DueAtUnixMilliseconds), "DUE_AT_MS");
+        Text(entity.Property(row => row.OwnerId), "OWNER_ID", 128);
+        Number19(entity.Property(row => row.Generation), "GENERATION");
+        Text(entity.Property(row => row.LeaseToken), "LEASE_TOKEN", 32, fixedLength: true);
+        Number19(entity.Property(row => row.LeaseExpiresAtUnixMilliseconds), "LEASE_EXPIRES_AT_MS");
+        Text(entity.Property(row => row.LastErrorCode), "LAST_ERROR_CODE", 128);
+        Number19(entity.Property(row => row.CreatedAtUnixMilliseconds), "CREATED_AT_MS");
+        Number19(entity.Property(row => row.DeliveredAtUnixMilliseconds), "DELIVERED_AT_MS");
+        entity.HasIndex(row => new { row.ActivationId, row.OperationId }).IsUnique().HasDatabaseName("UX_EW_OUTBOX_ACT_OP");
+        entity.HasIndex(row => new { row.Status, row.DueAtUnixMilliseconds }).HasDatabaseName("IX_EW_OUTBOX_STATUS_DUE");
+        entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId)
+            .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_EW_OUTBOX_INSTANCE");
+        entity.HasOne<ActivationRow>().WithMany().HasForeignKey(row => row.ActivationId)
+            .OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_EW_OUTBOX_ACTIVATION");
+    }
+
     private static void Text<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<T> property, string name, int length, bool fixedLength = false)
     {
         property.HasColumnName(name).HasMaxLength(length).IsUnicode(false)
@@ -233,4 +267,26 @@ internal sealed class AuditRow
     public long OccurredAtUnixMilliseconds { get; set; }
     public string? ActorProviderId { get; set; }
     public string? ActorSubjectId { get; set; }
+}
+
+internal sealed class OutboxRow
+{
+    public required string Id { get; set; }
+    public required string InstanceId { get; set; }
+    public required string ActivationId { get; set; }
+    public required string OperationId { get; set; }
+    public required string Destination { get; set; }
+    public required string ContentType { get; set; }
+    public required string PayloadJson { get; set; }
+    public required string IdempotencyKey { get; set; }
+    public int Status { get; set; }
+    public int Attempt { get; set; }
+    public long DueAtUnixMilliseconds { get; set; }
+    public string? OwnerId { get; set; }
+    public long Generation { get; set; }
+    public string? LeaseToken { get; set; }
+    public long? LeaseExpiresAtUnixMilliseconds { get; set; }
+    public string? LastErrorCode { get; set; }
+    public long CreatedAtUnixMilliseconds { get; set; }
+    public long? DeliveredAtUnixMilliseconds { get; set; }
 }

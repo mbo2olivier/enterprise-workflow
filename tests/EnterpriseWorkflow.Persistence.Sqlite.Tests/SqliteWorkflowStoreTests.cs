@@ -71,14 +71,14 @@ public sealed class SqliteWorkflowStoreTests
         var firstLeaseResult = await fixture.Store.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker.old"), TimeSpan.FromMilliseconds(1)),
             TestContext.Current.CancellationToken);
-        var firstLease = Assert.IsType<WorkLease>(firstLeaseResult.Value);
+        var firstLease = Assert.IsType<ClaimedWork>(firstLeaseResult.Value).Lease;
         await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
 
         var reopenedStore = new SqliteWorkflowStore(new SqliteWorkflowDatabase(fixture.DatabaseFile.ConnectionString));
         var secondLeaseResult = await reopenedStore.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker.new"), TimeSpan.FromSeconds(30)),
             TestContext.Current.CancellationToken);
-        var secondLease = Assert.IsType<WorkLease>(secondLeaseResult.Value);
+        var secondLease = Assert.IsType<ClaimedWork>(secondLeaseResult.Value).Lease;
         var staleCommit = await fixture.Store.CommitNodeResultAsync(
             Complete(firstLease),
             TestContext.Current.CancellationToken);
@@ -97,7 +97,7 @@ public sealed class SqliteWorkflowStoreTests
         var finalLeaseResult = await reopenedStore.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker.final"), TimeSpan.FromSeconds(30)),
             TestContext.Current.CancellationToken);
-        var finalLease = Assert.IsType<WorkLease>(finalLeaseResult.Value);
+        var finalLease = Assert.IsType<ClaimedWork>(finalLeaseResult.Value).Lease;
         var finalCommit = await reopenedStore.CommitNodeResultAsync(
             Complete(finalLease),
             TestContext.Current.CancellationToken);
@@ -117,7 +117,7 @@ public sealed class SqliteWorkflowStoreTests
         var leaseResult = await fixture.Store.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker"), TimeSpan.FromSeconds(30)),
             TestContext.Current.CancellationToken);
-        var lease = Assert.IsType<WorkLease>(leaseResult.Value);
+        var lease = Assert.IsType<ClaimedWork>(leaseResult.Value).Lease;
 
         var cancellation = await fixture.Store.CancelInstanceAsync(
             new CancelInstanceCommand(
@@ -141,7 +141,7 @@ public sealed class SqliteWorkflowStoreTests
         var leaseResult = await fixture.Store.ClaimDueWorkAsync(
             new ClaimDueWorkCommand(new TechnicalId("worker"), TimeSpan.FromSeconds(30)),
             TestContext.Current.CancellationToken);
-        var lease = Assert.IsType<WorkLease>(leaseResult.Value);
+        var lease = Assert.IsType<ClaimedWork>(leaseResult.Value).Lease;
         var invalidCommit = Complete(lease) with { ExpectedInstanceRevision = lease.InstanceRevision + 1 };
 
         var conflict = await fixture.Store.CommitNodeResultAsync(

@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L4a implémentés localement.** Le dépôt contient le socle .NET 10, le modèle canonique, la DSL C#, les stores SQLite/Oracle qualifiés et le premier registre runtime de handlers versionnés avec validation avant publication et résolution par scope DI. Aucun worker L4b ni package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L4b implémentés localement.** Le dépôt contient le modèle canonique, la DSL C#, les stores SQLite/Oracle, le registre de handlers versionnés, le worker durable configurable et l’outbox fenced à retries bornés. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -16,7 +16,7 @@ Le MVP suit un graphe séquentiel à décisions exclusives, sans boucles ni para
 dotnet restore EnterpriseWorkflow.slnx --locked-mode
 dotnet build EnterpriseWorkflow.slnx --configuration Release --no-restore
 dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
-dotnet run --project samples/MinimalWorkflow/MinimalWorkflow.csproj --configuration Release --no-build --no-restore
+dotnet run --project samples/ExecutableWorkflow/ExecutableWorkflow.csproj --configuration Release --no-build --no-restore
 ```
 
 Les versions NuGet sont centralisées et chaque projet possède un fichier de verrouillage. `NuGet.Config` isole la restauration du dépôt sur nuget.org afin de ne pas dépendre de flux privés configurés sur une machine de développement.
@@ -34,6 +34,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 9. [Preuve du lot L3a](docs/evidence/l3a.md)
 10. [Preuve du lot L3b](docs/evidence/l3b.md)
 11. [Preuve du lot L4a](docs/evidence/l4a.md)
+12. [Preuve du lot L4b](docs/evidence/l4b.md)
 
 ## Documents de référence
 

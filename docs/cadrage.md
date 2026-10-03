@@ -12,6 +12,8 @@ S7 : validation de L2-D1 à L2-D6 le 1er octobre 2026 ; aucune instance Oracle d
 
 S8 : validation des recommandations L4a 1A, 2A et 3A le 1er octobre 2026 : clé globale identifiant/version, résultats bornés sans contrôle de transition et registre immuable validé avant publication. Voir [ADR 0014](adr/0014-binding-handlers-l4a.md).
 
+S9 : validation le 3 octobre 2026 des recommandations L4b 1A à 5A puis 6A : snapshot atomique au claim, politique entièrement configurable, exceptions inattendues permanentes, intentions outbox atomiques avec dead letter bornée, conservation de version d’état et portes futures explicites pour attente/callback et migration d’état. Voir [ADR 0015](adr/0015-worker-retry-outbox-l4b.md).
+
 S2 à S8 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
@@ -72,4 +74,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-L1 à L4a sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le périmètre L3 ; L4a fournit les contrats, le registre, la validation avant publication et la résolution scoped. Le worker L4b et les fonctions métier ultérieures ne sont pas livrés.
+L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; les fonctions métier, la sécurité, les modules et l’UI restent ultérieurs.

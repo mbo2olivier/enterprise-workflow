@@ -115,6 +115,13 @@ public sealed record WorkLease(
     DateTimeOffset ExpiresAtUtc,
     long InstanceRevision);
 
+/// <summary>Atomic execution snapshot returned by a successful work claim.</summary>
+public sealed record ClaimedWork(
+    WorkLease Lease,
+    WorkflowDefinition Definition,
+    WorkflowState State,
+    int Attempt);
+
 /// <summary>Description of a next logical work item created by a node commit.</summary>
 public sealed record NextWork(TechnicalId NodeId, DateTimeOffset DueAtUtc);
 
@@ -170,10 +177,76 @@ public sealed record CommitNodeResultCommand(
     NodeCommitKind Kind,
     WorkflowState? ReplacementState,
     NextWork? NextWork,
-    string? ErrorCode);
+    string? ErrorCode,
+    IReadOnlyList<OutboxWrite>? Outbox = null);
 
 /// <summary>Result of a successful node commit.</summary>
 public sealed record CommitNodeResult(WorkflowInstanceStatus InstanceStatus, long Revision);
+
+/// <summary>An external-effect intent persisted atomically with a successful node commit.</summary>
+public sealed record OutboxWrite(
+    TechnicalId OperationId,
+    TechnicalId Destination,
+    string ContentType,
+    string PayloadJson);
+
+/// <summary>Durable outbox message identifier.</summary>
+public readonly record struct OutboxMessageId(Guid Value);
+
+/// <summary>State of a durable outbox message.</summary>
+public enum OutboxMessageStatus
+{
+    /// <summary>The message is ready for delivery.</summary>
+    Ready,
+    /// <summary>A dispatcher owns the current fenced delivery attempt.</summary>
+    Leased,
+    /// <summary>The dispatcher acknowledged delivery.</summary>
+    Delivered,
+    /// <summary>Delivery failed permanently or exhausted its configured attempts.</summary>
+    Failed,
+}
+
+/// <summary>Claims one due outbox message.</summary>
+public sealed record ClaimDueOutboxCommand(TechnicalId OwnerId, TimeSpan LeaseDuration);
+
+/// <summary>Fenced outbox delivery lease with a stable receiver idempotency key.</summary>
+public sealed record OutboxLease(
+    OutboxMessageId MessageId,
+    WorkflowInstanceId InstanceId,
+    NodeActivationId ActivationId,
+    TechnicalId OperationId,
+    TechnicalId Destination,
+    string ContentType,
+    string PayloadJson,
+    string IdempotencyKey,
+    int Attempt,
+    long Generation,
+    LeaseToken Token,
+    DateTimeOffset StoreUtcNow,
+    DateTimeOffset ExpiresAtUtc);
+
+/// <summary>Kind of fenced outbox delivery result.</summary>
+public enum OutboxCommitKind
+{
+    /// <summary>Delivery was acknowledged.</summary>
+    Delivered,
+    /// <summary>Delivery failed transiently and must be retried when due.</summary>
+    Retry,
+    /// <summary>Delivery is permanently abandoned and remains visible for operations.</summary>
+    Fail,
+}
+
+/// <summary>Commits one current outbox delivery lease.</summary>
+public sealed record CommitOutboxCommand(
+    OutboxMessageId MessageId,
+    LeaseToken Token,
+    long Generation,
+    OutboxCommitKind Kind,
+    DateTimeOffset? RetryAtUtc,
+    string? ErrorCode);
+
+/// <summary>Result of an outbox delivery commit.</summary>
+public sealed record CommitOutboxResult(OutboxMessageStatus Status, int Attempt);
 
 /// <summary>Cancels one non-terminal instance at an expected revision.</summary>
 public sealed record CancelInstanceCommand(

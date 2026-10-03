@@ -5,10 +5,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj" />
     <ProjectReference Include="../../src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj" />
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
   </ItemGroup>
 </Project>

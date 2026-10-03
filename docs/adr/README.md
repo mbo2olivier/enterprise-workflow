@@ -1,6 +1,6 @@
 # Registre des ADR
 
-Les ADR 0001 à 0008, 0011 à 0014 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
+Les ADR 0001 à 0008, 0011 à 0015 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
 
 Une modification significative donnera lieu à un nouvel ADR qui remplace le précédent ; conserver l’historique et le motif. « Acceptée » signifie décision prise, pas fonctionnalité implémentée ou testée.
 
@@ -20,3 +20,4 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0012](0012-ui-razor-blazor.md) | UI Razor/Blazor et formulaires extensibles | Acceptée |
 | [0013](0013-contrats-l2.md) | Conventions et contrats du lot L2 | Acceptée |
 | [0014](0014-binding-handlers-l4a.md) | Identité, résultats et validation des handlers L4a | Acceptée |
+| [0015](0015-worker-retry-outbox-l4b.md) | Worker, retries, état et outbox L4b | Acceptée |

@@ -1,6 +1,6 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4a sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). L3b passe sur Oracle Free et sur l’image officielle Oracle Enterprise 19.19 ARM64. Les lots L4b à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement** ; le porteur confirme le 1er octobre 2026 la réussite de GitHub Actions pour L1 (run non revérifié indépendamment dans ce dossier). L3b et L4b passent sur l’image officielle Oracle Enterprise 19.19 ARM64. Les lots L5 à L11 ne sont pas démarrés.
 
 Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
@@ -8,11 +8,15 @@ Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot
 
 G0 — franchie : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séquentiel sans parallélisme. `global.json` accepte les SDK stables à partir de `10.0.100` dans les feature bands .NET 10 ; les preuves locales utilisent `10.0.102`. GitHub Actions utilise les runners `ubuntu-24.04`, `windows-2025` et `macos-15`. La réponse sur la licence peut attendre la publication.
 
-G1 — franchie pour L4a : contrats L2 cadrés par D1 à D6 ; encodage et atomicité qualifiés en L3 ; identité globale `(HandlerId, HandlerVersion)`, résultats bornés et validation avant publication acceptés dans l’ADR 0014. Les durées de bail/retry et le polling restent à finaliser avant le worker L4b.
+G1 — franchie pour L4b : contrats L2 cadrés par D1 à D6 ; encodage et atomicité qualifiés en L3 ; identité globale `(HandlerId, HandlerVersion)`, résultats bornés et validation avant publication acceptés dans l’ADR 0014. Claim atomique, paramètres configurables, classification des erreurs, outbox et conservation de version d’état sont acceptés dans l’ADR 0015.
+
+G1a — avant tout workflow dépendant d’une réponse distante : décider du modèle durable requête/attente/callback, notamment corrélation, authentification du callback, idempotence, timeout, annulation et reprise. Une intention outbox L4b convient aux commandes asynchrones ; elle ne prétend pas fournir une réponse synchrone. Cette porte doit être franchie au plus tard avant d’ajouter un connecteur nécessitant cette réponse ; L6 doit vérifier si ses primitives d’attente peuvent être mutualisées sans confondre tâche humaine et callback technique.
 
 G2 — avant sécurité/UI : arrêter contrats de fournisseurs, bootstrap, durée de session/révocation, source des responsables Q11 et mode de rendu UI Q09b. Auto-approbation configurable et interdite par défaut (ADR 0011), Razor/Blazor (ADR 0012), besoin local/distant et mode AD sont déjà résolus. Définir avant L6 les tâches d'approbation, leur affectation, le versionnement de leur politique, la référence durable `FormId/FormVersion`, le contrat des données soumises et la frontière entre validation métier L6 et rendu UI L8.
 
 G3 — avant modules définitifs : trancher coexistence ou drainage à partir du prototype (Q07) ; une incapacité à charger deux versions doit être remontée, pas dissimulée.
+
+G3a — avant la première évolution du schéma d’état ou au plus tard avant L7b : choisir le mécanisme de migration d’état, ses versions source/cible, son atomicité, son rapport avec les anciennes définitions/modules et sa stratégie d’échec/reprise. Jusqu’à cette porte, un handler L4b peut remplacer le JSON mais conserve obligatoirement le `SchemaVersion` courant.
 
 G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesurables Q06, migrations/restauration et connecteurs qualifiés. Pas de revendication de MVP complet sans Oracle et sécurité livrés.
 
@@ -27,7 +31,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | L3b-I — terminé localement | Adaptateur Oracle, mappings, migration et composition Oracle Free légère | L2, Docker | Même suite de conformité réussie sur Oracle Free réel ; différences documentées ; aucun test ignoré présenté comme réussi |
 | L3b-Q — terminé localement | Qualification du minimum produit sur l’image officielle Oracle Enterprise 19.19 | L3b-I, accès registre | Migration et six tests d’intégration réussis sur 19.19 ; version et digest consignés dans la preuve |
 | L4a — terminé localement | Contrats d'exécution, résultats explicites, contexte borné, registre versionné initial et résolution par scope DI | L2 ; ADR 0014 | Un handler concret est enregistré, validé puis résolu par sa clé durable ; configuration invalide, clé absente ou ambiguë refusée explicitement |
-| L4b | Worker, Start/Service/End, retries, idempotence et outbox, utilisant exclusivement le registre L4a | L3a, L3b-I, L4a ; qualification finale avec L3b-Q | Start → Service concret → End ; arrêt brutal puis reprise ; fencing et effet externe simulé dédupliqué |
+| L4b — terminé localement | Worker, Start/Service/End, retries configurables, idempotence et outbox bornée, utilisant exclusivement le registre L4a | L3a, L3b-I, L4a ; qualification finale avec L3b-Q ; ADR 0015 | Start → Service concret → End ; arrêt/reprise par expiration ; fencing et effet externe simulé dédupliqué sur SQLite, parcours complet qualifié sur Oracle 19.19 |
 | L5 | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités | L1, G2 ; L3 pour les stores concrets | Contrats communs ; login AD réel ; comptes locaux hors Core ; endpoints administratifs protégés |
 | L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5, G2 | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
 | L7a | Prototype loader, versions simultanées, dépendances, alimentation du registre L4a et ressources UI | L2, L4b ; UI Razor/Blazor ; mode de rendu Q09b | Rapport prouvant coexistence ou recommandant drainage ; absence de collision silencieuse entre handlers ; décision G3 |
