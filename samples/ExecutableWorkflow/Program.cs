@@ -21,7 +21,12 @@ var definition = compilation.Definition ?? throw new InvalidOperationException(
 var path = Path.Combine(Path.GetTempPath(), $"enterprise-workflow-sample-{Guid.NewGuid():N}.db");
 try
 {
-    var connectionString = new SqliteConnectionStringBuilder { DataSource = path }.ToString();
+    var connectionString = new SqliteConnectionStringBuilder
+    {
+        DataSource = path,
+        Mode = SqliteOpenMode.ReadWriteCreate,
+        Pooling = false,
+    }.ToString();
     var database = new SqliteWorkflowDatabase(connectionString);
     await database.MigrateAsync(CancellationToken.None);
     var store = new SqliteWorkflowStore(database);
@@ -53,7 +58,15 @@ try
 }
 finally
 {
-    if (File.Exists(path)) File.Delete(path);
+    SqliteConnection.ClearAllPools();
+    DeleteIfExists(path);
+    DeleteIfExists(path + "-shm");
+    DeleteIfExists(path + "-wal");
+}
+
+static void DeleteIfExists(string filePath)
+{
+    if (File.Exists(filePath)) File.Delete(filePath);
 }
 
 internal sealed class PrepareHandler : IServiceNodeHandler

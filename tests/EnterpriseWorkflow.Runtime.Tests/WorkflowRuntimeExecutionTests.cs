@@ -254,11 +254,25 @@ public sealed class WorkflowRuntimeExecutionTests
     private sealed class TemporaryDatabase : IAsyncDisposable
     {
         private readonly string _path = Path.Combine(Path.GetTempPath(), $"enterprise-workflow-runtime-{Guid.NewGuid():N}.db");
-        public string ConnectionString => new SqliteConnectionStringBuilder { DataSource = _path }.ToString();
+        public string ConnectionString => new SqliteConnectionStringBuilder
+        {
+            DataSource = _path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+        }.ToString();
+
         public ValueTask DisposeAsync()
         {
-            if (File.Exists(_path)) File.Delete(_path);
+            SqliteConnection.ClearAllPools();
+            DeleteIfExists(_path);
+            DeleteIfExists(_path + "-shm");
+            DeleteIfExists(_path + "-wal");
             return ValueTask.CompletedTask;
+        }
+
+        private static void DeleteIfExists(string path)
+        {
+            if (File.Exists(path)) File.Delete(path);
         }
     }
 }
