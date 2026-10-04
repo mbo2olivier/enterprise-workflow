@@ -17,3 +17,12 @@ public interface IDecisionNodeHandler
         NodeExecutionContext context,
         CancellationToken cancellationToken);
 }
+
+/// <summary>Validates and interprets one authenticated human-task completion outside the store transaction.</summary>
+public interface IHumanTaskCompletionHandler
+{
+    /// <summary>Returns a deterministic bounded result; external effects must be returned as outbox intents.</summary>
+    ValueTask<HumanTaskCompletionResult> CompleteAsync(
+        HumanTaskCompletionContext context,
+        CancellationToken cancellationToken);
+}

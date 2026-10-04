@@ -19,7 +19,8 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Persistence.Sqlite"] = ["EnterpriseWorkflow.Persistence.Abstractions"],
             ["EnterpriseWorkflow.Runtime.Abstractions"] =
                 ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core", "EnterpriseWorkflow.Persistence.Abstractions"],
-            ["EnterpriseWorkflow.Runtime"] = ["EnterpriseWorkflow.Core", "EnterpriseWorkflow.Runtime.Abstractions"],
+            ["EnterpriseWorkflow.Runtime"] =
+                ["EnterpriseWorkflow.Core", "EnterpriseWorkflow.Runtime.Abstractions", "EnterpriseWorkflow.Security.Abstractions"],
             ["EnterpriseWorkflow.Security.Abstractions"] = [],
             ["EnterpriseWorkflow.Security"] = ["EnterpriseWorkflow.Security.Abstractions"],
             ["EnterpriseWorkflow.Security.Persistence"] = ["EnterpriseWorkflow.Security.Abstractions"],

@@ -24,7 +24,9 @@ S13 : précision ultérieure du porteur : les nœuds sont les stages dans l’ad
 
 S14 : confirmation par le porteur le 4 octobre 2026 de la réussite du job Linux GitHub Actions qualifiant l’extension sur OpenLDAP réel en LDAPS.
 
-S15 : validation le 4 octobre 2026 de R2-A, R3-A, R5-A, R6-A et R7-A pour L5b : modes d’affectation explicites, grants exacts positifs et révocables, catalogue typé, séparation L5b/L6 et lecture séparée des actions de stage.
+S15 : validation le 4 octobre 2026 de R2-A, R3-A, R5-A, R6-A et R7-A pour L5b : modes d'affectation explicites, grants exacts positifs et révocables, catalogue typé, séparation L5b/L6 et lecture séparée des actions de stage.
+
+S16 : validation le 4 octobre 2026 de D1-B et D2-A à D7-A pour L6 : correction directe du schéma canonique v1 avant le premier tag officiel, tâches et timers typés, cycles d'affectation/claim explicites, formulaire/handler versionnés, reçu idempotent lié à l'acteur et au contenu, timer fondé sur l'horloge du store, séparation d'acteurs versionnée et inbox bornée. Voir [ADR 0020](adr/0020-attentes-metier-l6.md).
 
 S2 à S15 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 

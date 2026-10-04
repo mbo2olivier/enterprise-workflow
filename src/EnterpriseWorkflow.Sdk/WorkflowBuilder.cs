@@ -85,6 +85,65 @@ public sealed class WorkflowBuilder
     public WorkflowBuilder End(string id, string configurationJson = "{}", string? displayLabel = null) =>
         AddNode(id, "core.end", 1, WorkflowNodeRole.End, null, null, configurationJson, [], displayLabel);
 
+    /// <summary>Adds a durable human task with versioned form, handler and actions.</summary>
+    public WorkflowBuilder HumanTask(
+        string id,
+        HumanTaskKind kind,
+        HumanTaskAssignmentMode assignmentMode,
+        string formId,
+        int formVersion,
+        string completionHandlerId,
+        IEnumerable<HumanTaskActionDraft> actions,
+        int completionHandlerVersion = 1,
+        bool? allowInitiator = null,
+        IEnumerable<HumanTaskActorConstraintDraft>? distinctFrom = null,
+        string configurationJson = "{}",
+        string? displayLabel = null)
+    {
+        var actionSnapshot = actions?.ToImmutableArray() ?? [];
+        var contract = new HumanTaskDefinitionDraft(
+            kind,
+            assignmentMode,
+            formId,
+            formVersion,
+            completionHandlerId,
+            completionHandlerVersion,
+            actionSnapshot,
+            allowInitiator ?? kind is not HumanTaskKind.Approval,
+            distinctFrom?.ToImmutableArray() ?? []);
+        return AddNode(
+            id,
+            "core.human-task",
+            1,
+            WorkflowNodeRole.HumanTask,
+            null,
+            null,
+            configurationJson,
+            actionSnapshot.Select(item => item.Outcome),
+            displayLabel,
+            contract,
+            null);
+    }
+
+    /// <summary>Adds a durable fixed-delay timer whose due time is computed by the store.</summary>
+    public WorkflowBuilder Timer(
+        string id,
+        TimeSpan delay,
+        string configurationJson = "{}",
+        string? displayLabel = null) =>
+        AddNode(
+            id,
+            "core.timer",
+            1,
+            WorkflowNodeRole.Timer,
+            null,
+            null,
+            configurationJson,
+            [],
+            displayLabel,
+            null,
+            new TimerDefinitionDraft(delay));
+
     /// <summary>Adds a catalog-defined node while preserving one of the bounded L2 flow roles.</summary>
     public WorkflowBuilder CustomNode(
         string id,
@@ -95,7 +154,9 @@ public sealed class WorkflowBuilder
         int? handlerVersion,
         string configurationJson,
         IEnumerable<string>? outcomes = null,
-        string? displayLabel = null) =>
+        string? displayLabel = null,
+        HumanTaskDefinitionDraft? humanTask = null,
+        TimerDefinitionDraft? timer = null) =>
         AddNode(
             id,
             typeId,
@@ -105,7 +166,9 @@ public sealed class WorkflowBuilder
             handlerVersion,
             configurationJson,
             outcomes ?? [],
-            displayLabel);
+            displayLabel,
+            humanTask,
+            timer);
 
     /// <summary>Adds the single normal transition of a start or service node.</summary>
     public WorkflowBuilder Then(string sourceId, string targetId)
@@ -147,7 +210,9 @@ public sealed class WorkflowBuilder
         int? handlerVersion,
         string configurationJson,
         IEnumerable<string> outcomes,
-        string? displayLabel)
+        string? displayLabel,
+        HumanTaskDefinitionDraft? humanTask = null,
+        TimerDefinitionDraft? timer = null)
     {
         _nodes.Add(new WorkflowNodeDraft(
             id,
@@ -158,7 +223,9 @@ public sealed class WorkflowBuilder
             handlerVersion,
             configurationJson,
             outcomes.ToImmutableArray(),
-            displayLabel));
+            displayLabel,
+            humanTask,
+            timer));
         return this;
     }
 }

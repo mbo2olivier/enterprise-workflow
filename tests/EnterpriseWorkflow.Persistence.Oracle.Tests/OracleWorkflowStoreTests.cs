@@ -208,6 +208,84 @@ public sealed class OracleWorkflowStoreTests
         Assert.Null(values.CorrelationId);
     }
 
+    [Fact]
+    public async Task HumanTaskReceiptAndTimerWakeupAreQualifiedOnOracle()
+    {
+        var fixture = await ResetDatabaseAsync();
+        var definition = Assert.IsType<WorkflowDefinition>(WorkflowBuilder.Create("oracle.human", 1)
+            .Start("start")
+            .HumanTask("approve", HumanTaskKind.Approval, HumanTaskAssignmentMode.DesignatedIdentity,
+                "approval.form", 1, "approval.complete",
+                [new HumanTaskActionDraft("task.approve", "approved")])
+            .End("end").Then("start", "approve").On("approve", "approved", "end").Validate().Definition);
+        await fixture.Store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var actor = new ActorIdentity(new TechnicalId("local"), "approver");
+        await fixture.Store.StartInstanceAsync(CreateStartCommand(definition, "human-request") with
+        {
+            DesignatedAssignments = [new DesignatedTaskAssignment(new TechnicalId("approve"), actor)],
+        }, TestContext.Current.CancellationToken);
+        var start = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
+            new ClaimDueWorkCommand(new TechnicalId("oracle.human.start"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken)).Value);
+        await fixture.Store.CommitNodeResultAsync(new CommitNodeResultCommand(
+            start.Lease.WorkItemId, start.Lease.Token, start.Lease.Generation, start.Lease.InstanceRevision,
+            NodeCommitKind.Continue, null, new NextWork(new TechnicalId("approve"), start.Lease.StoreUtcNow), null),
+            TestContext.Current.CancellationToken);
+        var wait = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
+            new ClaimDueWorkCommand(new TechnicalId("oracle.human.wait"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken)).Value);
+        var taskCommit = await fixture.Store.CommitNodeResultAsync(new CommitNodeResultCommand(
+            wait.Lease.WorkItemId, wait.Lease.Token, wait.Lease.Generation, wait.Lease.InstanceRevision,
+            NodeCommitKind.WaitHumanTask, null, null, null,
+            HumanTask: new HumanTaskWait(HumanTaskAssignmentMode.DesignatedIdentity)),
+            TestContext.Current.CancellationToken);
+        var taskId = taskCommit.Value!.HumanTaskId!.Value;
+        var openedTask = await fixture.Store.GetHumanTaskAsync(taskId, TestContext.Current.CancellationToken);
+        var complete = new CompleteHumanTaskCommand(
+            taskId, 0, taskCommit.Value.Revision, actor, new TechnicalId("task.approve"),
+            new TechnicalId("oracle-completion"), new string('a', 64), null,
+            new NextWork(new TechnicalId("end"), MillisecondUtcNow()));
+        var first = await fixture.Store.CompleteHumanTaskAsync(complete, TestContext.Current.CancellationToken);
+        var replay = await fixture.Store.CompleteHumanTaskAsync(complete, TestContext.Current.CancellationToken);
+
+        Assert.Equal(StoreOutcome.Succeeded, taskCommit.Outcome);
+        Assert.Equal(HumanTaskStatus.Assigned, openedTask.Value!.Status);
+        Assert.Equal(StoreOutcome.Succeeded, first.Outcome);
+        Assert.Equal(StoreOutcome.Idempotent, replay.Outcome);
+    }
+
+    [Fact]
+    public async Task DueTimerCanBeRecoveredAndFiredOnceOnOracle()
+    {
+        var fixture = await ResetDatabaseAsync();
+        var definition = Assert.IsType<WorkflowDefinition>(WorkflowBuilder.Create("oracle.timer", 1)
+            .Start("start").Timer("timer", TimeSpan.FromMilliseconds(1)).End("end")
+            .Then("start", "timer").Then("timer", "end").Validate().Definition);
+        await fixture.Store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        await fixture.Store.StartInstanceAsync(CreateStartCommand(definition, "timer-request"), TestContext.Current.CancellationToken);
+        var start = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
+            new ClaimDueWorkCommand(new TechnicalId("oracle.timer.start"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken)).Value);
+        await fixture.Store.CommitNodeResultAsync(new CommitNodeResultCommand(
+            start.Lease.WorkItemId, start.Lease.Token, start.Lease.Generation, start.Lease.InstanceRevision,
+            NodeCommitKind.Continue, null, new NextWork(new TechnicalId("timer"), start.Lease.StoreUtcNow), null),
+            TestContext.Current.CancellationToken);
+        var wait = Assert.IsType<ClaimedWork>((await fixture.Store.ClaimDueWorkAsync(
+            new ClaimDueWorkCommand(new TechnicalId("oracle.timer.wait"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken)).Value);
+        await fixture.Store.CommitNodeResultAsync(new CommitNodeResultCommand(
+            wait.Lease.WorkItemId, wait.Lease.Token, wait.Lease.Generation, wait.Lease.InstanceRevision,
+            NodeCommitKind.WaitTimer, null, null, null,
+            Timer: new TimerWait(TimeSpan.FromMilliseconds(1), new TechnicalId("end"))),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(20, TestContext.Current.CancellationToken);
+
+        var fired = await fixture.Store.FireNextDueTimerAsync(TestContext.Current.CancellationToken);
+        var none = await fixture.Store.FireNextDueTimerAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Succeeded, fired.Outcome);
+        Assert.Equal(StoreOutcome.NotFound, none.Outcome);
+    }
+
     private static async Task<Fixture> CreateStartedStoreAsync()
     {
         var fixture = await ResetDatabaseAsync();
@@ -256,6 +334,9 @@ public sealed class OracleWorkflowStoreTests
         new DefinitionReference(definition.Id, definition.Version, definition.Sha256),
         WorkflowState.Create("{\"step\":0}", 1), "business-1", "correlation-1",
         new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero));
+
+    private static DateTimeOffset MillisecondUtcNow() =>
+        DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
     private sealed record Fixture(string ConnectionString, OracleWorkflowDatabase Database, OracleWorkflowStore Store);
 

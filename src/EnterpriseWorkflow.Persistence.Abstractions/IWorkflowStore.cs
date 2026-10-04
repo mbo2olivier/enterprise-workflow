@@ -1,3 +1,5 @@
+using EnterpriseWorkflow.Abstractions;
+
 namespace EnterpriseWorkflow.Persistence;
 
 /// <summary>
@@ -28,6 +30,51 @@ public interface IWorkflowStore
     /// <summary>Commits state, next work or terminal status only for the current unexpired lease.</summary>
     ValueTask<StoreResult<CommitNodeResult>> CommitNodeResultAsync(
         CommitNodeResultCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Reads one durable human task with its immutable definition and separation history.</summary>
+    ValueTask<StoreResult<HumanTaskSnapshot>> GetHumanTaskAsync(
+        HumanTaskId taskId,
+        CancellationToken cancellationToken);
+
+    /// <summary>Assigns one awaiting designated task atomically.</summary>
+    ValueTask<StoreResult<HumanTaskMutationResult>> AssignHumanTaskAsync(
+        AssignHumanTaskCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Claims one available pool task atomically.</summary>
+    ValueTask<StoreResult<HumanTaskMutationResult>> ClaimHumanTaskAsync(
+        ClaimHumanTaskCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Releases one pool claim atomically; only its current owner may do so.</summary>
+    ValueTask<StoreResult<HumanTaskMutationResult>> ReleaseHumanTaskAsync(
+        ReleaseHumanTaskCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Reads an existing completion receipt without re-evaluating current grants.</summary>
+    ValueTask<StoreResult<HumanTaskCompletionReceipt>> GetHumanTaskCompletionReceiptAsync(
+        HumanTaskId taskId,
+        TechnicalId idempotencyKey,
+        CancellationToken cancellationToken);
+
+    /// <summary>Completes a task, records its receipt and creates the next work atomically.</summary>
+    ValueTask<StoreResult<CompleteHumanTaskResult>> CompleteHumanTaskAsync(
+        CompleteHumanTaskCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Reads a stable bounded page of open tasks for authorization filtering.</summary>
+    ValueTask<StoreResult<OpenHumanTaskPage>> ReadOpenHumanTasksAsync(
+        ReadOpenHumanTasksCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Fires one due timer once, using the authoritative store clock.</summary>
+    ValueTask<StoreResult<FireDueTimerResult>> FireDueTimerAsync(
+        FireDueTimerCommand command,
+        CancellationToken cancellationToken);
+
+    /// <summary>Selects and fires at most one due timer atomically for restart-safe polling.</summary>
+    ValueTask<StoreResult<FireNextDueTimerResult>> FireNextDueTimerAsync(
         CancellationToken cancellationToken);
 
     /// <summary>Cancels a non-terminal instance and invalidates all outstanding work atomically.</summary>

@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : stratégie de validation. Les **62 tests locaux** des lots L1 à L4b passent le 3 octobre 2026 : architecture, modèle, DSL, SQLite, registre, worker, retries, état et outbox. Les **8 tests Oracle explicites** passent sur Oracle Enterprise `19.19.0.0.0`, dont migration outbox, fencing de livraison et parcours runtime `Start → Service → End`. Oracle Free reste la qualification L3b-I historique ; Docker et une chaîne injectée restent requis pour la suite Oracle.
+Statut : stratégie de validation. Au 4 octobre 2026, les **86 tests locaux** de la solution passent : architecture, modèle/DSL v1, SQLite, runtime, sécurité, démarrage authentifié, tâches, inbox, idempotence, séparation et timers. Les **11 tests Oracle explicites** passent sur Oracle Enterprise `19.19.0.0.0`, migrations L6, tâche et timer compris. Oracle Free reste la qualification L3b-I historique ; Docker et une chaîne injectée restent requis pour la suite Oracle.
 
 ## Pyramide
 
@@ -30,7 +30,7 @@ Tests purs pour graphe, DSL, transitions et décisions de retry ; tests de contr
 | T20 | UI Razor/Blazor, formulaires, accessibilité et thèmes | Déclaratif et composant personnalisé ; validation serveur ; clavier, labels, focus, erreurs et contraste | UI navigateur |
 | T21 | Charge et logs | Mesures reproductibles, payloads/secrets masqués | Environnement décrit |
 
-T22 est acquis par L5a. La partie habilitation/catalogue/candidats/persistance de T23 est acquise par L5b ; son branchement sur une tâche active relève de L6. T24 reste non exécuté. Ces critères ne sont pas couverts par les preuves historiques L5.
+T22 est acquis par L5a. T23 est acquis par L5b/L6, branchement sur tâche active compris. L6 couvre les primitives runtime de T24 (destinataire, claim concurrent, révocation relue avant première complétion, séparation et version de définition), mais le parcours bancaire complet et son UI restent non exécutés jusqu'à L8.
 
 | ID | Test | Résultat attendu | Environnement |
 | --- | --- | --- | --- |

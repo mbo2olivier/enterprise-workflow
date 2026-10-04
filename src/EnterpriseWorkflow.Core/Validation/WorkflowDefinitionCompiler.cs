@@ -188,7 +188,7 @@ public static class WorkflowDefinitionCompiler
             }
             else if (draft.HandlerId is not null || draft.HandlerVersion is not null)
             {
-                AddError(diagnostics, "EW1104", $"{location}.handler", "Start and end nodes cannot declare a handler.");
+                AddError(diagnostics, "EW1104", $"{location}.handler", "Only service and decision nodes can declare an execution handler.");
                 nodeIsValid = false;
             }
 
@@ -213,16 +213,19 @@ public static class WorkflowDefinitionCompiler
                 }
             }
 
-            if (draft.Role is WorkflowNodeRole.Decision && outcomes.Count == 0)
+            if (draft.Role is WorkflowNodeRole.Decision or WorkflowNodeRole.HumanTask && outcomes.Count == 0)
             {
-                AddError(diagnostics, "EW1107", $"{location}.outcomes", "A decision must declare at least one named outcome.");
+                AddError(diagnostics, "EW1107", $"{location}.outcomes", "A decision or human task must declare at least one named outcome.");
                 nodeIsValid = false;
             }
-            else if (draft.Role is not WorkflowNodeRole.Decision && outcomes.Count != 0)
+            else if (draft.Role is not WorkflowNodeRole.Decision and not WorkflowNodeRole.HumanTask && outcomes.Count != 0)
             {
-                AddError(diagnostics, "EW1107", $"{location}.outcomes", "Only decision nodes can declare outcomes.");
+                AddError(diagnostics, "EW1107", $"{location}.outcomes", "Only decision and human-task nodes can declare outcomes.");
                 nodeIsValid = false;
             }
+
+            var humanTask = ValidateHumanTask(draft, location, outcomes.ToImmutable(), diagnostics, ref nodeIsValid);
+            var timer = ValidateTimer(draft, location, diagnostics, ref nodeIsValid);
 
             if (!CanonicalJson.TryCreate(
                     draft.ConfigurationJson,
@@ -262,10 +265,154 @@ public static class WorkflowDefinitionCompiler
                 handler,
                 configuration,
                 outcomes.ToImmutable(),
-                draft.DisplayLabel));
+                draft.DisplayLabel,
+                humanTask,
+                timer));
         }
 
         return nodes.ToImmutable();
+    }
+
+    private static HumanTaskDefinition? ValidateHumanTask(
+        WorkflowNodeDraft draft,
+        string location,
+        ImmutableArray<TechnicalId> outcomes,
+        List<WorkflowDiagnostic> diagnostics,
+        ref bool nodeIsValid)
+    {
+        if (draft.Role is not WorkflowNodeRole.HumanTask)
+        {
+            if (draft.HumanTask is not null)
+            {
+                AddError(diagnostics, "EW1110", $"{location}.humanTask", "Only a human-task node can declare a human-task contract.");
+                nodeIsValid = false;
+            }
+
+            return null;
+        }
+
+        var contract = draft.HumanTask;
+        if (contract is null)
+        {
+            AddError(diagnostics, "EW1110", $"{location}.humanTask", "A human-task node requires a typed human-task contract.");
+            nodeIsValid = false;
+            return null;
+        }
+
+        var valid = true;
+        if (!TechnicalId.IsValid(contract.FormId) || contract.FormVersion <= 0)
+        {
+            AddError(diagnostics, "EW1111", $"{location}.humanTask.form", "A human task requires a valid, positively versioned form reference.");
+            valid = false;
+        }
+
+        if (!TechnicalId.IsValid(contract.CompletionHandlerId) || contract.CompletionHandlerVersion <= 0)
+        {
+            AddError(diagnostics, "EW1112", $"{location}.humanTask.completionHandler", "A human task requires a valid, positively versioned completion handler.");
+            valid = false;
+        }
+
+        var actions = ImmutableArray.CreateBuilder<HumanTaskAction>();
+        var seenActions = new HashSet<string>(StringComparer.Ordinal);
+        var declaredOutcomes = outcomes.Select(item => item.Value).ToHashSet(StringComparer.Ordinal);
+        for (var index = 0; index < contract.Actions.Length; index++)
+        {
+            var action = contract.Actions[index];
+            if (!TechnicalId.IsValid(action.ActionId) || !TechnicalId.IsValid(action.Outcome))
+            {
+                AddError(diagnostics, "EW1113", $"{location}.humanTask.actions[{index}]", "Human-task action and outcome identifiers must be valid.");
+                valid = false;
+                continue;
+            }
+
+            if (!seenActions.Add(action.ActionId))
+            {
+                AddError(diagnostics, "EW1114", $"{location}.humanTask.actions[{index}]", $"Human-task action '{action.ActionId}' is duplicated.");
+                valid = false;
+                continue;
+            }
+
+            if (!declaredOutcomes.Contains(action.Outcome))
+            {
+                AddError(diagnostics, "EW1115", $"{location}.humanTask.actions[{index}]", $"Outcome '{action.Outcome}' is not declared by the node.");
+                valid = false;
+            }
+
+            actions.Add(new HumanTaskAction(new TechnicalId(action.ActionId), new TechnicalId(action.Outcome)));
+        }
+
+        if (contract.Actions.Length == 0)
+        {
+            AddError(diagnostics, "EW1113", $"{location}.humanTask.actions", "A human task requires at least one action.");
+            valid = false;
+        }
+
+        var mappedOutcomes = contract.Actions.Select(item => item.Outcome).ToHashSet(StringComparer.Ordinal);
+        if (!declaredOutcomes.SetEquals(mappedOutcomes))
+        {
+            AddError(diagnostics, "EW1115", $"{location}.humanTask.actions", "Every declared human-task outcome must be selected by exactly one action.");
+            valid = false;
+        }
+
+        var constraints = ImmutableArray.CreateBuilder<HumanTaskActorConstraint>();
+        var seenConstraints = new HashSet<(string NodeId, string ActionId)>();
+        for (var index = 0; index < contract.DistinctFrom.Length; index++)
+        {
+            var constraint = contract.DistinctFrom[index];
+            if (!TechnicalId.IsValid(constraint.NodeId) || !TechnicalId.IsValid(constraint.ActionId) ||
+                !seenConstraints.Add((constraint.NodeId, constraint.ActionId)))
+            {
+                AddError(diagnostics, "EW1116", $"{location}.humanTask.distinctFrom[{index}]", "A separation constraint requires a unique valid node/action pair.");
+                valid = false;
+                continue;
+            }
+
+            constraints.Add(new HumanTaskActorConstraint(
+                new TechnicalId(constraint.NodeId), new TechnicalId(constraint.ActionId)));
+        }
+
+        if (!valid)
+        {
+            nodeIsValid = false;
+            return null;
+        }
+
+        return new HumanTaskDefinition(
+            contract.Kind,
+            contract.AssignmentMode,
+            new WorkflowFormReference(new TechnicalId(contract.FormId), contract.FormVersion),
+            new WorkflowHandlerReference(new TechnicalId(contract.CompletionHandlerId), contract.CompletionHandlerVersion),
+            actions.ToImmutable(),
+            contract.AllowInitiator,
+            constraints.ToImmutable());
+    }
+
+    private static TimerDefinition? ValidateTimer(
+        WorkflowNodeDraft draft,
+        string location,
+        List<WorkflowDiagnostic> diagnostics,
+        ref bool nodeIsValid)
+    {
+        if (draft.Role is not WorkflowNodeRole.Timer)
+        {
+            if (draft.Timer is not null)
+            {
+                AddError(diagnostics, "EW1117", $"{location}.timer", "Only a timer node can declare a timer contract.");
+                nodeIsValid = false;
+            }
+
+            return null;
+        }
+
+        if (draft.Timer is null || draft.Timer.Delay <= TimeSpan.Zero ||
+            draft.Timer.Delay > TimeSpan.FromDays(3650) || draft.Timer.Delay.Ticks % TimeSpan.TicksPerMillisecond != 0)
+        {
+            AddError(diagnostics, "EW1118", $"{location}.timer.delay", "A timer delay must be a positive whole-millisecond duration no longer than 3650 days.");
+            nodeIsValid = false;
+            return null;
+        }
+
+        return new TimerDefinition(draft.Timer.Delay);
     }
 
     private static ImmutableArray<WorkflowTransition> ValidateTransitions(
@@ -410,11 +557,11 @@ public static class WorkflowDefinitionCompiler
             return;
         }
 
-        if (node.Role is WorkflowNodeRole.Start or WorkflowNodeRole.Service)
+        if (node.Role is WorkflowNodeRole.Start or WorkflowNodeRole.Service or WorkflowNodeRole.Timer)
         {
             if (edges.Length != 1 || edges.Any(item => item.IsDefault || item.Outcome is not null))
             {
-                AddError(diagnostics, "EW1315", location, "Start and service nodes require exactly one normal transition.");
+                AddError(diagnostics, "EW1315", location, "Start, service and timer nodes require exactly one normal transition.");
             }
 
             return;
@@ -425,7 +572,7 @@ public static class WorkflowDefinitionCompiler
             .Where(group => group.Count() > 1);
         foreach (var duplicate in duplicateBranches)
         {
-            AddError(diagnostics, "EW1316", location, $"Decision branch '{duplicate.Key}' is ambiguous.");
+            AddError(diagnostics, "EW1316", location, $"Decision or human-task branch '{duplicate.Key}' is ambiguous.");
         }
 
         if (edges.Count(item => item.IsDefault) > 1)

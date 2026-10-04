@@ -1,6 +1,6 @@
 # Traçabilité
 
-Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter** ; leur présence ne vaut pas preuve acquise. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a acquiert le binding exact ; L4b acquiert le worker séquentiel, les retries, le fencing après interruption et la redelivery outbox dédupliquée de T06/T07/T19. L5 acquiert les contrats, comptes locaux, profils, sessions, API protégée et stores SQLite/Oracle de T10/T11. L5a acquiert T22 sur OpenLDAP réel. L5b acquiert la partie habilitation de T23 : portée exacte, catalogue, profils/identités, candidats, révocation, révision, audit et migrations SQLite/Oracle. Les contrôles de tâche/instance active restent à acquérir avec L6. Voir les preuves de lots sous [`docs/evidence`](evidence/).
+Les liens associent besoin, décision, lot et preuve attendue. Sauf mention explicite dans une preuve de lot, les tests ci-dessous sont **à exécuter**. T01, T02 et T18 sont acquis au niveau L2. T03 à T05 et la création/migration initiale de T13 sont acquis en L3. L4a/L4b acquièrent binding, worker, retries, fencing et outbox de T06/T07/T19. L5/L5a acquièrent le socle sécurité et T22. L5b puis L6 acquièrent T23 : portée exacte, candidats, révocation, tâche active, affectation, claim, inbox et complétion. L6 acquiert T08, le cœur durable de T09/T10 et le socle runtime de T24 ; le parcours bancaire/UI complet de T24 reste à L8. Voir les preuves sous [`docs/evidence`](evidence/).
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |
@@ -34,6 +34,8 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 S3 confirme .NET/plateformes, les deux providers, l’administration extensible, le Studio différé et une organisation par installation. S4 précise Oracle 19c minimum, local/distant selon extension, AD par identifiant/mot de passe et matrice distincte par provider. S5 confirme l’auto-approbation configurable et interdite par défaut (0011), et Razor/Blazor avec formulaires déclaratifs et composants personnalisés (0012). S6 accepte les ADR 0006 à 0008, confirme le retour au MVP séquentiel sans parallélisme et retient GitHub Actions. S7 valide D1 à D6 pour L2 (ADR 0013) et autorise Docker Compose. S8 valide 1A, 2A et 3A pour L4a (ADR 0014). S9 valide 1A à 5A puis 6A pour L4b : configuration intégrale, outbox bornée/dead letter, jalon attente/callback et jalon migration d’état (ADR 0015). Voir [cadrage](cadrage.md) pour les limites d’autorité de la source initiale.
 
 S12 remplace la cible obligatoire AD par LDAP et introduit les stages ; S13 précise stage = nœud ; S14 confirme la réussite de la qualification LDAP Linux GitHub Actions. Voir ADR 0018/0019. R1 est clos ; les arbitrages techniques L5b/L6 restants sont proposés dans la spécification de recadrage.
+
+S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le premier tag officiel et livre les attentes décrites par l'ADR 0020 ; toute rupture postérieure au premier tag devra être versionnée explicitement.
 
 ## Préconditions encore ouvertes
 

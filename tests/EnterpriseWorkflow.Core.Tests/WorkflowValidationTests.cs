@@ -122,6 +122,29 @@ public sealed class WorkflowValidationTests
     }
 
     [Fact]
+    public void InvalidHumanTaskAndTimerContractsAreRejected()
+    {
+        var invalidTask = WorkflowBuilder.Create("invalid-human", 1)
+            .Start("start")
+            .HumanTask("task", HumanTaskKind.Input, HumanTaskAssignmentMode.EligiblePool,
+                "form", 0, "complete", [], allowInitiator: true)
+            .End("end")
+            .Then("start", "task")
+            .On("task", "done", "end")
+            .Validate();
+        var invalidTimer = WorkflowBuilder.Create("invalid-timer", 1)
+            .Start("start")
+            .Timer("timer", TimeSpan.Zero)
+            .End("end")
+            .Then("start", "timer")
+            .Then("timer", "end")
+            .Validate();
+
+        Assert.Contains(invalidTask.Diagnostics, item => item.Code is "EW1111" or "EW1113");
+        Assert.Contains(invalidTimer.Diagnostics, item => item.Code == "EW1118");
+    }
+
+    [Fact]
     public void UnknownNodeTypePreventsPublication()
     {
         var result = WorkflowBuilder.Create("unknown-type", 1)

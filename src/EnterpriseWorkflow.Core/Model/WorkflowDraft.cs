@@ -16,9 +16,54 @@ public enum WorkflowNodeRole
     /// <summary>A named evaluator with exclusive outcomes.</summary>
     Decision,
 
+    /// <summary>A durable wait for an authenticated human action.</summary>
+    HumanTask,
+
+    /// <summary>A durable wait until a store-clock deadline.</summary>
+    Timer,
+
     /// <summary>A terminal graph node.</summary>
     End,
 }
+
+/// <summary>Business semantics of a human task.</summary>
+public enum HumanTaskKind
+{
+    /// <summary>A data-entry or operational task.</summary>
+    Input,
+    /// <summary>An approval task subject to separation rules.</summary>
+    Approval,
+}
+
+/// <summary>How the durable assignee of a human task is selected.</summary>
+public enum HumanTaskAssignmentMode
+{
+    /// <summary>One eligible identity must be designated explicitly.</summary>
+    DesignatedIdentity,
+    /// <summary>Any eligible identity may claim the task exclusively.</summary>
+    EligiblePool,
+}
+
+/// <summary>An action exposed by a human task and the graph outcome it selects.</summary>
+public sealed record HumanTaskActionDraft(string ActionId, string Outcome);
+
+/// <summary>Requires an actor distinct from the author of an upstream action.</summary>
+public sealed record HumanTaskActorConstraintDraft(string NodeId, string ActionId);
+
+/// <summary>Versioned, inspectable human-task contract before validation.</summary>
+public sealed record HumanTaskDefinitionDraft(
+    HumanTaskKind Kind,
+    HumanTaskAssignmentMode AssignmentMode,
+    string FormId,
+    int FormVersion,
+    string CompletionHandlerId,
+    int CompletionHandlerVersion,
+    ImmutableArray<HumanTaskActionDraft> Actions,
+    bool AllowInitiator,
+    ImmutableArray<HumanTaskActorConstraintDraft> DistinctFrom);
+
+/// <summary>Inspectible fixed timer contract before validation.</summary>
+public sealed record TimerDefinitionDraft(TimeSpan Delay);
 
 /// <summary>
 /// An inspectable node before validation and canonicalization.
@@ -32,7 +77,9 @@ public sealed record WorkflowNodeDraft(
     int? HandlerVersion,
     string ConfigurationJson,
     ImmutableArray<string> DeclaredOutcomes,
-    string? DisplayLabel);
+    string? DisplayLabel,
+    HumanTaskDefinitionDraft? HumanTask = null,
+    TimerDefinitionDraft? Timer = null);
 
 /// <summary>
 /// An inspectable transition before validation and canonicalization.

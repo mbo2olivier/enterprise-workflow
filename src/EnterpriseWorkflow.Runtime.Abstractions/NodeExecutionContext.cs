@@ -58,3 +58,15 @@ public sealed class NodeExecutionContext
     /// <summary>Gets the validated, canonical node configuration.</summary>
     public CanonicalJson Configuration { get; }
 }
+
+/// <summary>Detached durable input supplied to one human-task completion handler.</summary>
+public sealed record HumanTaskCompletionContext(
+    HumanTaskId TaskId,
+    WorkflowInstanceId InstanceId,
+    NodeActivationId ActivationId,
+    TechnicalId NodeId,
+    ActorIdentity Actor,
+    TechnicalId ActionId,
+    CanonicalJson Submission,
+    WorkflowState State,
+    CanonicalJson Configuration);

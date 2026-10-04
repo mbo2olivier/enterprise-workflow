@@ -1,6 +1,6 @@
 # Registre des ADR
 
-Les ADR 0001 à 0008, 0011 à 0019 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
+Les ADR 0001 à 0008, 0011 à 0020 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. Les ADR 0009 et 0010 ne sont pas acceptés implicitement par leur rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
 
 Une modification significative donnera lieu à un nouvel ADR qui remplace le précédent ; conserver l’historique et le motif. « Acceptée » signifie décision prise, pas fonctionnalité implémentée ou testée.
 
@@ -25,3 +25,4 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0017](0017-designation-approbateur.md) | Désignation explicite de l’approbateur ; Q11 résolue | Acceptée |
 | [0018](0018-ldap-generique.md) | LDAP indépendant d’AD ; remplace obligation AD de 0003/0016 | Acceptée, implémentée en L5a et qualifiée sur OpenLDAP/LDAPS Linux CI |
 | [0019](0019-workflow-stages.md) | Stage = nœud ; droits workflow/nœud/action | Acceptée R2-A/R3-A/R5-A/R6-A/R7-A ; périmètre L5b implémenté |
+| [0020](0020-attentes-metier-l6.md) | Tâches humaines, timers, idempotence, séparation et inbox | Acceptée D1-B/D2-A à D7-A ; L6 implémenté et qualifié SQLite/Oracle 19.19 |

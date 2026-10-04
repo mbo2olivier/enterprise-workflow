@@ -92,6 +92,9 @@
           "EnterpriseWorkflow.Core": "[1.0.0, )",
           "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )"
         }
+      },
+      "enterpriseworkflow.security.abstractions": {
+        "type": "Project"
       }
     }
   }

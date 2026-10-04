@@ -157,13 +157,84 @@ internal static class WorkflowDefinitionSerializer
             writer.WriteEndObject();
         }
 
+        writer.WritePropertyName("humanTask");
+        if (node.HumanTask is null)
+        {
+            writer.WriteNullValue();
+        }
+        else
+        {
+            WriteHumanTask(writer, node.HumanTask, canonical);
+        }
+
         writer.WriteString("id", node.Id.Value);
         writer.WriteString("role", node.Role.ToString());
+        writer.WritePropertyName("timer");
+        if (node.Timer is null)
+        {
+            writer.WriteNullValue();
+        }
+        else
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("delayMilliseconds", checked((long)node.Timer.Delay.TotalMilliseconds));
+            writer.WriteEndObject();
+        }
+
         writer.WritePropertyName("type");
         writer.WriteStartObject();
         writer.WriteString("id", node.Type.Id.Value);
         writer.WriteNumber("version", node.Type.Version);
         writer.WriteEndObject();
+        writer.WriteEndObject();
+    }
+
+    private static void WriteHumanTask(Utf8JsonWriter writer, HumanTaskDefinition humanTask, bool canonical)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("actions");
+        writer.WriteStartArray();
+        IEnumerable<HumanTaskAction> actions = canonical
+            ? humanTask.Actions.OrderBy(item => item.ActionId.Value, StringComparer.Ordinal)
+            : humanTask.Actions;
+        foreach (var action in actions)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("actionId", action.ActionId.Value);
+            writer.WriteString("outcome", action.Outcome.Value);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+        writer.WriteBoolean("allowInitiator", humanTask.AllowInitiator);
+        writer.WriteString("assignmentMode", humanTask.AssignmentMode.ToString());
+        writer.WritePropertyName("completionHandler");
+        writer.WriteStartObject();
+        writer.WriteString("id", humanTask.CompletionHandler.Id.Value);
+        writer.WriteNumber("version", humanTask.CompletionHandler.Version);
+        writer.WriteEndObject();
+        writer.WritePropertyName("distinctFrom");
+        writer.WriteStartArray();
+        IEnumerable<HumanTaskActorConstraint> constraints = canonical
+            ? humanTask.DistinctFrom
+                .OrderBy(item => item.NodeId.Value, StringComparer.Ordinal)
+                .ThenBy(item => item.ActionId.Value, StringComparer.Ordinal)
+            : humanTask.DistinctFrom;
+        foreach (var constraint in constraints)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("actionId", constraint.ActionId.Value);
+            writer.WriteString("nodeId", constraint.NodeId.Value);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+        writer.WritePropertyName("form");
+        writer.WriteStartObject();
+        writer.WriteString("id", humanTask.Form.Id.Value);
+        writer.WriteNumber("version", humanTask.Form.Version);
+        writer.WriteEndObject();
+        writer.WriteString("kind", humanTask.Kind.ToString());
         writer.WriteEndObject();
     }
 

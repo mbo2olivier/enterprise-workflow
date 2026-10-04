@@ -1,0 +1,75 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+namespace EnterpriseWorkflow.Persistence.Oracle.Migrations;
+
+[DbContext(typeof(OracleWorkflowDbContext))]
+[Migration("202610040004_AddHumanTasksAndTimers")]
+public sealed class AddHumanTasksAndTimers : Migration
+{
+    protected override void Up(MigrationBuilder migrationBuilder)
+    {
+        Sql(migrationBuilder, "ALTER TABLE \"EW_INSTANCES\" ADD (\"INITIATOR_PROVIDER_ID\" VARCHAR2(128 CHAR) DEFAULT 'system' NOT NULL)");
+        Sql(migrationBuilder, "ALTER TABLE \"EW_INSTANCES\" ADD (\"INITIATOR_SUBJECT_ID\" VARCHAR2(512 CHAR) DEFAULT 'system' NOT NULL)");
+        Sql(migrationBuilder, """
+            CREATE TABLE "EW_HUMAN_TASKS" (
+                "ID" CHAR(32 CHAR) NOT NULL, "ACTIVATION_ID" CHAR(32 CHAR) NOT NULL,
+                "INSTANCE_ID" CHAR(32 CHAR) NOT NULL, "NODE_ID" VARCHAR2(128 CHAR) NOT NULL,
+                "STATUS" NUMBER(10) NOT NULL, "ASSIGNMENT_MODE" NUMBER(10) NOT NULL,
+                "ASSIGNEE_PROVIDER_ID" VARCHAR2(128 CHAR) NULL, "ASSIGNEE_SUBJECT_ID" VARCHAR2(512 CHAR) NULL,
+                "REVISION" NUMBER(19) NOT NULL, "CREATED_AT_MS" NUMBER(19) NOT NULL,
+                "COMPLETED_AT_MS" NUMBER(19) NULL, "COMPLETED_ACTION_ID" VARCHAR2(128 CHAR) NULL,
+                "COMPLETED_BY_PROVIDER_ID" VARCHAR2(128 CHAR) NULL, "COMPLETED_BY_SUBJECT_ID" VARCHAR2(512 CHAR) NULL,
+                CONSTRAINT "PK_EW_HUMAN_TASKS" PRIMARY KEY ("ID"),
+                CONSTRAINT "FK_EW_HT_ACTIVATION" FOREIGN KEY ("ACTIVATION_ID") REFERENCES "EW_ACTIVATIONS" ("ID") ON DELETE CASCADE,
+                CONSTRAINT "FK_EW_HT_INSTANCE" FOREIGN KEY ("INSTANCE_ID") REFERENCES "EW_INSTANCES" ("ID") ON DELETE CASCADE)
+            """);
+        Sql(migrationBuilder, "CREATE UNIQUE INDEX \"UX_EW_HT_ACTIVATION\" ON \"EW_HUMAN_TASKS\" (\"ACTIVATION_ID\")");
+        Sql(migrationBuilder, "CREATE INDEX \"IX_EW_HT_STATUS_CREATED\" ON \"EW_HUMAN_TASKS\" (\"STATUS\", \"CREATED_AT_MS\", \"ID\")");
+        Sql(migrationBuilder, "CREATE INDEX \"IX_EW_HT_INSTANCE\" ON \"EW_HUMAN_TASKS\" (\"INSTANCE_ID\")");
+        Sql(migrationBuilder, """
+            CREATE TABLE "EW_HUMAN_TASK_RECEIPTS" (
+                "RECEIPT_KEY" CHAR(64 CHAR) NOT NULL, "TASK_ID" CHAR(32 CHAR) NOT NULL,
+                "IDEMPOTENCY_KEY" VARCHAR2(128 CHAR) NOT NULL, "ACTOR_PROVIDER_ID" VARCHAR2(128 CHAR) NOT NULL,
+                "ACTOR_SUBJECT_ID" VARCHAR2(512 CHAR) NOT NULL, "ACTION_ID" VARCHAR2(128 CHAR) NOT NULL,
+                "REQUEST_SHA256" CHAR(64 CHAR) NOT NULL, "TASK_REVISION" NUMBER(19) NOT NULL,
+                "INSTANCE_REVISION" NUMBER(19) NOT NULL, "COMMITTED_AT_MS" NUMBER(19) NOT NULL,
+                CONSTRAINT "PK_EW_HT_RECEIPTS" PRIMARY KEY ("RECEIPT_KEY"),
+                CONSTRAINT "FK_EW_HTR_TASK" FOREIGN KEY ("TASK_ID") REFERENCES "EW_HUMAN_TASKS" ("ID") ON DELETE CASCADE)
+            """);
+        Sql(migrationBuilder, "CREATE UNIQUE INDEX \"UX_EW_HTR_TASK_KEY\" ON \"EW_HUMAN_TASK_RECEIPTS\" (\"TASK_ID\", \"IDEMPOTENCY_KEY\")");
+        Sql(migrationBuilder, """
+            CREATE TABLE "EW_TIMERS" (
+                "ID" CHAR(32 CHAR) NOT NULL, "ACTIVATION_ID" CHAR(32 CHAR) NOT NULL,
+                "INSTANCE_ID" CHAR(32 CHAR) NOT NULL, "NODE_ID" VARCHAR2(128 CHAR) NOT NULL,
+                "NEXT_NODE_ID" VARCHAR2(128 CHAR) NOT NULL, "STATUS" NUMBER(10) NOT NULL,
+                "DUE_AT_MS" NUMBER(19) NOT NULL, "REVISION" NUMBER(19) NOT NULL,
+                "CREATED_AT_MS" NUMBER(19) NOT NULL, "FIRED_AT_MS" NUMBER(19) NULL,
+                CONSTRAINT "PK_EW_TIMERS" PRIMARY KEY ("ID"),
+                CONSTRAINT "FK_EW_TIMER_ACTIVATION" FOREIGN KEY ("ACTIVATION_ID") REFERENCES "EW_ACTIVATIONS" ("ID") ON DELETE CASCADE,
+                CONSTRAINT "FK_EW_TIMER_INSTANCE" FOREIGN KEY ("INSTANCE_ID") REFERENCES "EW_INSTANCES" ("ID") ON DELETE CASCADE)
+            """);
+        Sql(migrationBuilder, "CREATE UNIQUE INDEX \"UX_EW_TIMER_ACTIVATION\" ON \"EW_TIMERS\" (\"ACTIVATION_ID\")");
+        Sql(migrationBuilder, "CREATE INDEX \"IX_EW_TIMER_STATUS_DUE\" ON \"EW_TIMERS\" (\"STATUS\", \"DUE_AT_MS\")");
+        Sql(migrationBuilder, """
+            CREATE TABLE "EW_DESIGNATED_ASSIGNMENTS" (
+                "INSTANCE_ID" CHAR(32 CHAR) NOT NULL, "NODE_ID" VARCHAR2(128 CHAR) NOT NULL,
+                "ASSIGNEE_PROVIDER_ID" VARCHAR2(128 CHAR) NOT NULL, "ASSIGNEE_SUBJECT_ID" VARCHAR2(512 CHAR) NOT NULL,
+                CONSTRAINT "PK_EW_DESIGNATED_ASSIGNMENTS" PRIMARY KEY ("INSTANCE_ID", "NODE_ID"),
+                CONSTRAINT "FK_EW_DA_INSTANCE" FOREIGN KEY ("INSTANCE_ID") REFERENCES "EW_INSTANCES" ("ID") ON DELETE CASCADE)
+            """);
+    }
+
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        Sql(migrationBuilder, "DROP TABLE \"EW_HUMAN_TASK_RECEIPTS\" CASCADE CONSTRAINTS PURGE");
+        Sql(migrationBuilder, "DROP TABLE \"EW_DESIGNATED_ASSIGNMENTS\" CASCADE CONSTRAINTS PURGE");
+        Sql(migrationBuilder, "DROP TABLE \"EW_TIMERS\" CASCADE CONSTRAINTS PURGE");
+        Sql(migrationBuilder, "DROP TABLE \"EW_HUMAN_TASKS\" CASCADE CONSTRAINTS PURGE");
+        Sql(migrationBuilder, "ALTER TABLE \"EW_INSTANCES\" DROP COLUMN \"INITIATOR_SUBJECT_ID\"");
+        Sql(migrationBuilder, "ALTER TABLE \"EW_INSTANCES\" DROP COLUMN \"INITIATOR_PROVIDER_ID\"");
+    }
+
+    private static void Sql(MigrationBuilder migrationBuilder, string sql) =>
+        migrationBuilder.Sql(sql, suppressTransaction: true);
+}

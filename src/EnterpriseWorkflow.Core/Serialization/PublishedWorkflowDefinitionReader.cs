@@ -64,8 +64,40 @@ public static class PublishedWorkflowDefinitionReader
             element.GetProperty("configuration").GetRawText(),
             element.GetProperty("declaredOutcomes").EnumerateArray()
                 .Select(item => item.GetString() ?? string.Empty).ToImmutableArray(),
-            ReadNullableString(element.GetProperty("displayLabel")));
+            ReadNullableString(element.GetProperty("displayLabel")),
+            ReadHumanTask(element.GetProperty("humanTask")),
+            ReadTimer(element.GetProperty("timer")));
     }
+
+    private static HumanTaskDefinitionDraft? ReadHumanTask(JsonElement element)
+    {
+        if (element.ValueKind is JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        var form = element.GetProperty("form");
+        var handler = element.GetProperty("completionHandler");
+        return new HumanTaskDefinitionDraft(
+            Enum.Parse<HumanTaskKind>(element.GetProperty("kind").GetString() ?? string.Empty, ignoreCase: false),
+            Enum.Parse<HumanTaskAssignmentMode>(element.GetProperty("assignmentMode").GetString() ?? string.Empty, ignoreCase: false),
+            form.GetProperty("id").GetString() ?? string.Empty,
+            form.GetProperty("version").GetInt32(),
+            handler.GetProperty("id").GetString() ?? string.Empty,
+            handler.GetProperty("version").GetInt32(),
+            element.GetProperty("actions").EnumerateArray().Select(item => new HumanTaskActionDraft(
+                item.GetProperty("actionId").GetString() ?? string.Empty,
+                item.GetProperty("outcome").GetString() ?? string.Empty)).ToImmutableArray(),
+            element.GetProperty("allowInitiator").GetBoolean(),
+            element.GetProperty("distinctFrom").EnumerateArray().Select(item => new HumanTaskActorConstraintDraft(
+                item.GetProperty("nodeId").GetString() ?? string.Empty,
+                item.GetProperty("actionId").GetString() ?? string.Empty)).ToImmutableArray());
+    }
+
+    private static TimerDefinitionDraft? ReadTimer(JsonElement element) =>
+        element.ValueKind is JsonValueKind.Null
+            ? null
+            : new TimerDefinitionDraft(TimeSpan.FromMilliseconds(element.GetProperty("delayMilliseconds").GetInt64()));
 
     private static WorkflowTransitionDraft ReadTransition(JsonElement element) => new(
         element.GetProperty("source").GetString() ?? string.Empty,

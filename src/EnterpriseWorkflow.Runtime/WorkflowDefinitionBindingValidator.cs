@@ -74,6 +74,23 @@ public static class WorkflowDefinitionBindingValidator
             }
         }
 
+        foreach (var node in definition.Nodes.Where(item => item.HumanTask is not null))
+        {
+            var handler = node.HumanTask!.CompletionHandler;
+            if (!registry.TryGet(handler, out var descriptor))
+            {
+                diagnostics.Add(new WorkflowBindingDiagnostic(
+                    "EW4002_HANDLER_NOT_FOUND", node.Id, handler,
+                    $"Human-task completion handler '{handler.Id.Value}' version {handler.Version} is not registered."));
+            }
+            else if (descriptor!.Kind is not WorkflowHandlerKind.HumanTaskCompletion)
+            {
+                diagnostics.Add(new WorkflowBindingDiagnostic(
+                    "EW4003_HANDLER_KIND_MISMATCH", node.Id, handler,
+                    $"Handler '{handler.Id.Value}' version {handler.Version} is registered as {descriptor.Kind} but node '{node.Id.Value}' requires {WorkflowHandlerKind.HumanTaskCompletion}."));
+            }
+        }
+
         return new WorkflowBindingValidationResult(diagnostics.ToImmutable());
     }
 }

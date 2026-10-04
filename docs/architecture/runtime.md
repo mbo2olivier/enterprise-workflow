@@ -120,6 +120,12 @@ Complétion contre annulation : la transaction gagnante change la révision ; l�
 
 Définition, schéma JSON, contrats de nœuds, module et packages ont des versions distinctes. Hash de graphe et hash d’artefact sont tous deux requis. Une ancienne instance ne peut se poursuivre avec du code remplacé sous le même nom. Voir [modules](extensions.md) et ADR 0009.
 
-## Stages administratifs et actions humaines — cible L5b/L6
+## Stages administratifs et attentes L6
 
-Un stage correspond au nœud (S13), sans nouveau type de graphe. Avant L6, L5b fournit les habilitations workflow/version/nœud/action. Le contexte d’autorisation est dérivé de l’instance et de l’activation durables ; une commande vérifie aussi affectation/claim, état, révision et contraintes métier avant progression atomique. Les définitions techniques L2/L4 et leurs hashes restent compatibles. Voir [ADR 0019](../adr/0019-workflow-stages.md).
+Un stage correspond au nœud (S13), sans entité de graphe supplémentaire. L5b fournit les habilitations exactes workflow/version/nœud/action ; L6 ajoute les rôles canoniques `HumanTask` et `Timer`. Comme le format n'a jamais été publié, D1-B corrige directement le schéma canonique v1 et les samples/tests sont recompilés dans le même changement. Voir [ADR 0019](../adr/0019-workflow-stages.md) et [ADR 0020](../adr/0020-attentes-metier-l6.md).
+
+`IWorkflowStartService` constitue la frontière authentifiée du démarrage : elle vérifie le droit `workflow.start`, la référence exacte de définition et l'éligibilité de chaque personne désignée avant de déléguer au store idempotent. Le worker matérialise ensuite une tâche ou un timer puis libère son bail : aucune transaction ni thread ne reste ouvert pendant l'attente. Une tâche désignée est affectée au démarrage, depuis la complétion précédente ou par `Assign`; chaque chemin valide le candidat contre les actions du nœud. Une tâche de pool utilise un claim exclusif durable et une release réservée au propriétaire. La complétion vérifie identité affectée, droit exact, action déclarée, révisions, auto-approbation et contraintes amont avant d'appeler le handler versionné hors transaction. Son résultat — état, transition, affectations suivantes, outbox et reçu — est ensuite commité atomiquement.
+
+Le reçu `(TaskId, IdempotencyKey)` lie acteur, action et hash de la soumission sans stocker la soumission. Un rejeu identique et authentifié retourne le résultat connu même si les grants ont changé ; une autre identité ou un autre contenu produit un conflit. L'inbox scanne un curseur stable dans une limite configurée et filtre chaque ligne avec L5b, sans snapshot de droits.
+
+L'échéance d'un timer fixe est calculée par l'horloge du store au commit de l'activation. Un poller dédié reprend les timers après redémarrage ; le verrouillage provider garantit un seul réveil. L'annulation gagnante annule tâches et timers ouverts et invalide toute progression concurrente par la révision d'instance.

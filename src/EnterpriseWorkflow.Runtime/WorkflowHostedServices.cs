@@ -69,3 +69,33 @@ internal sealed class WorkflowOutboxHostedService(
         }
     }
 }
+
+internal sealed class WorkflowTimerHostedService(
+    IWorkflowTimerPump pump,
+    IOptions<WorkflowRuntimeOptions> configuredOptions,
+    TimeProvider timeProvider) : BackgroundService
+{
+    private readonly WorkflowRuntimeOptions _options = configuredOptions.Value;
+
+    protected override async Task ExecuteAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            bool handled;
+            try
+            {
+                handled = await pump.FireNextAsync(token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (WorkflowRuntimeException)
+            {
+                handled = false;
+            }
+
+            if (!handled) await Task.Delay(_options.TimerIdlePollingInterval, timeProvider, token).ConfigureAwait(false);
+        }
+    }
+}

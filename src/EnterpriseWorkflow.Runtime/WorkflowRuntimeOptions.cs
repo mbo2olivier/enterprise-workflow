@@ -17,6 +17,10 @@ public sealed class WorkflowRuntimeOptions
     public int OutboxMaximumAttempts { get; set; } = 10;
     public TimeSpan OutboxRetryBaseDelay { get; set; } = TimeSpan.FromSeconds(1);
     public TimeSpan OutboxRetryMaximumDelay { get; set; } = TimeSpan.FromMinutes(1);
+    public TimeSpan TimerIdlePollingInterval { get; set; } = TimeSpan.FromMilliseconds(250);
+    public int HumanTaskInboxMaximumScan { get; set; } = 500;
+    public int HumanTaskInboxPageSize { get; set; } = 50;
+    public int HumanTaskMaximumSubmissionBytes { get; set; } = 256 * 1024;
 
     internal void Validate()
     {
@@ -34,10 +38,18 @@ public sealed class WorkflowRuntimeOptions
         PositiveMilliseconds(OutboxIdlePollingInterval, nameof(OutboxIdlePollingInterval));
         PositiveMilliseconds(OutboxRetryBaseDelay, nameof(OutboxRetryBaseDelay));
         PositiveMilliseconds(OutboxRetryMaximumDelay, nameof(OutboxRetryMaximumDelay));
+        PositiveMilliseconds(TimerIdlePollingInterval, nameof(TimerIdlePollingInterval));
+        Positive(HumanTaskInboxMaximumScan, nameof(HumanTaskInboxMaximumScan));
+        Positive(HumanTaskInboxPageSize, nameof(HumanTaskInboxPageSize));
+        Positive(HumanTaskMaximumSubmissionBytes, nameof(HumanTaskMaximumSubmissionBytes));
         if (LeaseRenewalInterval >= LeaseDuration)
             throw new InvalidOperationException("LeaseRenewalInterval must be shorter than LeaseDuration.");
         if (RetryBaseDelay > RetryMaximumDelay || OutboxRetryBaseDelay > OutboxRetryMaximumDelay)
             throw new InvalidOperationException("A retry base delay cannot exceed its maximum delay.");
+        if (HumanTaskInboxPageSize > HumanTaskInboxMaximumScan || HumanTaskInboxMaximumScan > 10_000)
+            throw new InvalidOperationException("Human-task inbox page size must not exceed its scan limit, capped at 10000.");
+        if (HumanTaskMaximumSubmissionBytes > 4 * 1024 * 1024)
+            throw new InvalidOperationException("Human-task submissions are capped at 4 MiB.");
     }
 
     private static void Positive(int value, string name)

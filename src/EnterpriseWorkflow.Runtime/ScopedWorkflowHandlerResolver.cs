@@ -11,6 +11,9 @@ public interface IScopedWorkflowHandlerResolver
 
     /// <summary>Resolves an exact decision handler in a new scope.</summary>
     WorkflowHandlerScope<IDecisionNodeHandler> ResolveDecision(WorkflowHandlerReference reference);
+
+    /// <summary>Resolves an exact human-task completion handler in a new scope.</summary>
+    WorkflowHandlerScope<IHumanTaskCompletionHandler> ResolveHumanTask(WorkflowHandlerReference reference);
 }
 
 /// <summary>Owns a resolved handler and its short-lived dependency-injection scope.</summary>
@@ -55,6 +58,9 @@ internal sealed class ScopedWorkflowHandlerResolver(
 
     public WorkflowHandlerScope<IDecisionNodeHandler> ResolveDecision(WorkflowHandlerReference reference) =>
         Resolve<IDecisionNodeHandler>(reference, WorkflowHandlerKind.Decision);
+
+    public WorkflowHandlerScope<IHumanTaskCompletionHandler> ResolveHumanTask(WorkflowHandlerReference reference) =>
+        Resolve<IHumanTaskCompletionHandler>(reference, WorkflowHandlerKind.HumanTaskCompletion);
 
     private WorkflowHandlerScope<THandler> Resolve<THandler>(
         WorkflowHandlerReference reference,

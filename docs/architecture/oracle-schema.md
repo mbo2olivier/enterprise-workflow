@@ -1,6 +1,6 @@
 # Schéma physique Oracle du framework
 
-Statut : schéma workflow L3b/L4b et schéma sécurité L5/L5b séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
+Statut : schéma workflow L3b à L6 et schéma sécurité L5/L5b séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
 
 Les tables appartiennent au schéma Oracle configuré dans la chaîne de connexion. Elles ne sont pas une API SQL publique : les mutations passent par `IWorkflowStore`, afin de préserver transactions, révisions, idempotence et fencing.
 
@@ -16,6 +16,10 @@ erDiagram
     EW_INSTANCES ||--o{ EW_AUDITS : "trace"
     EW_INSTANCES ||--o{ EW_OUTBOX : "effets"
     EW_ACTIVATIONS ||--o{ EW_OUTBOX : "émet"
+    EW_INSTANCES ||--o{ EW_HUMAN_TASKS : "attend"
+    EW_HUMAN_TASKS ||--o{ EW_HUMAN_TASK_RECEIPTS : "déduplique"
+    EW_INSTANCES ||--o{ EW_TIMERS : "attend"
+    EW_INSTANCES ||--o{ EW_DESIGNATED_ASSIGNMENTS : "prépare"
 ```
 
 ## Tables fonctionnelles
@@ -45,6 +49,8 @@ Clé primaire : (`DEFINITION_ID`, `VERSION`). Une instance interdit la suppressi
 | `REVISION` | `NUMBER(19)` | non | Révision de concurrence |
 | `STATE_SCHEMA_VERSION` | `NUMBER(10)` | non | Version de l’état applicatif |
 | `STATE_JSON` | `CLOB` | non | État canonique complet |
+| `INITIATOR_PROVIDER_ID` | `VARCHAR2(128 CHAR)` | non | Fournisseur de l’initiateur |
+| `INITIATOR_SUBJECT_ID` | `VARCHAR2(512 CHAR)` | non | Sujet stable pour les règles de séparation |
 | `BUSINESS_KEY` | `VARCHAR2(512 CHAR)` | oui | Clé métier facultative |
 | `CORRELATION_ID` | `VARCHAR2(512 CHAR)` | oui | Corrélation facultative |
 | `CREATED_AT_MS` | `NUMBER(19)` | non | Création UTC |
@@ -141,6 +147,17 @@ Une intention est insérée atomiquement avec le commit réussi du nœud. Le dis
 
 Contrainte unique (`ACTIVATION_ID`, `OPERATION_ID`), index (`STATUS`, `DUE_AT_MS`) et clés étrangères en cascade. Les claims concurrents utilisent `FOR UPDATE SKIP LOCKED`. Un message `Failed` reste consultable et n’altère pas une instance déjà terminale.
 
+### Tables d’attente L6
+
+| Table | Colonnes et invariants principaux |
+| --- | --- |
+| `EW_HUMAN_TASKS` | Identifiants tâche/activation/instance/nœud, statut, mode d’affectation, identité affectée, révision, création et complétion ; activation unique, index inbox et instance |
+| `EW_HUMAN_TASK_RECEIPTS` | Clé SHA-256, tâche, clé idempotente, acteur, action, hash de requête et révisions ; unique (`TASK_ID`, `IDEMPOTENCY_KEY`), aucune soumission JSON |
+| `EW_TIMERS` | Identifiants, nœud suivant, statut, échéance Oracle, révision, création/tir ; activation unique et index (`STATUS`, `DUE_AT_MS`) |
+| `EW_DESIGNATED_ASSIGNMENTS` | Clé (`INSTANCE_ID`, `NODE_ID`) et identité stable préparée, consommée lors de l’activation |
+
+Les statuts et règles sont identiques au contrat décrit dans le [schéma SQLite](sqlite-schema.md#tables-dattente-l6). Les mutations ciblées verrouillent tâche/timer et instance avec `FOR UPDATE`; le polling des timers utilise `SKIP LOCKED`. Les noms/types physiques restent volontairement provider-spécifiques.
+
 ## Tables de sécurité L5
 
 La migration `202610030005_InitialSecurityOracle` crée les tables ci-dessous dans le même schéma configuré, sous la responsabilité exclusive du store sécurité.
@@ -164,10 +181,10 @@ La migration `202610040007_WorkflowAccessOracle` ajoute les deux tables L5b. `Ew
 
 ## Table de migrations
 
-Oracle EF Core maintient `__EFMigrationsHistory`. Les migrations sont `202610010002_InitialOracle` et `202610030003_AddOutbox`. `OracleWorkflowDatabase.MigrateAsync` doit être exécuté explicitement avec un compte autorisé à créer les objets ; le store ne lance aucune migration automatiquement.
+Oracle EF Core maintient `__EFMigrationsHistory`. Les migrations sont `202610010002_InitialOracle`, `202610030003_AddOutbox` et `202610040004_AddHumanTasksAndTimers`. `OracleWorkflowDatabase.MigrateAsync` doit être exécuté explicitement avec un compte autorisé à créer les objets ; le store ne lance aucune migration automatiquement.
 
 ## Propriété et privilèges
 
 Le schéma de migration a besoin, pour cette version, de `CREATE SESSION`, `CREATE TABLE`, `CREATE SEQUENCE`, `CREATE TRIGGER` et d’un quota sur le tablespace cible. Le compte d’exécution final pourra être séparé et limité aux opérations `SELECT`, `INSERT`, `UPDATE` et au droit de verrouiller les tables possédées ; cette séparation sera qualifiée avec le Host et le déploiement de production.
 
-Comme pour SQLite, les tâches humaines et timers seront ajoutés par des migrations ultérieures. Les noms et types Oracle sont volontairement distincts du schéma physique SQLite.
+Les noms et types Oracle sont volontairement distincts du schéma physique SQLite ; les invariants sont communs et couverts par la qualification provider.

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Core.Model;
+using EnterpriseWorkflow.Persistence;
 
 namespace EnterpriseWorkflow.Runtime;
 
@@ -167,4 +168,47 @@ public sealed class DecisionNodeResult
     private static TechnicalId Validate(TechnicalId value, string parameterName) => TechnicalId.IsValid(value.Value)
         ? value
         : throw new ArgumentException("The technical identifier is invalid.", parameterName);
+}
+
+/// <summary>Deterministic bounded result of validating a human-task submission.</summary>
+public sealed class HumanTaskCompletionResult
+{
+    private HumanTaskCompletionResult(
+        bool succeeded,
+        TechnicalId? outcome,
+        NodeStateUpdate stateUpdate,
+        TechnicalId? errorCode,
+        ImmutableArray<ExternalEffectIntent> effects,
+        ImmutableArray<DesignatedTaskAssignment> designatedAssignments)
+    {
+        Succeeded = succeeded;
+        Outcome = outcome;
+        StateUpdate = stateUpdate;
+        ErrorCode = errorCode;
+        Effects = effects;
+        DesignatedAssignments = designatedAssignments;
+    }
+
+    public bool Succeeded { get; }
+    public TechnicalId? Outcome { get; }
+    public NodeStateUpdate StateUpdate { get; }
+    public TechnicalId? ErrorCode { get; }
+    public ImmutableArray<ExternalEffectIntent> Effects { get; }
+    public ImmutableArray<DesignatedTaskAssignment> DesignatedAssignments { get; }
+
+    public static HumanTaskCompletionResult Success(
+        TechnicalId outcome,
+        NodeStateUpdate? stateUpdate = null,
+        IEnumerable<ExternalEffectIntent>? effects = null,
+        IEnumerable<DesignatedTaskAssignment>? designatedAssignments = null)
+    {
+        var effectSnapshot = effects?.ToImmutableArray() ?? [];
+        if (effectSnapshot.Select(item => item.OperationId.Value).Distinct(StringComparer.Ordinal).Count() != effectSnapshot.Length)
+            throw new ArgumentException("Effect operation identifiers must be unique.", nameof(effects));
+        return new(true, outcome, stateUpdate ?? NodeStateUpdate.Unchanged, null, effectSnapshot,
+            designatedAssignments?.ToImmutableArray() ?? []);
+    }
+
+    public static HumanTaskCompletionResult Rejected(TechnicalId errorCode) =>
+        new(false, null, NodeStateUpdate.Unchanged, errorCode, [], []);
 }

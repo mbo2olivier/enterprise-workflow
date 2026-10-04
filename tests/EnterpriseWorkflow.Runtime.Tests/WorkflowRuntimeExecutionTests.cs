@@ -5,6 +5,7 @@ using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Persistence.Sqlite;
 using EnterpriseWorkflow.Runtime;
+using EnterpriseWorkflow.Security;
 using EnterpriseWorkflow.Sdk;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -151,6 +152,149 @@ public sealed class WorkflowRuntimeExecutionTests
         Assert.Equal("receiver.unavailable", store.Committed.ErrorCode);
     }
 
+    [Fact]
+    public async Task HumanTaskCompletionIsAuthorizedSeparatedAndReplayDoesNotInvokeHandlerAgain()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var definition = Assert.IsType<WorkflowDefinition>(WorkflowBuilder.Create("runtime.human", 1)
+            .Start("start")
+            .HumanTask("approve", HumanTaskKind.Approval, HumanTaskAssignmentMode.DesignatedIdentity,
+                "approval.form", 1, "approval.complete",
+                [new HumanTaskActionDraft("task.approve", "approved")])
+            .End("end").Then("start", "approve").On("approve", "approved", "end").Validate().Definition);
+        await store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var approver = new ActorIdentity(new TechnicalId("local"), "approver");
+        await store.StartInstanceAsync(Start(definition) with
+        {
+            DesignatedAssignments = [new DesignatedTaskAssignment(new TechnicalId("approve"), approver)],
+        }, TestContext.Current.CancellationToken);
+
+        var authorization = new MutableAuthorization();
+        var handlerState = new HumanHandlerState();
+        var services = new ServiceCollection();
+        services.AddSingleton<IWorkflowStore>(store);
+        services.AddSingleton<IWorkflowAuthorizationService>(authorization);
+        services.AddSingleton(handlerState);
+        services.AddEnterpriseWorkflowHandlers(registry => registry.AddHumanTask<TestHumanHandler>("approval.complete", 1));
+        services.AddEnterpriseWorkflowRuntime<AlwaysSuccessTransport>();
+        await using var provider = services.BuildServiceProvider();
+        var pump = provider.GetRequiredService<IWorkflowExecutionPump>();
+        Assert.True(await pump.ExecuteNextAsync(new TechnicalId("human.worker"), TestContext.Current.CancellationToken));
+        Assert.True(await pump.ExecuteNextAsync(new TechnicalId("human.worker"), TestContext.Current.CancellationToken));
+        Assert.False(await pump.ExecuteNextAsync(new TechnicalId("human.worker"), TestContext.Current.CancellationToken));
+        var task = (await store.ReadOpenHumanTasksAsync(new ReadOpenHumanTasksCommand(null, 10),
+            TestContext.Current.CancellationToken)).Value!.Tasks.Single();
+        var service = provider.GetRequiredService<IHumanTaskService>();
+        var identity = new IdentityReference("local", "approver");
+        var inbox = await service.ReadInboxAsync(identity, null, TestContext.Current.CancellationToken);
+        Assert.Single(inbox.Tasks);
+        Assert.Equal(task.TaskId, inbox.Tasks[0].TaskId);
+        var submission = CanonicalJson.CreateObject("{\"approved\":true}", 1024);
+        var first = await service.CompleteAsync(task.TaskId, task.Revision, identity, WorkflowActions.ApproveTask,
+            new TechnicalId("complete-1"), submission, TestContext.Current.CancellationToken);
+        authorization.Allowed = false;
+        var replay = await service.CompleteAsync(task.TaskId, task.Revision, identity, WorkflowActions.ApproveTask,
+            new TechnicalId("complete-1"), submission, TestContext.Current.CancellationToken);
+        var changed = await service.CompleteAsync(task.TaskId, task.Revision, identity, WorkflowActions.ApproveTask,
+            new TechnicalId("complete-1"), CanonicalJson.CreateObject("{\"approved\":false}", 1024),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(first.Succeeded);
+        Assert.True(replay.Succeeded);
+        Assert.True(replay.WasReplay);
+        Assert.False(changed.Succeeded);
+        Assert.Equal("runtime.human-task-idempotency-conflict", changed.ErrorCode);
+        Assert.Equal(1, handlerState.Invocations);
+        Assert.True(await pump.ExecuteNextAsync(new TechnicalId("human.worker"), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ApprovalRejectsInitiatorByDefaultBeforeInvokingHandler()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var definition = Assert.IsType<WorkflowDefinition>(WorkflowBuilder.Create("runtime.self-approval", 1)
+            .Start("start")
+            .HumanTask("approve", HumanTaskKind.Approval, HumanTaskAssignmentMode.DesignatedIdentity,
+                "approval.form", 1, "approval.complete",
+                [new HumanTaskActionDraft("task.approve", "approved")])
+            .End("end").Then("start", "approve").On("approve", "approved", "end").Validate().Definition);
+        await store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var initiator = new ActorIdentity(new TechnicalId("local"), "runtime-test");
+        await store.StartInstanceAsync(Start(definition) with
+        {
+            DesignatedAssignments = [new DesignatedTaskAssignment(new TechnicalId("approve"), initiator)],
+        }, TestContext.Current.CancellationToken);
+        var handlerState = new HumanHandlerState();
+        var services = new ServiceCollection();
+        services.AddSingleton<IWorkflowStore>(store);
+        services.AddSingleton<IWorkflowAuthorizationService>(new MutableAuthorization());
+        services.AddSingleton(handlerState);
+        services.AddEnterpriseWorkflowHandlers(registry => registry.AddHumanTask<TestHumanHandler>("approval.complete", 1));
+        services.AddEnterpriseWorkflowRuntime<AlwaysSuccessTransport>();
+        await using var provider = services.BuildServiceProvider();
+        var pump = provider.GetRequiredService<IWorkflowExecutionPump>();
+        await pump.ExecuteNextAsync(new TechnicalId("self.worker"), TestContext.Current.CancellationToken);
+        await pump.ExecuteNextAsync(new TechnicalId("self.worker"), TestContext.Current.CancellationToken);
+        var task = (await store.ReadOpenHumanTasksAsync(new ReadOpenHumanTasksCommand(null, 10),
+            TestContext.Current.CancellationToken)).Value!.Tasks.Single();
+
+        var result = await provider.GetRequiredService<IHumanTaskService>().CompleteAsync(
+            task.TaskId, task.Revision, new IdentityReference("local", "runtime-test"), WorkflowActions.ApproveTask,
+            new TechnicalId("self-completion"), CanonicalJson.CreateObject("{}", 1024),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("runtime.human-task-initiator-forbidden", result.ErrorCode);
+        Assert.Equal(0, handlerState.Invocations);
+    }
+
+    [Fact]
+    public async Task StartBoundaryAuthorizesInitiatorAndDesignatedAssigneeBeforePersisting()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var definition = Assert.IsType<WorkflowDefinition>(WorkflowBuilder.Create("runtime.secure-start", 1)
+            .Start("start")
+            .HumanTask("approve", HumanTaskKind.Approval, HumanTaskAssignmentMode.DesignatedIdentity,
+                "approval.form", 1, "approval.complete",
+                [new HumanTaskActionDraft("task.approve", "approved")])
+            .End("end").Then("start", "approve").On("approve", "approved", "end").Validate().Definition);
+        await store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var authorization = new MutableAuthorization
+        {
+            Rule = request => request.Identity.SubjectId != "ineligible",
+        };
+        var services = new ServiceCollection();
+        services.AddSingleton<IWorkflowStore>(store);
+        services.AddSingleton<IWorkflowAuthorizationService>(authorization);
+        services.AddEnterpriseWorkflowRuntime<AlwaysSuccessTransport>();
+        await using var provider = services.BuildServiceProvider();
+        var service = provider.GetRequiredService<IWorkflowStartService>();
+        var rejected = await service.StartAsync(definition, Start(definition) with
+        {
+            DesignatedAssignments = [new DesignatedTaskAssignment(new TechnicalId("approve"),
+                new ActorIdentity(new TechnicalId("local"), "ineligible"))],
+        }, TestContext.Current.CancellationToken);
+        var accepted = await service.StartAsync(definition, Start(definition) with
+        {
+            DesignatedAssignments = [new DesignatedTaskAssignment(new TechnicalId("approve"),
+                new ActorIdentity(new TechnicalId("local"), "approver"))],
+        }, TestContext.Current.CancellationToken);
+
+        Assert.False(rejected.Succeeded);
+        Assert.Equal("security.task-assignee-ineligible", rejected.ErrorCode);
+        Assert.True(accepted.Succeeded);
+        Assert.False(accepted.WasReplay);
+    }
+
     private static WorkflowDefinition BuildDefinition() => Assert.IsType<WorkflowDefinition>(
         WorkflowBuilder.Create("runtime.executable", 1)
             .Start("start")
@@ -226,6 +370,36 @@ public sealed class WorkflowRuntimeExecutionTests
             ValueTask.FromResult(ExternalEffectDeliveryResult.Retryable("receiver.unavailable"));
     }
 
+    private sealed class AlwaysSuccessTransport : IExternalEffectTransport
+    {
+        public ValueTask<ExternalEffectDeliveryResult> DeliverAsync(OutboxLease message, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(ExternalEffectDeliveryResult.Success());
+    }
+
+    private sealed class MutableAuthorization : IWorkflowAuthorizationService
+    {
+        public bool Allowed { get; set; } = true;
+        public Func<WorkflowAuthorizationRequest, bool>? Rule { get; init; }
+        public ValueTask<AuthorizationDecision> AuthorizeAsync(
+            WorkflowAuthorizationRequest request, CancellationToken cancellationToken)
+        {
+            var allowed = Allowed && (Rule?.Invoke(request) ?? true);
+            return ValueTask.FromResult(new AuthorizationDecision(allowed, allowed ? "test.allow" : "test.deny"));
+        }
+    }
+
+    private sealed class HumanHandlerState { public int Invocations { get; set; } }
+
+    private sealed class TestHumanHandler(HumanHandlerState state) : IHumanTaskCompletionHandler
+    {
+        public ValueTask<HumanTaskCompletionResult> CompleteAsync(
+            HumanTaskCompletionContext context, CancellationToken cancellationToken)
+        {
+            state.Invocations++;
+            return ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+        }
+    }
+
     private sealed class OutboxOnlyStore(OutboxLease lease) : IWorkflowStore
     {
         public CommitOutboxCommand? Committed { get; private set; }
@@ -247,6 +421,15 @@ public sealed class WorkflowRuntimeExecutionTests
         public ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(ClaimDueWorkCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<WorkLease>> RenewLeaseAsync(RenewLeaseCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<CommitNodeResult>> CommitNodeResultAsync(CommitNodeResultCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<HumanTaskSnapshot>> GetHumanTaskAsync(HumanTaskId taskId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<HumanTaskMutationResult>> AssignHumanTaskAsync(AssignHumanTaskCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<HumanTaskMutationResult>> ClaimHumanTaskAsync(ClaimHumanTaskCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<HumanTaskMutationResult>> ReleaseHumanTaskAsync(ReleaseHumanTaskCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<HumanTaskCompletionReceipt>> GetHumanTaskCompletionReceiptAsync(HumanTaskId taskId, TechnicalId idempotencyKey, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<CompleteHumanTaskResult>> CompleteHumanTaskAsync(CompleteHumanTaskCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<OpenHumanTaskPage>> ReadOpenHumanTasksAsync(ReadOpenHumanTasksCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<FireDueTimerResult>> FireDueTimerAsync(FireDueTimerCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<FireNextDueTimerResult>> FireNextDueTimerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<CancelInstanceResult>> CancelInstanceAsync(CancelInstanceCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 

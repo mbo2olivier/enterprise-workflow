@@ -43,6 +43,41 @@ public sealed class WorkflowBuilderTests
     }
 
     [Fact]
+    public void HumanTaskAndTimerAreTypedAndRoundTripInCanonicalSchemaOne()
+    {
+        var result = WorkflowBuilder.Create("leave.approval", 1)
+            .Start("start")
+            .HumanTask(
+                "approve",
+                HumanTaskKind.Approval,
+                HumanTaskAssignmentMode.DesignatedIdentity,
+                "leave.approval-form",
+                2,
+                "leave.complete-approval",
+                [new HumanTaskActionDraft("task.approve", "approved"), new HumanTaskActionDraft("task.reject", "rejected")],
+                distinctFrom: [new HumanTaskActorConstraintDraft("submit", "task.submit")])
+            .Timer("cooldown", TimeSpan.FromMinutes(5))
+            .End("end")
+            .Then("start", "approve")
+            .On("approve", "approved", "cooldown")
+            .On("approve", "rejected", "end")
+            .Then("cooldown", "end")
+            .Validate();
+
+        Assert.True(result.IsPublishable, string.Join(Environment.NewLine, result.Diagnostics));
+        var definition = Assert.IsType<WorkflowDefinition>(result.Definition);
+        var task = definition.Nodes.Single(item => item.Role is WorkflowNodeRole.HumanTask);
+        Assert.False(task.HumanTask!.AllowInitiator);
+        Assert.Equal(2, task.HumanTask.Form.Version);
+        Assert.Equal(TimeSpan.FromMinutes(5), definition.Nodes.Single(item => item.Role is WorkflowNodeRole.Timer).Timer!.Delay);
+        Assert.Contains("\"schemaVersion\":1", definition.CanonicalJson, StringComparison.Ordinal);
+
+        var roundTrip = EnterpriseWorkflow.Core.Serialization.PublishedWorkflowDefinitionReader.Read(
+            definition.CanonicalJson, definition.Id.Value, definition.Version, definition.Sha256);
+        Assert.Equal(definition.CanonicalJson, roundTrip.CanonicalJson);
+    }
+
+    [Fact]
     public void EquivalentInsertionOrdersProduceSameCanonicalJsonAndHash()
     {
         var first = WorkflowBuilder.Create("deterministic", 1)

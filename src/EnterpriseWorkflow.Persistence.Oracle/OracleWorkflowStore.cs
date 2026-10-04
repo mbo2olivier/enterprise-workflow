@@ -13,7 +13,7 @@ using Oracle.ManagedDataAccess.Client;
 namespace EnterpriseWorkflow.Persistence.Oracle;
 
 /// <summary>Atomic workflow store backed by Oracle Database 19c or later.</summary>
-public sealed class OracleWorkflowStore : IWorkflowStore
+public sealed partial class OracleWorkflowStore : IWorkflowStore
 {
     private readonly OracleWorkflowDatabase _database;
 
@@ -102,6 +102,11 @@ public sealed class OracleWorkflowStore : IWorkflowStore
             }
 
             var startNodeId = ReadStartNodeId(definition.CanonicalJson);
+            if ((command.DesignatedAssignments ?? []).GroupBy(item => item.NodeId.Value, StringComparer.Ordinal).Any(group => group.Count() > 1))
+            {
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return StoreResults.Conflict<StartInstanceResult>("EW3030_DUPLICATE_DESIGNATED_ASSIGNMENT");
+            }
             var now = await ReadStoreUtcNowMillisecondsAsync(context, transaction, cancellationToken).ConfigureAwait(false);
             var instanceId = Guid.NewGuid();
             var activationId = Guid.NewGuid();
@@ -116,6 +121,8 @@ public sealed class OracleWorkflowStore : IWorkflowStore
                 Revision = 0,
                 StateSchemaVersion = command.InitialState.SchemaVersion,
                 StateJson = command.InitialState.Value.CanonicalText,
+                InitiatorProviderId = command.Scope.Actor.ProviderId.Value,
+                InitiatorSubjectId = command.Scope.Actor.SubjectId,
                 BusinessKey = StoreContractRules.NormalizeOptionalText(command.BusinessKey),
                 CorrelationId = StoreContractRules.NormalizeOptionalText(command.CorrelationId),
                 CreatedAtUnixMilliseconds = now,
@@ -153,6 +160,7 @@ public sealed class OracleWorkflowStore : IWorkflowStore
                 InstanceRevision = 0,
                 CommittedAtUnixMilliseconds = now,
             });
+            AddDesignatedAssignments(context, instanceKey, command.DesignatedAssignments);
             AddAudit(context, instanceKey, "InstanceStarted", 0, now, command.Scope.Actor);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -313,12 +321,19 @@ public sealed class OracleWorkflowStore : IWorkflowStore
                 instance.StateJson = command.ReplacementState.Value.CanonicalText;
             }
 
-            ApplyCommit(context, command, item, activation, instance, now);
+            DesignatedAssignmentRow? designated = null;
+            if (command.Kind is NodeCommitKind.WaitHumanTask && command.HumanTask!.AssignmentMode is HumanTaskAssignmentMode.DesignatedIdentity)
+            {
+                designated = await context.DesignatedAssignments.FindAsync([instance.Id, item.NodeId], cancellationToken).ConfigureAwait(false);
+            }
+
+            var waits = ApplyCommit(context, command, item, activation, instance, now, designated);
             AddOutbox(context, command, item, now);
             AddAudit(context, instance.Id, "NodeCommitted", instance.Revision, now);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return StoreResults.Succeeded(new CommitNodeResult((WorkflowInstanceStatus)instance.Status, instance.Revision));
+            return StoreResults.Succeeded(new CommitNodeResult(
+                (WorkflowInstanceStatus)instance.Status, instance.Revision, waits.TaskId, waits.TimerId));
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -368,6 +383,23 @@ public sealed class OracleWorkflowStore : IWorkflowStore
             foreach (var activation in activations)
             {
                 activation.Status = (int)NodeExecutionStatus.Cancelled;
+            }
+
+            var tasks = await context.HumanTasks.Where(row => row.InstanceId == key &&
+                row.Status != (int)HumanTaskStatus.Completed && row.Status != (int)HumanTaskStatus.Cancelled)
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var task in tasks)
+            {
+                task.Status = (int)HumanTaskStatus.Cancelled;
+                task.Revision = checked(task.Revision + 1);
+            }
+
+            var timers = await context.Timers.Where(row => row.InstanceId == key && row.Status == (int)WorkflowTimerStatus.Waiting)
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var timer in timers)
+            {
+                timer.Status = (int)WorkflowTimerStatus.Cancelled;
+                timer.Revision = checked(timer.Revision + 1);
             }
 
             AddAudit(context, instance.Id, "InstanceCancelled", instance.Revision, now, command.Actor);
@@ -469,9 +501,13 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private static void ApplyCommit(OracleWorkflowDbContext context, CommitNodeResultCommand command,
-        WorkItemRow item, ActivationRow activation, InstanceRow instance, long now)
+    private static (HumanTaskId? TaskId, WorkflowTimerId? TimerId) ApplyCommit(
+        OracleWorkflowDbContext context, CommitNodeResultCommand command,
+        WorkItemRow item, ActivationRow activation, InstanceRow instance, long now,
+        DesignatedAssignmentRow? designated)
     {
+        HumanTaskId? taskId = null;
+        WorkflowTimerId? timerId = null;
         switch (command.Kind)
         {
             case NodeCommitKind.Continue:
@@ -502,9 +538,48 @@ public sealed class OracleWorkflowStore : IWorkflowStore
                 activation.ErrorCode = StoreContractRules.NormalizeOptionalText(command.ErrorCode);
                 instance.Status = (int)WorkflowInstanceStatus.Failed;
                 break;
+            case NodeCommitKind.WaitHumanTask:
+                item.Status = (int)WorkItemStatus.Done;
+                ClearLease(item);
+                activation.Status = (int)NodeExecutionStatus.Waiting;
+                instance.Status = (int)WorkflowInstanceStatus.Waiting;
+                var createdTaskId = Guid.NewGuid();
+                taskId = new HumanTaskId(createdTaskId);
+                var assigned = designated is not null;
+                context.HumanTasks.Add(new HumanTaskRow
+                {
+                    Id = FormatGuid(createdTaskId), ActivationId = item.ActivationId, InstanceId = item.InstanceId,
+                    NodeId = item.NodeId,
+                    Status = (int)(command.HumanTask!.AssignmentMode is HumanTaskAssignmentMode.EligiblePool
+                        ? HumanTaskStatus.Available : assigned ? HumanTaskStatus.Assigned : HumanTaskStatus.AwaitingAssignment),
+                    AssignmentMode = (int)command.HumanTask.AssignmentMode,
+                    AssigneeProviderId = designated?.AssigneeProviderId,
+                    AssigneeSubjectId = designated?.AssigneeSubjectId,
+                    Revision = 0, CreatedAtUnixMilliseconds = now,
+                });
+                if (designated is not null) context.DesignatedAssignments.Remove(designated);
+                break;
+            case NodeCommitKind.WaitTimer:
+                item.Status = (int)WorkItemStatus.Done;
+                ClearLease(item);
+                activation.Status = (int)NodeExecutionStatus.Waiting;
+                instance.Status = (int)WorkflowInstanceStatus.Waiting;
+                var createdTimerId = Guid.NewGuid();
+                timerId = new WorkflowTimerId(createdTimerId);
+                context.Timers.Add(new TimerRow
+                {
+                    Id = FormatGuid(createdTimerId), ActivationId = item.ActivationId, InstanceId = item.InstanceId,
+                    NodeId = item.NodeId, NextNodeId = command.Timer!.NextNodeId.Value,
+                    Status = (int)WorkflowTimerStatus.Waiting,
+                    DueAtUnixMilliseconds = checked(now + (long)command.Timer.Delay.TotalMilliseconds),
+                    Revision = 0, CreatedAtUnixMilliseconds = now,
+                });
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(command), command.Kind, "Unknown commit kind.");
         }
+
+        return (taskId, timerId);
     }
 
     private static void AddOutbox(
@@ -572,6 +647,20 @@ public sealed class OracleWorkflowStore : IWorkflowStore
             return "EW3014_NEXT_WORK_NOT_ALLOWED";
         }
 
+        if (command.Kind is NodeCommitKind.WaitHumanTask)
+        {
+            if (command.HumanTask is null || command.Timer is not null) return "EW3031_HUMAN_WAIT_REQUIRED";
+        }
+        else if (command.HumanTask is not null) return "EW3032_HUMAN_WAIT_NOT_ALLOWED";
+
+        if (command.Kind is NodeCommitKind.WaitTimer)
+        {
+            if (command.Timer is null || command.HumanTask is not null ||
+                !IsWholePositiveMilliseconds(command.Timer.Delay) || command.Timer.Delay > TimeSpan.FromDays(3650))
+                return "EW3033_TIMER_WAIT_REQUIRED";
+        }
+        else if (command.Timer is not null) return "EW3034_TIMER_WAIT_NOT_ALLOWED";
+
         if ((command.Outbox?.Count ?? 0) > 0 && command.Kind is NodeCommitKind.Retry or NodeCommitKind.Fail)
         {
             return "EW3017_OUTBOX_REQUIRES_SUCCESS";
@@ -589,6 +678,20 @@ public sealed class OracleWorkflowStore : IWorkflowStore
         }
 
         return null;
+    }
+
+    private static void AddDesignatedAssignments(
+        OracleWorkflowDbContext context, string instanceId, IReadOnlyList<DesignatedTaskAssignment>? assignments)
+    {
+        foreach (var assignment in assignments ?? [])
+        {
+            context.DesignatedAssignments.Add(new DesignatedAssignmentRow
+            {
+                InstanceId = instanceId, NodeId = assignment.NodeId.Value,
+                AssigneeProviderId = assignment.Assignee.ProviderId.Value,
+                AssigneeSubjectId = assignment.Assignee.SubjectId,
+            });
+        }
     }
 
     private static async Task<IDbContextTransaction> BeginTransactionAsync(

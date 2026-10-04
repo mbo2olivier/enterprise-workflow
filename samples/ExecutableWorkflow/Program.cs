@@ -4,6 +4,7 @@ using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Persistence.Sqlite;
 using EnterpriseWorkflow.Runtime;
+using EnterpriseWorkflow.Security;
 using EnterpriseWorkflow.Sdk;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,9 +12,13 @@ using Microsoft.Extensions.DependencyInjection;
 var compilation = WorkflowBuilder.Create("sample.executable", 1)
     .Start("start")
     .Service("prepare", "sample.prepare")
+    .HumanTask("approve", HumanTaskKind.Approval, HumanTaskAssignmentMode.DesignatedIdentity,
+        "sample.approval-form", 1, "sample.complete-approval",
+        [new HumanTaskActionDraft("task.approve", "approved")])
     .End("end")
     .Then("start", "prepare")
-    .Then("prepare", "end")
+    .Then("prepare", "approve")
+    .On("approve", "approved", "end")
     .Validate();
 var definition = compilation.Definition ?? throw new InvalidOperationException(
     string.Join(Environment.NewLine, compilation.Diagnostics.Select(item => $"{item.Code}: {item.Message}")));
@@ -33,27 +38,46 @@ try
 
     var services = new ServiceCollection();
     services.AddSingleton<IWorkflowStore>(store);
-    services.AddEnterpriseWorkflowHandlers(registry => registry.AddService<PrepareHandler>("sample.prepare", 1));
+    services.AddSingleton<IWorkflowAuthorizationService, AllowSampleAuthorization>();
+    services.AddEnterpriseWorkflowHandlers(registry => registry
+        .AddService<PrepareHandler>("sample.prepare", 1)
+        .AddHumanTask<ApprovalHandler>("sample.complete-approval", 1));
     services.AddEnterpriseWorkflowRuntime<ConsoleTransport>();
     await using var provider = services.BuildServiceProvider();
 
     var registry = provider.GetRequiredService<IWorkflowHandlerRegistry>();
     WorkflowDefinitionBindingValidator.Validate(definition, registry).EnsureValid();
     await store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), CancellationToken.None);
-    await store.StartInstanceAsync(new StartInstanceCommand(
+    var started = await provider.GetRequiredService<IWorkflowStartService>().StartAsync(definition, new StartInstanceCommand(
         new StartCommandScope(new TechnicalId("sample.installation"), new TechnicalId("workflow.start"),
-            new ActorIdentity(new TechnicalId("sample"), "operator")),
+            new ActorIdentity(new TechnicalId("sample"), "requester")),
         new TechnicalId("sample-command"), "sample-request",
         new DefinitionReference(definition.Id, definition.Version, definition.Sha256),
         WorkflowState.Create("{\"prepared\":false}", 1), null, null,
-        DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())), CancellationToken.None);
+        DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()),
+        [new DesignatedTaskAssignment(new TechnicalId("approve"),
+            new ActorIdentity(new TechnicalId("sample"), "approver"))]), CancellationToken.None);
+    if (!started.Succeeded) throw new InvalidOperationException($"Démarrage refusé : {started.ErrorCode}");
 
     var pump = provider.GetRequiredService<IWorkflowExecutionPump>();
+    while (await pump.ExecuteNextAsync(new TechnicalId("sample.worker"), CancellationToken.None)) { }
+    var openTasks = await store.ReadOpenHumanTasksAsync(new ReadOpenHumanTasksCommand(null, 10), CancellationToken.None);
+    var task = openTasks.Value?.Tasks.Single() ?? throw new InvalidOperationException("La tâche d'approbation n'a pas été créée.");
+    var humanTasks = provider.GetRequiredService<IHumanTaskService>();
+    var approval = await humanTasks.CompleteAsync(
+        task.TaskId,
+        task.Revision,
+        new IdentityReference("sample", "approver"),
+        WorkflowActions.ApproveTask,
+        new TechnicalId("sample-approval"),
+        CanonicalJson.CreateObject("{\"comment\":\"approved\"}", 1024),
+        CancellationToken.None);
+    if (!approval.Succeeded) throw new InvalidOperationException($"Approbation refusée : {approval.ErrorCode}");
     while (await pump.ExecuteNextAsync(new TechnicalId("sample.worker"), CancellationToken.None)) { }
     var outbox = provider.GetRequiredService<IWorkflowOutboxPump>();
     while (await outbox.DeliverNextAsync(new TechnicalId("sample.dispatcher"), CancellationToken.None)) { }
 
-    Console.WriteLine($"Workflow {definition.Id} v{definition.Version} terminé ; état et effet externe ont été persistés durablement.");
+    Console.WriteLine($"Workflow {definition.Id} v{definition.Version} terminé ; service, tâche humaine et effet externe ont été persistés durablement.");
     return 0;
 }
 finally
@@ -88,4 +112,18 @@ internal sealed class ConsoleTransport : IExternalEffectTransport
         Console.WriteLine($"Effet {message.OperationId} livré à {message.Destination}; clé={message.IdempotencyKey}");
         return ValueTask.FromResult(ExternalEffectDeliveryResult.Success());
     }
+}
+
+internal sealed class ApprovalHandler : IHumanTaskCompletionHandler
+{
+    public ValueTask<HumanTaskCompletionResult> CompleteAsync(
+        HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+}
+
+internal sealed class AllowSampleAuthorization : IWorkflowAuthorizationService
+{
+    public ValueTask<AuthorizationDecision> AuthorizeAsync(
+        WorkflowAuthorizationRequest request, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new AuthorizationDecision(true, "sample.allow"));
 }

@@ -1,6 +1,6 @@
 # Plan d’implémentation
 
-Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement**. L5 est implémenté et qualifié localement sur SQLite et Oracle Enterprise 19.19. L5a est terminé et qualifié sur OpenLDAP/LDAPS Linux CI. L5b est terminé et qualifié sur SQLite et Oracle Enterprise 19.19 pour les droits exacts, le catalogue d’actions, l’administration, l’audit et les candidats éligibles. Les lots L6 à L11 ne sont pas démarrés.
+Statut : plan proposé, sans engagement de calendrier. Le périmètre est confirmé ; chaque mécanisme dépend de son ADR. Les lots L1 à L4b sont **terminés localement**. L5 est implémenté et qualifié localement sur SQLite et Oracle Enterprise 19.19. L5a est terminé et qualifié sur OpenLDAP/LDAPS Linux CI. L5b est terminé et qualifié sur SQLite et Oracle Enterprise 19.19. L6 est terminé localement et qualifié sur SQLite et Oracle Enterprise 19.19 après acceptation de D1-B et D2-A à D7-A ; la confirmation de la matrice GitHub Actions reste externe. Les lots L7 à L11 ne sont pas démarrés.
 
 Les prérequis et arbitrages de L2 sont détaillés dans la [préparation du lot L2](l2-readiness.md). Les décisions D1 à D6 sont acceptées (ADR 0013) ; aucun arbitrage bloquant ne reste pour démarrer L2.
 
@@ -10,13 +10,13 @@ G0 — franchie : ADR 0006 à 0008 acceptés, avec retour confirmé au MVP séqu
 
 G1 — franchie pour L4b : contrats L2 cadrés par D1 à D6 ; encodage et atomicité qualifiés en L3 ; identité globale `(HandlerId, HandlerVersion)`, résultats bornés et validation avant publication acceptés dans l’ADR 0014. Claim atomique, paramètres configurables, classification des erreurs, outbox et conservation de version d’état sont acceptés dans l’ADR 0015.
 
-G1a — avant tout workflow dépendant d’une réponse distante : décider du modèle durable requête/attente/callback, notamment corrélation, authentification du callback, idempotence, timeout, annulation et reprise. Une intention outbox L4b convient aux commandes asynchrones ; elle ne prétend pas fournir une réponse synchrone. Cette porte doit être franchie au plus tard avant d’ajouter un connecteur nécessitant cette réponse ; L6 doit vérifier si ses primitives d’attente peuvent être mutualisées sans confondre tâche humaine et callback technique.
+G1a — avant tout workflow dépendant d’une réponse distante : décider du modèle durable requête/attente/callback, notamment corrélation, authentification du callback, idempotence, timeout, annulation et reprise. Une intention outbox L4b convient aux commandes asynchrones ; elle ne prétend pas fournir une réponse synchrone. L6 confirme que ses attentes humaines/temporelles ne sont pas réutilisées comme faux callback technique ; cette porte reste à franchir lorsqu'un connecteur demandera une réponse distante.
 
 G2 — franchie pour L5a : les décisions historiques L5 sont consignées par l’ADR 0016. L’ADR 0018 remplace l’obligation AD par une extension LDAP générique, en lecture seule, avec profils directs et groupes facultatifs. La qualification OpenLDAP réelle est acquise localement en clair explicite et sur Linux CI en LDAPS ; elle ne constitue pas une revendication Active Directory ni une qualification LDAP réelle sur Windows/macOS.
 
-G2s — franchie pour L5b : besoins LDAP et stage = nœud acceptés (S12/S13), R1 qualifié par L5a et R2-A/R3-A/R5-A/R6-A/R7-A confirmés puis appliqués. R4 reste dû avant le sample bancaire L6. Contraintes et décisions : [recadrage](spec-ldap-stages.md). Aucune entité Stage supplémentaire n’est introduite.
+G2s — franchie : besoins LDAP et stage = nœud acceptés (S12/S13), R1 qualifié par L5a, R2-A/R3-A/R5-A/R6-A/R7-A appliqués par L5b et R4 matérialisé par D6-A en L6. Contraintes et décisions : [recadrage](spec-ldap-stages.md). Aucune entité Stage supplémentaire n’est introduite.
 
-G2a — avant L6, arbitrage responsable franchi : Q11 est résolue par l’ADR 0017. L’administration habilite les approbateurs via les profils internes ; au démarrage ou à l’activité concernée, l’utilisateur désigne explicitement une identité parmi les personnes autorisées. Aucun recours obligatoire à l’attribut AD `manager`. Restent à formaliser avant L6 les tâches d’approbation, les détails de leur politique d’affectation versionnée, la référence durable `FormId/FormVersion`, le contrat des données soumises et la frontière validation métier L6/rendu UI L8. Auto-approbation configurable et interdite par défaut déjà acceptée (ADR 0011).
+G2a — franchie pour L6 : Q11 est résolue par l'ADR 0017 et D1-B/D2-A à D7-A sont acceptées dans l'ADR 0020. L'administration habilite les approbateurs via les profils internes ; au démarrage ou à l'activité concernée, l'utilisateur désigne explicitement une identité parmi les personnes autorisées. Aucun recours obligatoire à l'attribut AD `manager`. Les contrats typés `HumanTask`/`Timer`, formulaire et handler versionnés, idempotence liée à l'acteur et au contenu, séparation versionnée et inbox bornée constituent désormais la cible d'implémentation. Auto-approbation configurable et interdite par défaut reste conforme à l'ADR 0011.
 
 G2b — avant prototype UI/modules L7a et rendu L8 : arrêter le mode de rendu Razor/Blazor Q09b et le contrat de ressources UI. Razor/Blazor est déjà accepté (ADR 0012) ; le mode précis reste ouvert. Bibliothèque graphique du Studio et outillage spécifique à celui-ci peuvent attendre L11.
 
@@ -41,7 +41,7 @@ G4 — avant diffusion : matrice testée, licence/noms publics, objectifs mesura
 | L5 — socle historique implémenté | Contrats sécurité, extension locale, AD et exemple API ; administration des capacités et profils internes, associations directes et mappings AD facultatifs | L1, G2 ; L3 pour les stores concrets | Code, comptes locaux, sessions, endpoints, profils et stores SQLite/Oracle qualifiés ; login AD réel historiquement non exécuté ; cible remplacée par qualification LDAP L5a |
 | L5a — terminé et qualifié Linux CI | Extension LDAP générique : schéma, codecs, capacités, documentation et annuaire OpenLDAP réel ; rupture assumée de l’ancien connecteur AD | L5 ; ADR 0018 ; R1 décidé | Bind, identité stable après renommage, recherche, groupes, statut, panne et clair explicite qualifiés localement ; LDAPS et refus du mauvais nom qualifiés par le job Linux GitHub Actions ; pas de revendication AD ni de LDAP réel Windows/macOS |
 | L5b — terminé et qualifié SQLite/Oracle 19.19 | Habilitations workflow/version/nœud/action (stage = nœud), contexte serveur, catalogue typé, migrations, services/endpoints admin, candidats éligibles, révision et audit ; aucune inbox ni claim durable simulés avant L6 | L5a ; ADR 0019 ; R2-A/R3-A/R5-A/R6-A/R7-A | Grants exacts positifs et révocables, refus hors contexte ; permissions globales sans accès métier implicite ; catalogue validé ; migrations et tests SQLite/Oracle réussis |
-| L6 | HumanTask, décisions exclusives, timer et annulation ; affectation, référence de formulaire versionnée et contrat de soumission sans rendu UI | L4b, L5a, L5b, G2a ; R4 pour sample bancaire | Approbation durable après redémarrage, acteur non autorisé refusé, double soumission contrôlée, courses annulation/timer testées |
+| L6 — terminé localement, qualifié SQLite/Oracle 19.19 | `HumanTask`/`Timer` typés dans le schéma canonique v1 pré-release, affectation/claim/release, formulaire et handler versionnés, complétion idempotente, séparation d'acteurs, inbox bornée, timer et annulation ; aucun rendu UI | L4b, L5a, L5b, G2a ; ADR 0020 | Approbation durable, acteur non autorisé et auto-approbation refusés, double soumission contrôlée, courses claim et annulation/timer testées ; migrations SQLite/Oracle, sample et snapshots v1 à jour |
 | L7a | Prototype loader, versions simultanées, dépendances, alimentation du registre L4a et ressources UI | L2, L4b ; UI Razor/Blazor ; G2b | Rapport prouvant coexistence ou recommandant drainage ; absence de collision silencieuse entre handlers ; décision G3 |
 | L7b | Kernel, loader et registre définitifs | L7a, G3, L5 | Nouveau module chargé au redémarrage ; retrait incompatible bloqué |
 | L8 | UI métier, schémas et rendu des formulaires, composants Razor personnalisés, thèmes et administration complète | L6, L7b, G2b | Parcours congé sur les deux bases ; formulaire/version de L6 rendu et validé côté serveur ; administration des droits workflow/nœud/action, inbox et candidats filtrés ; capacités LDAP respectées |
@@ -63,7 +63,7 @@ L’ADR 0014 retient une clé globale `(HandlerId, HandlerVersion)`. Les applica
 
 ## Priorité du recadrage LDAP et stages
 
-L5a et L5b sont terminés. L5b expose les nœuds existants comme stages administratifs et leurs actions permises, sans modifier le graphe. Conformément à R6-A, il filtre les candidats éligibles mais ne fournit ni inbox, ni claim, ni complétion durable avant que L6 n’introduise `HumanTask`. Les contrôles structurels de L6 resteront indispensables en plus de l’autorisation L5b. T22 et la partie L5b de T23 sont acquises ; T24 relève de L6/L8.
+L5a, L5b et L6 sont terminés localement. L5b expose les nœuds comme stages administratifs et leurs actions permises ; L6 matérialise `HumanTask`, affectation, inbox, claim et complétion sans ajouter d'entité Stage. Les contrôles structurels L6 complètent toujours l'autorisation L5b. T22, T23 et le socle runtime de T24 sont acquis ; le parcours bancaire/UI complet de T24 reste à L8.
 
 ## Tâches humaines et formulaires
 
@@ -79,10 +79,10 @@ Chaque sample doit annoncer la capacité qu'il démontre et ne pas simuler une f
 
 - L2 : `DefinitionOnly`, construction et validation uniquement, avec handlers fictifs explicitement signalés comme non résolus ; aucun formulaire ni approbation humaine prétendus ;
 - L4b : `ExecutableWorkflow`, classe de handler concrète, enregistrement DI, résolution par clé, exécution durable Start → Service → End et reprise ;
-- L6 : `HumanApproval`, attente durable, affectation et complétion sécurisée sans dépendre encore d'un rendu graphique complet ;
+- L6 : `ExecutableWorkflow` étendu avec attente durable, affectation et complétion sécurisée sans dépendre encore d'un rendu graphique complet ;
 - L8 : `LeaveRequest`, formulaire de démarrage, inbox, approbation/refus et notification dans le parcours UI complet.
 
-Le sample courant de demande de congé doit être renommé/réécrit au prochain changement de code : sa propriété JSON `form` n'a actuellement aucune sémantique et sa `Decision` représente une évaluation automatique, pas une approbation humaine.
+Le sample exécutable utilise désormais le contrat typé `HumanTask`, une référence de formulaire versionnée et deux identités distinctes ; il est exécuté par la CI sur les trois OS.
 
 ## Tranches démontrables
 

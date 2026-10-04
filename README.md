@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L5b terminés ; LDAP L5a qualifié sur OpenLDAP/LDAPS Linux CI et habilitations exactes L5b qualifiées sur SQLite/Oracle 19.19.** Le dépôt contient les droits de stages (stage = nœud), contrats et stores de sécurité, comptes locaux, profils, sessions révocables, connecteur LDAP configurable et API d’administration protégée. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L6 terminés localement ; LDAP L5a qualifié sur OpenLDAP/LDAPS Linux CI et L5b/L6 qualifiés sur SQLite/Oracle 19.19.** Le dépôt contient les droits de stages (stage = nœud), `HumanTask`/timers durables, affectation/claim/inbox, complétion autorisée et idempotente, ainsi que les stores et extensions de sécurité. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -38,6 +38,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 13. [Preuve du lot L5](docs/evidence/l5.md)
 14. [Preuve du lot L5a](docs/evidence/l5a.md)
 15. [Preuve du lot L5b](docs/evidence/l5b.md)
+16. [Preuve du lot L6](docs/evidence/l6.md)
 
 ## Documents de référence
 
@@ -56,4 +57,4 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 
 Les décisions **acceptées** proviennent des réponses explicites du porteur. Les mécanismes **proposés** restent à valider ; les points **en attente** ne sont pas résolus par défaut.
 
-Le [recadrage LDAP et stages](docs/spec-ldap-stages.md) précise les besoins confirmés. R1 est qualifié par L5a ; R2-A/R3-A/R5-A/R6-A/R7-A sont appliqués par L5b. R4 reste ouvert pour le sample bancaire L6. Les preuves historiques L5 ne sont pas réutilisées comme preuve LDAP L5a.
+Le [recadrage LDAP et stages](docs/spec-ldap-stages.md) précise les besoins confirmés. R1 est qualifié par L5a ; R2-A/R3-A/R5-A/R6-A/R7-A sont appliqués par L5b et R4 est concrétisé par D6-A en L6. Les preuves historiques L5 ne sont pas réutilisées comme preuve LDAP L5a.

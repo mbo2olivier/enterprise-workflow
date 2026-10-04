@@ -8,6 +8,28 @@ namespace EnterpriseWorkflow.Core.Model;
 /// </summary>
 public sealed record WorkflowHandlerReference(TechnicalId Id, int Version);
 
+/// <summary>A durable form reference rendered by an application layer.</summary>
+public sealed record WorkflowFormReference(TechnicalId Id, int Version);
+
+/// <summary>An action exposed by a human task and the graph outcome it selects.</summary>
+public sealed record HumanTaskAction(TechnicalId ActionId, TechnicalId Outcome);
+
+/// <summary>Requires an actor distinct from the author of an upstream action.</summary>
+public sealed record HumanTaskActorConstraint(TechnicalId NodeId, TechnicalId ActionId);
+
+/// <summary>Validated, versioned contract of a durable human task.</summary>
+public sealed record HumanTaskDefinition(
+    HumanTaskKind Kind,
+    HumanTaskAssignmentMode AssignmentMode,
+    WorkflowFormReference Form,
+    WorkflowHandlerReference CompletionHandler,
+    ImmutableArray<HumanTaskAction> Actions,
+    bool AllowInitiator,
+    ImmutableArray<HumanTaskActorConstraint> DistinctFrom);
+
+/// <summary>Validated fixed duration used to compute a deadline from the store clock.</summary>
+public sealed record TimerDefinition(TimeSpan Delay);
+
 /// <summary>
 /// A validated node in a canonical definition.
 /// </summary>
@@ -18,7 +40,9 @@ public sealed record WorkflowNode(
     WorkflowHandlerReference? Handler,
     CanonicalJson Configuration,
     ImmutableArray<TechnicalId> DeclaredOutcomes,
-    string? DisplayLabel);
+    string? DisplayLabel,
+    HumanTaskDefinition? HumanTask,
+    TimerDefinition? Timer);
 
 /// <summary>
 /// A validated transition in a canonical definition.

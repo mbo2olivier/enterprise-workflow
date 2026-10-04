@@ -1,5 +1,7 @@
 # ExecutableWorkflow
 
+Le sample exerce désormais le schéma canonique v1 complet du lot L6 : service, création d'une `HumanTask` désignée, formulaire/handler versionnés, complétion autorisée et idempotente, puis livraison outbox. Il est compilé et exécuté par la CI sur Linux, macOS et Windows afin que toute évolution pré-release du schéma reste synchronisée avec les samples.
+
 Cet exemple L4b crée une base SQLite temporaire, applique les migrations, valide le binding d’un handler concret, puis exécute durablement `Start → Service → End`. Le handler remplace l’état sans changer sa version de schéma et retourne une intention d’effet externe, persistée atomiquement puis livrée par l’outbox avec une clé d’idempotence stable.
 
 ```bash

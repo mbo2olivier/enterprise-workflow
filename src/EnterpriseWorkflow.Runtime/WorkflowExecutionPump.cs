@@ -64,6 +64,16 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
             await CommitAsync(claimed, NodeCommitKind.Complete, null, null, null, [], stoppingToken).ConfigureAwait(false);
             return;
         }
+        if (node.Role is WorkflowNodeRole.HumanTask)
+        {
+            await CommitHumanWaitAsync(claimed, node, stoppingToken).ConfigureAwait(false);
+            return;
+        }
+        if (node.Role is WorkflowNodeRole.Timer)
+        {
+            await CommitTimerWaitAsync(claimed, node, stoppingToken).ConfigureAwait(false);
+            return;
+        }
 
         using var timeout = new CancellationTokenSource(_options.AttemptTimeout, _timeProvider);
         using var handlerCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, timeout.Token);
@@ -136,6 +146,17 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
 
     private static NodeExecutionContext CreateContext(ClaimedWork claimed, WorkflowNode node) => new(
         claimed.Lease.InstanceId, claimed.Lease.ActivationId, node.Id, claimed.Attempt, claimed.State, node.Configuration);
+
+    private Task CommitHumanWaitAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token) =>
+        CommitAsync(claimed, NodeCommitKind.WaitHumanTask, null, null, null, [], token,
+            new HumanTaskWait(node.HumanTask!.AssignmentMode));
+
+    private Task CommitTimerWaitAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token)
+    {
+        var transition = claimed.Definition.Transitions.Single(item => item.SourceId == node.Id);
+        return CommitAsync(claimed, NodeCommitKind.WaitTimer, null, null, null, [], token,
+            timer: new TimerWait(node.Timer!.Delay, transition.TargetId));
+    }
 
     private async Task CommitServiceResultAsync(
         ClaimedWork claimed, WorkflowNode node, ServiceNodeResult result, CancellationToken token)
@@ -217,11 +238,13 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
         NextWork? nextWork,
         string? errorCode,
         IReadOnlyList<OutboxWrite> outbox,
-        CancellationToken token)
+        CancellationToken token,
+        HumanTaskWait? humanTask = null,
+        TimerWait? timer = null)
     {
         var result = await _store.CommitNodeResultAsync(new CommitNodeResultCommand(
             claimed.Lease.WorkItemId, claimed.Lease.Token, claimed.Lease.Generation,
-            claimed.Lease.InstanceRevision, kind, replacement, nextWork, errorCode, outbox), token).ConfigureAwait(false);
+            claimed.Lease.InstanceRevision, kind, replacement, nextWork, errorCode, outbox, humanTask, timer), token).ConfigureAwait(false);
         if (result.Outcome is not StoreOutcome.Succeeded)
             throw new WorkflowRuntimeException(result.ErrorCode ?? "EW4091_COMMIT_FAILED", "The workflow result was not committed.");
     }

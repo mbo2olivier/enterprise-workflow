@@ -19,6 +19,11 @@ public sealed class SqliteWorkflowDbContext(DbContextOptions<SqliteWorkflowDbCon
 
     internal DbSet<OutboxRow> Outbox => Set<OutboxRow>();
 
+    internal DbSet<HumanTaskRow> HumanTasks => Set<HumanTaskRow>();
+    internal DbSet<HumanTaskReceiptRow> HumanTaskReceipts => Set<HumanTaskReceiptRow>();
+    internal DbSet<TimerRow> Timers => Set<TimerRow>();
+    internal DbSet<DesignatedAssignmentRow> DesignatedAssignments => Set<DesignatedAssignmentRow>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ConfigureEnterpriseWorkflowSqlite();
@@ -39,6 +44,10 @@ public static class SqliteWorkflowModelBuilderExtensions
         ConfigureReceipt(modelBuilder);
         ConfigureAudit(modelBuilder);
         ConfigureOutbox(modelBuilder);
+        ConfigureHumanTask(modelBuilder);
+        ConfigureHumanTaskReceipt(modelBuilder);
+        ConfigureTimer(modelBuilder);
+        ConfigureDesignatedAssignment(modelBuilder);
         return modelBuilder;
     }
 
@@ -61,6 +70,8 @@ public static class SqliteWorkflowModelBuilderExtensions
         entity.Property(row => row.DefinitionId).HasMaxLength(128).UseCollation("BINARY");
         entity.Property(row => row.DefinitionSha256).HasMaxLength(64);
         entity.Property(row => row.StateJson).IsRequired();
+        entity.Property(row => row.InitiatorProviderId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.InitiatorSubjectId).HasMaxLength(512).UseCollation("BINARY");
         entity.HasIndex(row => new { row.DefinitionId, row.DefinitionVersion, row.Status });
         entity.HasOne<DefinitionRow>()
             .WithMany()
@@ -147,6 +158,71 @@ public static class SqliteWorkflowModelBuilderExtensions
         entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
         entity.HasOne<ActivationRow>().WithMany().HasForeignKey(row => row.ActivationId).OnDelete(DeleteBehavior.Cascade);
     }
+
+    private static void ConfigureHumanTask(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<HumanTaskRow>();
+        entity.ToTable("EwHumanTasks");
+        entity.HasKey(row => row.Id);
+        entity.Property(row => row.Id).HasMaxLength(32);
+        entity.Property(row => row.ActivationId).HasMaxLength(32);
+        entity.Property(row => row.InstanceId).HasMaxLength(32);
+        entity.Property(row => row.NodeId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.AssigneeProviderId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.AssigneeSubjectId).HasMaxLength(512).UseCollation("BINARY");
+        entity.Property(row => row.CompletedActionId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.CompletedByProviderId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.CompletedBySubjectId).HasMaxLength(512).UseCollation("BINARY");
+        entity.HasIndex(row => row.ActivationId).IsUnique();
+        entity.HasIndex(row => new { row.Status, row.CreatedAtUnixMilliseconds, row.Id });
+        entity.HasIndex(row => row.InstanceId);
+        entity.HasOne<ActivationRow>().WithMany().HasForeignKey(row => row.ActivationId).OnDelete(DeleteBehavior.Cascade);
+        entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void ConfigureHumanTaskReceipt(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<HumanTaskReceiptRow>();
+        entity.ToTable("EwHumanTaskReceipts");
+        entity.HasKey(row => row.ReceiptKey);
+        entity.Property(row => row.ReceiptKey).HasMaxLength(64);
+        entity.Property(row => row.TaskId).HasMaxLength(32);
+        entity.Property(row => row.IdempotencyKey).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.ActorProviderId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.ActorSubjectId).HasMaxLength(512).UseCollation("BINARY");
+        entity.Property(row => row.ActionId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.RequestSha256).HasMaxLength(64);
+        entity.HasIndex(row => new { row.TaskId, row.IdempotencyKey }).IsUnique();
+        entity.HasOne<HumanTaskRow>().WithMany().HasForeignKey(row => row.TaskId).OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void ConfigureTimer(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<TimerRow>();
+        entity.ToTable("EwTimers");
+        entity.HasKey(row => row.Id);
+        entity.Property(row => row.Id).HasMaxLength(32);
+        entity.Property(row => row.ActivationId).HasMaxLength(32);
+        entity.Property(row => row.InstanceId).HasMaxLength(32);
+        entity.Property(row => row.NodeId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.NextNodeId).HasMaxLength(128).UseCollation("BINARY");
+        entity.HasIndex(row => row.ActivationId).IsUnique();
+        entity.HasIndex(row => new { row.Status, row.DueAtUnixMilliseconds });
+        entity.HasOne<ActivationRow>().WithMany().HasForeignKey(row => row.ActivationId).OnDelete(DeleteBehavior.Cascade);
+        entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void ConfigureDesignatedAssignment(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<DesignatedAssignmentRow>();
+        entity.ToTable("EwDesignatedAssignments");
+        entity.HasKey(row => new { row.InstanceId, row.NodeId });
+        entity.Property(row => row.InstanceId).HasMaxLength(32);
+        entity.Property(row => row.NodeId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.AssigneeProviderId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.AssigneeSubjectId).HasMaxLength(512).UseCollation("BINARY");
+        entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
+    }
 }
 
 internal sealed class DefinitionRow
@@ -169,6 +245,8 @@ internal sealed class InstanceRow
     public long Revision { get; set; }
     public int StateSchemaVersion { get; set; }
     public required string StateJson { get; set; }
+    public required string InitiatorProviderId { get; set; }
+    public required string InitiatorSubjectId { get; set; }
     public string? BusinessKey { get; set; }
     public string? CorrelationId { get; set; }
     public long CreatedAtUnixMilliseconds { get; set; }
@@ -245,4 +323,58 @@ internal sealed class OutboxRow
     public string? LastErrorCode { get; set; }
     public long CreatedAtUnixMilliseconds { get; set; }
     public long? DeliveredAtUnixMilliseconds { get; set; }
+}
+
+internal sealed class HumanTaskRow
+{
+    public required string Id { get; set; }
+    public required string ActivationId { get; set; }
+    public required string InstanceId { get; set; }
+    public required string NodeId { get; set; }
+    public int Status { get; set; }
+    public int AssignmentMode { get; set; }
+    public string? AssigneeProviderId { get; set; }
+    public string? AssigneeSubjectId { get; set; }
+    public long Revision { get; set; }
+    public long CreatedAtUnixMilliseconds { get; set; }
+    public long? CompletedAtUnixMilliseconds { get; set; }
+    public string? CompletedActionId { get; set; }
+    public string? CompletedByProviderId { get; set; }
+    public string? CompletedBySubjectId { get; set; }
+}
+
+internal sealed class HumanTaskReceiptRow
+{
+    public required string ReceiptKey { get; set; }
+    public required string TaskId { get; set; }
+    public required string IdempotencyKey { get; set; }
+    public required string ActorProviderId { get; set; }
+    public required string ActorSubjectId { get; set; }
+    public required string ActionId { get; set; }
+    public required string RequestSha256 { get; set; }
+    public long TaskRevision { get; set; }
+    public long InstanceRevision { get; set; }
+    public long CommittedAtUnixMilliseconds { get; set; }
+}
+
+internal sealed class TimerRow
+{
+    public required string Id { get; set; }
+    public required string ActivationId { get; set; }
+    public required string InstanceId { get; set; }
+    public required string NodeId { get; set; }
+    public required string NextNodeId { get; set; }
+    public int Status { get; set; }
+    public long DueAtUnixMilliseconds { get; set; }
+    public long Revision { get; set; }
+    public long CreatedAtUnixMilliseconds { get; set; }
+    public long? FiredAtUnixMilliseconds { get; set; }
+}
+
+internal sealed class DesignatedAssignmentRow
+{
+    public required string InstanceId { get; set; }
+    public required string NodeId { get; set; }
+    public required string AssigneeProviderId { get; set; }
+    public required string AssigneeSubjectId { get; set; }
 }

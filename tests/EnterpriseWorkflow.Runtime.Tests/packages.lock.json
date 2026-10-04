@@ -326,6 +326,7 @@
         "dependencies": {
           "EnterpriseWorkflow.Core": "[1.0.0, )",
           "EnterpriseWorkflow.Runtime.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Options": "[10.0.12, )"
@@ -345,6 +346,9 @@
           "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
           "EnterpriseWorkflow.Core": "[1.0.0, )"
         }
+      },
+      "enterpriseworkflow.security.abstractions": {
+        "type": "Project"
       },
       "Microsoft.EntityFrameworkCore": {
         "type": "CentralTransitive",

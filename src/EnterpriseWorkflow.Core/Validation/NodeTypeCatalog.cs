@@ -36,12 +36,14 @@ public sealed class NodeTypeCatalog
         _descriptors = descriptors.ToImmutableDictionary(item => item.Type);
     }
 
-    /// <summary>Gets the catalog containing the four L2 built-in node types.</summary>
+    /// <summary>Gets the catalog containing the built-in workflow node types.</summary>
     public static NodeTypeCatalog BuiltIns { get; } = new(
     [
         new(new NodeTypeReference(new TechnicalId("core.start"), 1), WorkflowNodeRole.Start),
         new(new NodeTypeReference(new TechnicalId("core.service"), 1), WorkflowNodeRole.Service),
         new(new NodeTypeReference(new TechnicalId("core.decision"), 1), WorkflowNodeRole.Decision),
+        new(new NodeTypeReference(new TechnicalId("core.human-task"), 1), WorkflowNodeRole.HumanTask),
+        new(new NodeTypeReference(new TechnicalId("core.timer"), 1), WorkflowNodeRole.Timer),
         new(new NodeTypeReference(new TechnicalId("core.end"), 1), WorkflowNodeRole.End),
     ]);
 

@@ -33,6 +33,20 @@ public static class StoreContractRules
         return Convert.ToHexStringLower(SHA256.HashData(stream.GetBuffer().AsSpan(0, checked((int)stream.Length))));
     }
 
+    /// <summary>Computes the portable physical key for a task completion receipt.</summary>
+    public static string ComputeHumanTaskReceiptKey(HumanTaskId taskId, TechnicalId idempotencyKey)
+    {
+        using var stream = new MemoryStream();
+        WriteLengthPrefixed(stream, taskId.Value.ToString("N", System.Globalization.CultureInfo.InvariantCulture));
+        WriteLengthPrefixed(stream, idempotencyKey.Value);
+        return Convert.ToHexStringLower(SHA256.HashData(stream.GetBuffer().AsSpan(0, checked((int)stream.Length))));
+    }
+
+    /// <summary>Checks a lowercase or uppercase hexadecimal SHA-256 representation.</summary>
+    public static bool IsSha256(string? value) =>
+        value is { Length: 64 } && value.All(character =>
+            character is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
+
     /// <summary>Classifies a repeated immutable publication.</summary>
     public static StoreOutcome ClassifyPublication(string? persistedSha256, string requestedSha256) =>
         persistedSha256 is null

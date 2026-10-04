@@ -23,9 +23,19 @@ public static class WorkflowRuntimeServiceCollectionExtensions
         services.AddSingleton<IOptions<WorkflowRuntimeOptions>>(Options.Create(options));
         services.TryAddSingleton<IWorkflowExecutionPump, WorkflowExecutionPump>();
         services.TryAddSingleton<IWorkflowOutboxPump, WorkflowOutboxPump>();
+        services.TryAddSingleton<IWorkflowTimerPump, WorkflowTimerPump>();
+        services.TryAddSingleton<IWorkflowStartService>(provider => new WorkflowStartService(
+            provider.GetRequiredService<EnterpriseWorkflow.Persistence.IWorkflowStore>(),
+            provider.GetRequiredService<EnterpriseWorkflow.Security.IWorkflowAuthorizationService>()));
+        services.TryAddSingleton<IHumanTaskService>(provider => new HumanTaskService(
+            provider.GetRequiredService<EnterpriseWorkflow.Persistence.IWorkflowStore>(),
+            provider.GetRequiredService<EnterpriseWorkflow.Security.IWorkflowAuthorizationService>(),
+            provider.GetRequiredService<IScopedWorkflowHandlerResolver>(),
+            provider.GetRequiredService<IOptions<WorkflowRuntimeOptions>>()));
         services.TryAddSingleton<IExternalEffectTransport, TTransport>();
         services.AddHostedService<WorkflowWorkerHostedService>();
         services.AddHostedService<WorkflowOutboxHostedService>();
+        services.AddHostedService<WorkflowTimerHostedService>();
         return services;
     }
 }

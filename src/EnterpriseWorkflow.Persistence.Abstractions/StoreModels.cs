@@ -12,6 +12,12 @@ public readonly record struct WorkItemId(Guid Value);
 /// <summary>Stable node activation identifier, retained across retries.</summary>
 public readonly record struct NodeActivationId(Guid Value);
 
+/// <summary>Durable human-task identifier.</summary>
+public readonly record struct HumanTaskId(Guid Value);
+
+/// <summary>Durable timer identifier.</summary>
+public readonly record struct WorkflowTimerId(Guid Value);
+
 /// <summary>Distinct fencing token for one lease ownership generation.</summary>
 public readonly record struct LeaseToken(Guid Value);
 
@@ -139,7 +145,41 @@ public enum NodeCommitKind
 
     /// <summary>Fail the instance permanently.</summary>
     Fail,
+
+    /// <summary>Close worker execution and persist a durable human wait.</summary>
+    WaitHumanTask,
+
+    /// <summary>Close worker execution and persist a durable timer wait.</summary>
+    WaitTimer,
 }
+
+/// <summary>State of a durable human task.</summary>
+public enum HumanTaskStatus
+{
+    AwaitingAssignment,
+    Assigned,
+    Available,
+    Claimed,
+    Completed,
+    Cancelled,
+}
+
+/// <summary>State of a durable timer.</summary>
+public enum WorkflowTimerStatus
+{
+    Waiting,
+    Fired,
+    Cancelled,
+}
+
+/// <summary>An identity prepared for a designated human-task node.</summary>
+public sealed record DesignatedTaskAssignment(TechnicalId NodeId, ActorIdentity Assignee);
+
+/// <summary>Creates a human wait from the currently leased activation.</summary>
+public sealed record HumanTaskWait(HumanTaskAssignmentMode AssignmentMode);
+
+/// <summary>Creates a fixed-delay timer from the currently leased activation.</summary>
+public sealed record TimerWait(TimeSpan Delay, TechnicalId NextNodeId);
 
 /// <summary>Atomic definition publication command.</summary>
 public sealed record PublishDefinitionCommand(WorkflowDefinition Definition);
@@ -153,7 +193,8 @@ public sealed record StartInstanceCommand(
     WorkflowState InitialState,
     string? BusinessKey,
     string? CorrelationId,
-    DateTimeOffset RequestedAtUtc);
+    DateTimeOffset RequestedAtUtc,
+    IReadOnlyList<DesignatedTaskAssignment>? DesignatedAssignments = null);
 
 /// <summary>Result persisted for a start receipt.</summary>
 public sealed record StartInstanceResult(WorkflowInstanceId InstanceId, bool WasCreated, long Revision);
@@ -178,10 +219,115 @@ public sealed record CommitNodeResultCommand(
     WorkflowState? ReplacementState,
     NextWork? NextWork,
     string? ErrorCode,
-    IReadOnlyList<OutboxWrite>? Outbox = null);
+    IReadOnlyList<OutboxWrite>? Outbox = null,
+    HumanTaskWait? HumanTask = null,
+    TimerWait? Timer = null);
 
 /// <summary>Result of a successful node commit.</summary>
-public sealed record CommitNodeResult(WorkflowInstanceStatus InstanceStatus, long Revision);
+public sealed record CommitNodeResult(
+    WorkflowInstanceStatus InstanceStatus,
+    long Revision,
+    HumanTaskId? HumanTaskId = null,
+    WorkflowTimerId? TimerId = null);
+
+/// <summary>Durable human-task snapshot used by application services.</summary>
+public sealed record HumanTaskSnapshot(
+    HumanTaskId TaskId,
+    NodeActivationId ActivationId,
+    WorkflowInstanceId InstanceId,
+    TechnicalId NodeId,
+    HumanTaskStatus Status,
+    HumanTaskAssignmentMode AssignmentMode,
+    ActorIdentity? Assignee,
+    long Revision,
+    long InstanceRevision,
+    ActorIdentity Initiator,
+    WorkflowDefinition Definition,
+    WorkflowState State,
+    DateTimeOffset CreatedAtUtc,
+    IReadOnlyList<HumanTaskCompletionActor> CompletionHistory);
+
+/// <summary>Actor and action of a previously completed task in the same instance.</summary>
+public sealed record HumanTaskCompletionActor(TechnicalId NodeId, TechnicalId ActionId, ActorIdentity Actor);
+
+/// <summary>Atomic assignment of one awaiting designated task.</summary>
+public sealed record AssignHumanTaskCommand(
+    HumanTaskId TaskId,
+    long ExpectedRevision,
+    ActorIdentity Assignee,
+    ActorIdentity AssignedBy);
+
+/// <summary>Atomic claim of one available pool task.</summary>
+public sealed record ClaimHumanTaskCommand(HumanTaskId TaskId, long ExpectedRevision, ActorIdentity Actor);
+
+/// <summary>Atomic release of a claim by its owner.</summary>
+public sealed record ReleaseHumanTaskCommand(HumanTaskId TaskId, long ExpectedRevision, ActorIdentity Actor);
+
+/// <summary>Result of an assignment, claim or release transition.</summary>
+public sealed record HumanTaskMutationResult(HumanTaskStatus Status, long Revision, long InstanceRevision);
+
+/// <summary>Previously committed idempotent completion result.</summary>
+public sealed record HumanTaskCompletionReceipt(
+    HumanTaskId TaskId,
+    TechnicalId IdempotencyKey,
+    ActorIdentity Actor,
+    TechnicalId ActionId,
+    string RequestSha256,
+    long TaskRevision,
+    long InstanceRevision);
+
+/// <summary>Atomically completes a human task and creates the next work.</summary>
+public sealed record CompleteHumanTaskCommand(
+    HumanTaskId TaskId,
+    long ExpectedTaskRevision,
+    long ExpectedInstanceRevision,
+    ActorIdentity Actor,
+    TechnicalId ActionId,
+    TechnicalId IdempotencyKey,
+    string RequestSha256,
+    WorkflowState? ReplacementState,
+    NextWork NextWork,
+    IReadOnlyList<OutboxWrite>? Outbox = null,
+    IReadOnlyList<DesignatedTaskAssignment>? DesignatedAssignments = null);
+
+/// <summary>Result of a committed or replayed task completion.</summary>
+public sealed record CompleteHumanTaskResult(long TaskRevision, long InstanceRevision, bool WasCompleted);
+
+/// <summary>Stable store cursor for bounded open-task scans.</summary>
+public sealed record HumanTaskCursor(long CreatedAtUnixMilliseconds, HumanTaskId TaskId);
+
+/// <summary>Reads one bounded page of open tasks after a stable cursor.</summary>
+public sealed record ReadOpenHumanTasksCommand(HumanTaskCursor? After, int Limit);
+
+/// <summary>Minimal candidate row returned before authorization filtering.</summary>
+public sealed record OpenHumanTask(
+    HumanTaskId TaskId,
+    WorkflowInstanceId InstanceId,
+    TechnicalId DefinitionId,
+    int DefinitionVersion,
+    TechnicalId NodeId,
+    HumanTaskStatus Status,
+    HumanTaskAssignmentMode AssignmentMode,
+    ActorIdentity? Assignee,
+    long Revision,
+    DateTimeOffset CreatedAtUtc);
+
+/// <summary>One stable page of open human tasks.</summary>
+public sealed record OpenHumanTaskPage(IReadOnlyList<OpenHumanTask> Tasks, HumanTaskCursor? Next);
+
+/// <summary>Atomically fires one due timer and creates its next work.</summary>
+public sealed record FireDueTimerCommand(WorkflowTimerId TimerId, long ExpectedRevision);
+
+/// <summary>Result of a timer firing.</summary>
+public sealed record FireDueTimerResult(long TimerRevision, long InstanceRevision, TechnicalId NextNodeId);
+
+/// <summary>Result of atomically selecting and firing the next due timer.</summary>
+public sealed record FireNextDueTimerResult(
+    WorkflowTimerId TimerId,
+    WorkflowInstanceId InstanceId,
+    long TimerRevision,
+    long InstanceRevision,
+    TechnicalId NextNodeId);
 
 /// <summary>An external-effect intent persisted atomically with a successful node commit.</summary>
 public sealed record OutboxWrite(

@@ -1,6 +1,6 @@
 # Schéma physique SQLite du framework
 
-Statut : schéma workflow L3a/L4b et schéma sécurité L5/L5b séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
+Statut : schéma workflow L3a à L6 et schéma sécurité L5/L5b séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
 
 Cette page décrit les tables possédées par le framework, leurs relations et leur usage. Elles ne constituent pas une API SQL publique : une application doit passer par `IWorkflowStore` et exécuter les migrations fournies. Une modification directe peut contourner le fencing, l’idempotence, les révisions et l’audit.
 
@@ -16,6 +16,12 @@ erDiagram
     EwInstances ||--o{ EwAudits : "trace"
     EwInstances ||--o{ EwOutbox : "effets"
     EwActivations ||--o{ EwOutbox : "émet"
+    EwInstances ||--o{ EwHumanTasks : "attend"
+    EwActivations ||--o| EwHumanTasks : "matérialise"
+    EwHumanTasks ||--o{ EwHumanTaskReceipts : "déduplique"
+    EwInstances ||--o{ EwTimers : "attend"
+    EwActivations ||--o| EwTimers : "matérialise"
+    EwInstances ||--o{ EwDesignatedAssignments : "prépare"
 ```
 
 | Table | Rôle | Conservation attendue |
@@ -27,6 +33,10 @@ erDiagram
 | `EwStartReceipts` | Déduplication des commandes de démarrage | Sans purge automatique au MVP initial |
 | `EwAudits` | Journal des mutations critiques du store | Avec l’instance dans le schéma L3a |
 | `EwOutbox` | Intentions d’effets externes et état de livraison fenced | Avec l’instance ; les échecs restent visibles |
+| `EwHumanTasks` | Attentes humaines, affectation/claim, révision et auteur de complétion | Avec l’instance |
+| `EwHumanTaskReceipts` | Déduplication des complétions par tâche et clé | Avec la tâche ; aucune soumission sensible recopiée |
+| `EwTimers` | Attentes temporelles, échéance calculée par l’horloge du store et réveil unique | Avec l’instance |
+| `EwDesignatedAssignments` | Affectations préparées pour un futur nœud désigné | Consommées à l’activation ou supprimées avec l’instance |
 | `__EFMigrationsHistory` | Versions de schéma déjà appliquées par EF Core | Pendant toute la vie de la base |
 | `sqlite_sequence` | Compteur interne SQLite utilisé par l’`AUTOINCREMENT` de `EwAudits` | Gérée exclusivement par SQLite |
 
@@ -61,6 +71,8 @@ Une ligne porte l’état courant d’une instance et sa révision de concurrenc
 | `Revision` | `INTEGER` | non | Révision avancée par les transitions atomiques |
 | `StateSchemaVersion` | `INTEGER` | non | Version applicative de l’état métier |
 | `StateJson` | `TEXT` | non | État métier complet sous forme JSON canonique |
+| `InitiatorProviderId` | `TEXT COLLATE BINARY` | non | Fournisseur de l’identité ayant démarré l’instance |
+| `InitiatorSubjectId` | `TEXT COLLATE BINARY` | non | Sujet stable utilisé par la séparation des rôles |
 | `BusinessKey` | `TEXT` | oui | Clé métier facultative fournie par l’appelant |
 | `CorrelationId` | `TEXT` | oui | Corrélation facultative fournie par l’appelant |
 | `CreatedAtUnixMilliseconds` | `INTEGER` | non | Création selon l’horloge SQLite |
@@ -198,6 +210,26 @@ Chaque ligne est une intention externe créée dans la même transaction que le 
 
 Contrainte unique (`ActivationId`, `OperationId`). Index de polling (`Status`, `DueAtUnixMilliseconds`). Les clés étrangères vers instance et activation sont en cascade. `Failed` est terminal pour le dispatcher automatique mais ne change pas l’état métier de l’instance ; un rejeu administratif futur devra être explicite et audité.
 
+## Tables d’attente L6
+
+### `EwHumanTasks`
+
+Une ligne matérialise une activation `HumanTask`. Elle conserve `Id`, `ActivationId`, `InstanceId`, `NodeId`, `Status`, `AssignmentMode`, l’identité affectée facultative, `Revision`, les instants de création/complétion, l’action finale et son auteur. Les références de formulaire, handler et actions restent dans la définition canonique immuable : elles ne sont pas dupliquées dans cette table.
+
+Les statuts sont `0 AwaitingAssignment`, `1 Assigned`, `2 Available`, `3 Claimed`, `4 Completed`, `5 Cancelled`. `ActivationId` est unique ; les index (`Status`, `CreatedAtUnixMilliseconds`, `Id`) et `InstanceId` servent respectivement l’inbox stable et l’historique de séparation. Affectation, claim, release, complétion et annulation avancent la révision sous transaction.
+
+### `EwHumanTaskReceipts`
+
+Le reçu contient `ReceiptKey`, `TaskId`, `IdempotencyKey`, identité de l’acteur, `ActionId`, `RequestSha256`, révisions de tâche/instance et instant de commit. La soumission JSON n’y figure jamais. La clé unique (`TaskId`, `IdempotencyKey`) permet de retourner le résultat connu au même acteur pour le même contenu ; toute variation est un conflit.
+
+### `EwTimers`
+
+Une ligne contient `Id`, activation/instance/nœud, `NextNodeId`, `Status`, `DueAtUnixMilliseconds`, `Revision`, création et instant de tir. Les statuts sont `0 Waiting`, `1 Fired`, `2 Cancelled`. L’échéance est calculée dans la transaction d’activation avec l’horloge SQLite. L’index (`Status`, `DueAtUnixMilliseconds`) permet au poller de reprendre un timer après redémarrage ; une transaction d’écriture garantit un seul réveil.
+
+### `EwDesignatedAssignments`
+
+La clé (`InstanceId`, `NodeId`) associe une identité stable (`AssigneeProviderId`, `AssigneeSubjectId`) à une future tâche désignée. La ligne est créée au démarrage ou lors d’une complétion humaine précédente, puis consommée atomiquement lorsque le nœud devient une tâche. Un doublon de nœud dans la même commande est refusé.
+
 ## Tables de sécurité L5
 
 Ces tables sont possédées par `ISecurityProfileStore`, `ILocalAccountStore` et `ISecuritySessionStore`, jamais par `IWorkflowStore`.
@@ -246,7 +278,7 @@ EF Core crée et maintient cette table technique lors de `SqliteWorkflowDatabase
 | `MigrationId` | `TEXT` | non | Identifiant unique et ordonné de la migration appliquée |
 | `ProductVersion` | `TEXT` | non | Version EF Core ayant produit la migration |
 
-Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations workflow enregistrées sont `202610010001_InitialSqlite` et `202610030002_AddOutbox`; l’historique sécurité contient `202610030004_InitialSecuritySqlite` et `202610040006_WorkflowAccessSqlite`. Ces tables ne doivent pas être éditées ou supprimées manuellement.
+Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations workflow enregistrées sont `202610010001_InitialSqlite`, `202610030002_AddOutbox` et `202610040003_AddHumanTasksAndTimers`; l’historique sécurité contient `202610030004_InitialSecuritySqlite` et `202610040006_WorkflowAccessSqlite`. Ces tables ne doivent pas être éditées ou supprimées manuellement.
 
 ## Table interne `sqlite_sequence`
 
@@ -264,9 +296,11 @@ SQLite crée cette table système parce que `EwAudits.Sequence` utilise `AUTOINC
 | `CancelInstanceAsync` | `EwInstances`, travaux et activations actifs | instance annulée, invalidation des travaux/activations et `EwAudits` |
 | `ClaimDueOutboxAsync` | `EwOutbox` | bail, génération et tentative de livraison |
 | `CommitOutboxAsync` | `EwOutbox` | acquittement, retry planifié ou passage durable en `Failed` |
+| `Assign/Claim/ReleaseHumanTaskAsync` | tâche et instance | statut/affectation, deux révisions et audit |
+| `CompleteHumanTaskAsync` | tâche, reçu, instance, activation | clôture, état, suite, affectations préparées, outbox, reçu et audit |
+| `ReadOpenHumanTasksAsync` | tâches et instances | aucune ; page stable bornée avant filtrage d’autorisation |
+| `FireNextDueTimerAsync` | timer, instance et activation | timer tiré, suite, révision et audit |
 
 Toutes ces mutations utilisent une transaction d’écriture SQLite courte. Une condition de bail, de statut ou de révision non satisfaite provoque un rollback sans écriture partielle.
 
-## Évolutions prévues
-
-Le schéma L4b ne contient pas encore les tables de tâches humaines ou timers : elles seront ajoutées par les migrations de L6. Oracle possède son [propre schéma physique](oracle-schema.md) et ses propres migrations ; cette page ne doit pas être utilisée comme promesse de noms ou de types Oracle.
+Oracle possède son [propre schéma physique](oracle-schema.md) et ses propres migrations ; cette page ne doit pas être utilisée comme promesse de noms ou de types Oracle.

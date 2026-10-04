@@ -12,6 +12,9 @@ public enum WorkflowHandlerKind
 
     /// <summary>Handler evaluates an exclusive decision.</summary>
     Decision,
+
+    /// <summary>Handler validates a human-task completion.</summary>
+    HumanTaskCompletion,
 }
 
 /// <summary>Immutable binding between a durable key and one concrete handler type.</summary>
@@ -44,6 +47,11 @@ public sealed class WorkflowHandlerRegistryBuilder
     public WorkflowHandlerRegistryBuilder AddDecision<THandler>(string id, int version)
         where THandler : class, IDecisionNodeHandler =>
         Add<THandler>(id, version, WorkflowHandlerKind.Decision);
+
+    /// <summary>Registers a scoped human-task completion handler.</summary>
+    public WorkflowHandlerRegistryBuilder AddHumanTask<THandler>(string id, int version)
+        where THandler : class, IHumanTaskCompletionHandler =>
+        Add<THandler>(id, version, WorkflowHandlerKind.HumanTaskCompletion);
 
     /// <summary>Builds a detached immutable registry.</summary>
     public IWorkflowHandlerRegistry Build() => new WorkflowHandlerRegistry(_descriptors.Values);
