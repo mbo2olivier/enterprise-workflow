@@ -117,6 +117,65 @@ public sealed class SecurityProviderTests
     }
 
     [Fact]
+    public async Task ContextualAuthorizationUsesExactScopeAndDirectGrantDuringDirectoryOutage()
+    {
+        var identity = new IdentityReference("ad", "subject-1");
+        var scope = new WorkflowAuthorizationScope("leave-request", 4, "manager", WorkflowActions.ApproveTask);
+        var store = new WorkflowAccessStore(identity, scope);
+        var service = new InternalWorkflowAuthorizationService(store,
+            new Dictionary<string, IIdentityDirectory> { ["ad"] = new UnavailableDirectory() });
+
+        var allowed = await service.AuthorizeAsync(new(identity, scope), TestContext.Current.CancellationToken);
+        var wrongAction = await service.AuthorizeAsync(new(identity,
+            new("leave-request", 4, "manager", WorkflowActions.RejectTask)), TestContext.Current.CancellationToken);
+
+        Assert.True(allowed.Allowed);
+        Assert.Equal("security.workflow-direct-grant", allowed.ReasonCode);
+        Assert.Equal(7, allowed.PolicyRevision);
+        Assert.False(wrongAction.Allowed);
+        Assert.True(wrongAction.ProviderUnavailable);
+    }
+
+    [Fact]
+    public async Task WorkflowAccessAdministrationRejectsUndeclaredActions()
+    {
+        var actor = new IdentityReference(SecurityProviderIds.Local, "administrator");
+        var declared = new WorkflowAuthorizationScope("leave-request", 1, "approval", WorkflowActions.ApproveTask);
+        var store = new WorkflowAccessStore(actor, declared);
+        var administration = new WorkflowAccessAdministration(new AllowAuthorizationProvider(), store,
+            new WorkflowActionCatalog([new(declared)]));
+
+        var accepted = await administration.GrantAsync(actor, declared, WorkflowGrantRecipient.ForIdentity(actor), TestContext.Current.CancellationToken);
+        var refused = await administration.GrantAsync(actor,
+            new("leave-request", 1, "approval", WorkflowActions.RejectTask), WorkflowGrantRecipient.ForIdentity(actor), TestContext.Current.CancellationToken);
+
+        Assert.Equal(ProviderOutcome.Succeeded, accepted.Outcome);
+        Assert.Equal(ProviderOutcome.NotFound, refused.Outcome);
+        Assert.Equal("security.workflow-action-not-declared", refused.ErrorCode);
+        Assert.Equal(1, store.GrantCalls);
+    }
+
+    [Fact]
+    public async Task CandidateSearchFiltersWithTheExactWorkflowScope()
+    {
+        var requester = new IdentityReference(SecurityProviderIds.Local, "administrator");
+        var eligible = new IdentityReference("ldap", "eligible");
+        var scope = new WorkflowAuthorizationScope("leave-request", 1, "approval", WorkflowActions.ApproveTask);
+        var directory = new SearchDirectory([
+            new(eligible, "Eligible", null, new HashSet<string>()),
+            new(new("ldap", "not-eligible"), "Not eligible", null, new HashSet<string>()),
+        ]);
+        var workflowAuthorization = new InternalWorkflowAuthorizationService(new WorkflowAccessStore(eligible, scope),
+            new Dictionary<string, IIdentityDirectory>());
+        var search = new AuthorizedIdentitySearch(directory, new AllowAuthorizationProvider(), workflowAuthorization);
+
+        var result = await search.SearchAsync(requester, "elig", scope, 10, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ProviderOutcome.Succeeded, result.Outcome);
+        Assert.Collection(result.Value!, candidate => Assert.Equal(eligible, candidate.Identity));
+    }
+
+    [Fact]
     public async Task ApiAuthenticationRequiresExplicitHttpsPasswordForwardingAndRefusesRedirects()
     {
         Assert.Throws<InvalidOperationException>(() => new ExampleApiAuthenticationProvider(new()
@@ -183,6 +242,36 @@ public sealed class SecurityProviderTests
             ValueTask.FromResult(new ProviderResult<DirectoryIdentity>(ProviderOutcome.Unavailable));
         public ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ProviderResult<IReadOnlyList<DirectoryIdentity>>(ProviderOutcome.Unavailable));
+    }
+
+    private sealed class AllowAuthorizationProvider : IAuthorizationProvider
+    {
+        public ValueTask<AuthorizationDecision> AuthorizeAsync(AuthorizationRequest request, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new AuthorizationDecision(true, "test.allowed"));
+    }
+
+    private sealed class SearchDirectory(IReadOnlyList<DirectoryIdentity> identities) : IIdentityDirectory
+    {
+        public string ProviderId => "ldap";
+        public DirectoryCapabilities Capabilities => DirectoryCapabilities.Search;
+        public ValueTask<ProviderResult<DirectoryIdentity>> FindAsync(IdentityReference identity, bool includeGroups, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ProviderResult<DirectoryIdentity>(ProviderOutcome.NotFound));
+        public ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ProviderResult<IReadOnlyList<DirectoryIdentity>>(ProviderOutcome.Succeeded, identities.Take(maximumResults).ToList()));
+    }
+
+    private sealed class WorkflowAccessStore(IdentityReference allowedIdentity, WorkflowAuthorizationScope allowedScope) : IWorkflowAccessStore
+    {
+        public int GrantCalls { get; private set; }
+        public ValueTask<ProviderResult<WorkflowAccessGrant>> GrantAsync(WorkflowAccessGrant grant, IdentityReference actor, CancellationToken cancellationToken)
+        {
+            GrantCalls++;
+            return ValueTask.FromResult(new ProviderResult<WorkflowAccessGrant>(ProviderOutcome.Succeeded, grant with { PolicyRevision = 8 }));
+        }
+        public ValueTask<ProviderResult<bool>> RevokeAsync(WorkflowAuthorizationScope scope, WorkflowGrantRecipient recipient, IdentityReference actor, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ProviderResult<IReadOnlyList<WorkflowAccessGrant>>> ListAsync(string workflowId, int definitionVersion, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ProviderResult<WorkflowAccessEvaluation>> ResolveAsync(IdentityReference identity, IReadOnlySet<string>? currentGroupIds, WorkflowAuthorizationScope scope, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ProviderResult<WorkflowAccessEvaluation>(ProviderOutcome.Succeeded, new(identity == allowedIdentity && scope == allowedScope, 7)));
     }
 
     private sealed class ProfileStore(IdentityReference identity, PermissionId permission) : ISecurityProfileStore

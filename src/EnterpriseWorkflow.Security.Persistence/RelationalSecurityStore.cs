@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace EnterpriseWorkflow.Security.Persistence;
 
-public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore
+public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore, IWorkflowAccessStore
 {
     public async ValueTask<ProviderResult<SecurityProfile>> UpsertProfileAsync(SecurityProfile profile, IdentityReference actor, CancellationToken cancellationToken)
     {
@@ -64,6 +66,69 @@ public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContex
             .Select(x => new SecurityAuditEntry(DateTimeOffset.FromUnixTimeMilliseconds(x.OccurredAtUnixMilliseconds), new IdentityReference(x.ActorProviderId, x.ActorSubjectId), x.Action, x.Target, x.Outcome)).ToListAsync(cancellationToken);
     }
 
+    public async ValueTask<ProviderResult<WorkflowAccessGrant>> GrantAsync(WorkflowAccessGrant grant, IdentityReference actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(grant);
+        await using var db = createContext();
+        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
+        if (grant.Recipient.Kind is WorkflowGrantRecipientKind.Profile &&
+            !await db.Profiles.AnyAsync(x => x.Id == grant.Recipient.ProfileId, cancellationToken))
+            return new(ProviderOutcome.NotFound, ErrorCode: "security.profile-not-found");
+        var grantId = GrantId(grant.Scope, grant.Recipient);
+        var existing = await db.WorkflowGrants.FindAsync([grantId], cancellationToken);
+        if (existing is not null)
+        {
+            await tx.CommitAsync(cancellationToken);
+            return new(ProviderOutcome.Succeeded, ToGrant(existing));
+        }
+
+        var revision = await NextPolicyRevisionAsync(db, cancellationToken);
+        db.WorkflowGrants.Add(ToRow(grant, grantId, revision));
+        AddAudit(db, actor, "security.workflow-grant.add", $"{GrantTarget(grant.Scope, grant.Recipient)}:revision:{revision}", "succeeded");
+        await db.SaveChangesAsync(cancellationToken); await tx.CommitAsync(cancellationToken);
+        return new(ProviderOutcome.Succeeded, grant with { PolicyRevision = revision });
+    }
+
+    public async ValueTask<ProviderResult<bool>> RevokeAsync(WorkflowAuthorizationScope scope, WorkflowGrantRecipient recipient, IdentityReference actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(scope); ArgumentNullException.ThrowIfNull(recipient);
+        await using var db = createContext();
+        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
+        var row = await db.WorkflowGrants.FindAsync([GrantId(scope, recipient)], cancellationToken);
+        if (row is null) return new(ProviderOutcome.NotFound, ErrorCode: "security.workflow-grant-not-found");
+        db.WorkflowGrants.Remove(row);
+        var revision = await NextPolicyRevisionAsync(db, cancellationToken);
+        AddAudit(db, actor, "security.workflow-grant.revoke", $"{GrantTarget(scope, recipient)}:revision:{revision}", "succeeded");
+        await db.SaveChangesAsync(cancellationToken); await tx.CommitAsync(cancellationToken);
+        return new(ProviderOutcome.Succeeded, true);
+    }
+
+    public async ValueTask<ProviderResult<IReadOnlyList<WorkflowAccessGrant>>> ListAsync(string workflowId, int definitionVersion, CancellationToken cancellationToken)
+    {
+        _ = new WorkflowAuthorizationScope(workflowId, definitionVersion, null, WorkflowActions.ReadInstance);
+        await using var db = createContext();
+        var rows = await db.WorkflowGrants.Where(x => x.WorkflowId == workflowId && x.DefinitionVersion == definitionVersion)
+            .OrderBy(x => x.NodeId).ThenBy(x => x.ActionId).ThenBy(x => x.GrantId).ToListAsync(cancellationToken);
+        return new(ProviderOutcome.Succeeded, rows.Select(ToGrant).ToList());
+    }
+
+    public async ValueTask<ProviderResult<WorkflowAccessEvaluation>> ResolveAsync(IdentityReference identity, IReadOnlySet<string>? currentGroupIds, WorkflowAuthorizationScope scope, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        await using var db = createContext();
+        var directProfiles = db.IdentityProfiles.Where(x => x.ProviderId == identity.ProviderId && x.SubjectId == identity.SubjectId).Select(x => x.ProfileId);
+        var profiles = await directProfiles.ToListAsync(cancellationToken);
+        if (currentGroupIds is not null)
+            profiles.AddRange(await db.GroupProfiles.Where(x => x.ProviderId == identity.ProviderId && currentGroupIds.Contains(x.GroupId)).Select(x => x.ProfileId).ToListAsync(cancellationToken));
+        var nodeId = scope.NodeId ?? "$workflow";
+        var allowed = await db.WorkflowGrants.AnyAsync(x => x.WorkflowId == scope.WorkflowId && x.DefinitionVersion == scope.DefinitionVersion &&
+            x.NodeId == nodeId && x.ActionId == scope.Action.Value &&
+            ((x.RecipientKind == (int)WorkflowGrantRecipientKind.Identity && x.RecipientProviderId == identity.ProviderId && x.RecipientSubjectId == identity.SubjectId) ||
+             (x.RecipientKind == (int)WorkflowGrantRecipientKind.Profile && x.RecipientProfileId != null && profiles.Contains(x.RecipientProfileId))), cancellationToken);
+        var revision = await db.WorkflowPolicyStates.Where(x => x.Id == "global").Select(x => (long?)x.Revision).SingleOrDefaultAsync(cancellationToken) ?? 0;
+        return new(ProviderOutcome.Succeeded, new WorkflowAccessEvaluation(allowed, revision));
+    }
+
     public async ValueTask<ProviderResult<LocalAccount>> FindByNormalizedNameAsync(string normalizedUserName, CancellationToken cancellationToken) { await using var db = createContext(); var row = await db.LocalAccounts.SingleOrDefaultAsync(x => x.NormalizedUserName == normalizedUserName, cancellationToken); return row is null ? new(ProviderOutcome.NotFound) : new(ProviderOutcome.Succeeded, ToAccount(row)); }
     public async ValueTask<ProviderResult<LocalAccount>> FindByIdentityAsync(IdentityReference identity, CancellationToken cancellationToken) { if (identity.ProviderId != SecurityProviderIds.Local) return new(ProviderOutcome.NotFound); await using var db = createContext(); var row = await db.LocalAccounts.FindAsync([identity.SubjectId], cancellationToken); return row is null ? new(ProviderOutcome.NotFound) : new(ProviderOutcome.Succeeded, ToAccount(row)); }
     public async ValueTask<ProviderResult<LocalAccount>> CreateAsync(LocalAccount account, IdentityReference actor, CancellationToken cancellationToken) { await using var db = createContext(); if (await db.LocalAccounts.AnyAsync(x => x.SubjectId == account.Identity.SubjectId || x.NormalizedUserName == account.NormalizedUserName, cancellationToken)) return new(ProviderOutcome.Conflict, ErrorCode: "security.account-exists"); db.LocalAccounts.Add(ToRow(account)); AddAudit(db, actor, "security.account.create", account.Identity.SubjectId, "succeeded"); await db.SaveChangesAsync(cancellationToken); return new(ProviderOutcome.Succeeded, account); }
@@ -115,6 +180,22 @@ public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContex
     private async ValueTask<ProviderResult<bool>> ChangeGroup(GroupReference group, string profileId, IdentityReference actor, bool add, CancellationToken ct) { await using var db = createContext(); if (!await db.Profiles.AnyAsync(x => x.Id == profileId, ct)) return new(ProviderOutcome.NotFound); var row = await db.GroupProfiles.FindAsync([group.ProviderId, group.GroupId, profileId], ct); if (add && row is null) db.GroupProfiles.Add(new() { ProviderId = group.ProviderId, GroupId = group.GroupId, ProfileId = profileId }); if (!add && row is not null) db.GroupProfiles.Remove(row); AddAudit(db, actor, add ? "security.group.map" : "security.group.unmap", $"{group.ProviderId}:{group.GroupId}:{profileId}", "succeeded"); await db.SaveChangesAsync(ct); return new(ProviderOutcome.Succeeded, true); }
     private static Task<bool> HasAdministratorOutsideAsync(SecurityDbContext db, string? providerId, string? subjectId, string excludedProfileId, CancellationToken ct) => db.IdentityProfiles.AnyAsync(x => db.Profiles.Any(p => p.Id == x.ProfileId && p.GrantsAdministrativeAccess) && (x.ProfileId != excludedProfileId || x.ProviderId != providerId || x.SubjectId != subjectId) && (x.ProviderId != SecurityProviderIds.Local || db.LocalAccounts.Any(a => a.SubjectId == x.SubjectId && a.Enabled)), ct);
     private void AddAudit(SecurityDbContext db, IdentityReference actor, string action, string target, string outcome) => db.Audit.Add(new() { OccurredAtUnixMilliseconds = timeProvider.GetUtcNow().ToUnixTimeMilliseconds(), ActorProviderId = actor.ProviderId, ActorSubjectId = actor.SubjectId, Action = action, Target = target, Outcome = outcome });
+    private static async Task<long> NextPolicyRevisionAsync(SecurityDbContext db, CancellationToken ct)
+    {
+        var updated = await db.WorkflowPolicyStates.Where(x => x.Id == "global")
+            .ExecuteUpdateAsync(update => update.SetProperty(x => x.Revision, x => x.Revision + 1), ct);
+        if (updated == 0)
+        {
+            db.WorkflowPolicyStates.Add(new() { Id = "global", Revision = 1 });
+            await db.SaveChangesAsync(ct);
+            return 1;
+        }
+        return await db.WorkflowPolicyStates.Where(x => x.Id == "global").Select(x => x.Revision).SingleAsync(ct);
+    }
+    private static string GrantId(WorkflowAuthorizationScope scope, WorkflowGrantRecipient recipient) { var recipientValue = recipient.Kind is WorkflowGrantRecipientKind.Identity ? $"i|{recipient.Identity!.Value.ProviderId}|{recipient.Identity.Value.SubjectId}" : $"p|{recipient.ProfileId}"; return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes($"{scope.WorkflowId}|{scope.DefinitionVersion}|{scope.NodeId ?? "$workflow"}|{scope.Action.Value}|{recipientValue}"))); }
+    private static string GrantTarget(WorkflowAuthorizationScope scope, WorkflowGrantRecipient recipient) => $"{scope.WorkflowId}:{scope.DefinitionVersion}:{scope.NodeId ?? "_"}:{scope.Action.Value}:{(recipient.Kind is WorkflowGrantRecipientKind.Identity ? $"identity:{recipient.Identity!.Value.ProviderId}:{recipient.Identity.Value.SubjectId}" : $"profile:{recipient.ProfileId}")}";
+    private static WorkflowGrantRow ToRow(WorkflowAccessGrant grant, string grantId, long revision) => new() { GrantId = grantId, WorkflowId = grant.Scope.WorkflowId, DefinitionVersion = grant.Scope.DefinitionVersion, NodeId = grant.Scope.NodeId ?? "$workflow", ActionId = grant.Scope.Action.Value, RecipientKind = (int)grant.Recipient.Kind, RecipientProviderId = grant.Recipient.Identity?.ProviderId, RecipientSubjectId = grant.Recipient.Identity?.SubjectId, RecipientProfileId = grant.Recipient.ProfileId, PolicyRevision = revision };
+    private static WorkflowAccessGrant ToGrant(WorkflowGrantRow row) => new(new(row.WorkflowId, row.DefinitionVersion, row.NodeId == "$workflow" ? null : row.NodeId, new(row.ActionId)), row.RecipientKind == (int)WorkflowGrantRecipientKind.Identity ? WorkflowGrantRecipient.ForIdentity(new(row.RecipientProviderId!, row.RecipientSubjectId!)) : WorkflowGrantRecipient.ForProfile(row.RecipientProfileId!), row.PolicyRevision);
     private static LocalAccount ToAccount(LocalAccountRow x) => new(new IdentityReference(SecurityProviderIds.Local, x.SubjectId), x.UserName, x.NormalizedUserName, x.PasswordHash, x.Enabled, x.FailedAccessCount, x.LockoutEndUnixMilliseconds is null ? null : DateTimeOffset.FromUnixTimeMilliseconds(x.LockoutEndUnixMilliseconds.Value), x.Revision);
     private static LocalAccountRow ToRow(LocalAccount x) => new() { SubjectId = x.Identity.SubjectId, UserName = x.UserName, NormalizedUserName = x.NormalizedUserName, PasswordHash = x.PasswordHash, Enabled = x.Enabled, FailedAccessCount = x.FailedAccessCount, LockoutEndUnixMilliseconds = x.LockoutEndUtc?.ToUnixTimeMilliseconds(), Revision = x.Revision };
     private static SecuritySession ToSession(SessionRow x) => new(x.TokenDigest, new(x.ProviderId, x.SubjectId), DateTimeOffset.FromUnixTimeMilliseconds(x.CreatedAtUnixMilliseconds), DateTimeOffset.FromUnixTimeMilliseconds(x.LastSeenAtUnixMilliseconds), DateTimeOffset.FromUnixTimeMilliseconds(x.ExpiresAtUnixMilliseconds), DateTimeOffset.FromUnixTimeMilliseconds(x.RemoteStatusCheckedAtUnixMilliseconds), x.Revoked, x.Revision);

@@ -23,6 +23,10 @@ builder.Services.AddRateLimiter(options => options.AddPolicy("login", context =>
 var local = new LocalAuthenticationProvider(store, policy, TimeProvider.System);
 var sessions = new SecuritySessionManager(store, policy, new Dictionary<string, IIdentityDirectory>(), TimeProvider.System);
 var authorization = new InternalProfileAuthorizationProvider(store, new Dictionary<string, IIdentityDirectory>());
+var workflowActionRegistrations = builder.Configuration.GetSection("Security:WorkflowActions").Get<WorkflowActionRegistration[]>() ?? [];
+var workflowActionCatalog = new WorkflowActionCatalog(workflowActionRegistrations.Select(item =>
+    new WorkflowActionDescriptor(new(item.WorkflowId, item.DefinitionVersion, item.NodeId, new(item.ActionId)))));
+var workflowAccessAdministration = new WorkflowAccessAdministration(authorization, store, workflowActionCatalog);
 var provisioning = new LocalSecurityProvisioner(store, local);
 var accountAdministration = new LocalAccountAdministration(store, store, local);
 
@@ -100,14 +104,68 @@ app.MapGet("/admin/audit", async (HttpRequest http, CancellationToken ct) =>
     var actor = await Require(http, sessions, authorization, WorkflowPermissions.ReadAudit, ct); return actor is null ? Results.StatusCode(403) : Results.Ok(await store.ReadAuditAsync(100, ct));
 });
 
+app.MapPut("/admin/workflow-grants", async (WorkflowGrantRequest request, HttpRequest http, CancellationToken ct) =>
+{
+    var actor = await Authenticate(http, sessions, ct); if (actor is null) return Results.Unauthorized();
+    try
+    {
+        var result = await workflowAccessAdministration.GrantAsync(actor.Value, Scope(request), Recipient(request), ct);
+        return result.Outcome switch
+        {
+            ProviderOutcome.Succeeded => Results.Ok(result.Value),
+            ProviderOutcome.Forbidden => Results.StatusCode(403),
+            ProviderOutcome.NotFound => Results.NotFound(new { error = result.ErrorCode }),
+            _ => Results.Conflict(new { error = result.ErrorCode }),
+        };
+    }
+    catch (ArgumentException exception) { return Results.BadRequest(new { error = exception.Message }); }
+});
+
+app.MapDelete("/admin/workflow-grants", async (WorkflowGrantRequest request, HttpRequest http, CancellationToken ct) =>
+{
+    var actor = await Authenticate(http, sessions, ct); if (actor is null) return Results.Unauthorized();
+    try
+    {
+        var result = await workflowAccessAdministration.RevokeAsync(actor.Value, Scope(request), Recipient(request), ct);
+        return result.Outcome switch
+        {
+            ProviderOutcome.Succeeded => Results.NoContent(),
+            ProviderOutcome.Forbidden => Results.StatusCode(403),
+            ProviderOutcome.NotFound => Results.NotFound(new { error = result.ErrorCode }),
+            _ => Results.Conflict(new { error = result.ErrorCode }),
+        };
+    }
+    catch (ArgumentException exception) { return Results.BadRequest(new { error = exception.Message }); }
+});
+
+app.MapGet("/admin/workflow-grants/{workflowId}/{definitionVersion:int}", async (string workflowId, int definitionVersion, HttpRequest http, CancellationToken ct) =>
+{
+    var actor = await Require(http, sessions, authorization, WorkflowPermissions.ManageAccess, ct); if (actor is null) return Results.StatusCode(403);
+    try
+    {
+        var result = await store.ListAsync(workflowId, definitionVersion, ct);
+        return result.Outcome is ProviderOutcome.Succeeded ? Results.Ok(result.Value) : Results.StatusCode(503);
+    }
+    catch (ArgumentException exception) { return Results.BadRequest(new { error = exception.Message }); }
+});
+
 await app.RunAsync(); return 0;
 
 static string? Bearer(HttpRequest request) { var value = request.Headers.Authorization.ToString(); return value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? value[7..].Trim() : null; }
 static async ValueTask<IdentityReference?> Authenticate(HttpRequest request, SecuritySessionManager sessions, CancellationToken ct) { var token = Bearer(request); if (token is null) return null; var result = await sessions.ValidateAsync(token, ct); return result.Status is SessionValidationStatus.Valid ? result.Identity : null; }
 static async ValueTask<IdentityReference?> Require(HttpRequest request, SecuritySessionManager sessions, IAuthorizationProvider authorization, PermissionId permission, CancellationToken ct) { var identity = await Authenticate(request, sessions, ct); if (identity is null) return null; var decision = await authorization.AuthorizeAsync(new(identity.Value, permission), ct); return decision.Allowed ? identity : null; }
+static WorkflowAuthorizationScope Scope(WorkflowGrantRequest request) => new(request.WorkflowId, request.DefinitionVersion, request.NodeId, new(request.ActionId));
+static WorkflowGrantRecipient Recipient(WorkflowGrantRequest request) => request.RecipientKind.ToLowerInvariant() switch
+{
+    "identity" when request.ProviderId is not null && request.SubjectId is not null => WorkflowGrantRecipient.ForIdentity(new(request.ProviderId, request.SubjectId)),
+    "profile" when request.ProfileId is not null => WorkflowGrantRecipient.ForProfile(request.ProfileId),
+    _ => throw new ArgumentException("RecipientKind must be identity with providerId/subjectId, or profile with profileId."),
+};
 
 internal sealed record LoginRequest(string UserName, string Password);
 internal sealed record ProfileRequest(string DisplayName, string[] Permissions, bool GrantsAdministrativeAccess);
 internal sealed record CreateAccountRequest(string UserName, string Password);
 internal sealed record AccountStatusRequest(bool Enabled);
 internal sealed record PasswordResetRequest(string Password);
+internal sealed record WorkflowGrantRequest(string WorkflowId, int DefinitionVersion, string? NodeId, string ActionId, string RecipientKind, string? ProviderId, string? SubjectId, string? ProfileId);
+internal sealed record WorkflowActionRegistration(string WorkflowId, int DefinitionVersion, string? NodeId, string ActionId);

@@ -68,6 +68,49 @@ public sealed class SqliteSecurityStoreTests
         Assert.Equal(SessionValidationStatus.Expired, (await manager.ValidateAsync(issued.Value.Token, TestContext.Current.CancellationToken)).Status);
     }
 
+    [Fact]
+    public async Task WorkflowGrantsAreExactVersionedRevocableAndDurable()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = fixture.Database.CreateStore();
+        var actor = new IdentityReference(SecurityProviderIds.Local, "administrator");
+        var candidate = new IdentityReference("ldap", "stable-user-1");
+        var approve = new WorkflowAuthorizationScope("leave-request", 2, "manager-approval", WorkflowActions.ApproveTask);
+        var recipient = WorkflowGrantRecipient.ForIdentity(candidate);
+
+        var granted = await store.GrantAsync(new(approve, recipient), actor, TestContext.Current.CancellationToken);
+        Assert.Equal(ProviderOutcome.Succeeded, granted.Outcome);
+        Assert.Equal(1, granted.Value!.PolicyRevision);
+        Assert.True((await store.ResolveAsync(candidate, null, approve, TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.False((await store.ResolveAsync(candidate, null, new("leave-request", 3, "manager-approval", WorkflowActions.ApproveTask), TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.False((await store.ResolveAsync(candidate, null, new("leave-request", 2, "manager-approval", WorkflowActions.RejectTask), TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.False((await store.ResolveAsync(candidate, null, new("leave-request", 2, "finance-review", WorkflowActions.ApproveTask), TestContext.Current.CancellationToken)).Value!.Allowed);
+
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.RevokeAsync(approve, recipient, actor, TestContext.Current.CancellationToken)).Outcome);
+        var revoked = await store.ResolveAsync(candidate, null, approve, TestContext.Current.CancellationToken);
+        Assert.False(revoked.Value!.Allowed);
+        Assert.Equal(2, revoked.Value.PolicyRevision);
+        Assert.Empty((await store.ListAsync("leave-request", 2, TestContext.Current.CancellationToken)).Value!);
+    }
+
+    [Fact]
+    public async Task WorkflowProfileGrantUsesDirectAndCurrentGroupMembership()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = fixture.Database.CreateStore(); var actor = new IdentityReference(SecurityProviderIds.Local, "administrator");
+        var profile = new SecurityProfile("leave-managers", "Responsables congés", new HashSet<PermissionId>(), false);
+        await store.UpsertProfileAsync(profile, actor, TestContext.Current.CancellationToken);
+        var direct = new IdentityReference("ldap", "direct-manager");
+        await store.AssignIdentityAsync(direct, profile.Id, actor, TestContext.Current.CancellationToken);
+        await store.MapGroupAsync(new("ldap", "manager-group"), profile.Id, actor, TestContext.Current.CancellationToken);
+        var scope = new WorkflowAuthorizationScope("leave-request", 1, "approval", WorkflowActions.ApproveTask);
+        await store.GrantAsync(new(scope, WorkflowGrantRecipient.ForProfile(profile.Id)), actor, TestContext.Current.CancellationToken);
+
+        Assert.True((await store.ResolveAsync(direct, null, scope, TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.True((await store.ResolveAsync(new("ldap", "group-manager"), new HashSet<string> { "manager-group" }, scope, TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.False((await store.ResolveAsync(new("ldap", "former-manager"), new HashSet<string>(), scope, TestContext.Current.CancellationToken)).Value!.Allowed);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly string _path = Path.Combine(Path.GetTempPath(), $"ew-security-{Guid.NewGuid():N}.db");

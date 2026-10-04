@@ -1,6 +1,6 @@
 # Compatibilité et distribution
 
-Date de vérification documentaire : 1er octobre 2026. La combinaison de développement macOS ARM64, client .NET 10/ODP.NET et serveur Oracle Enterprise 19.19 Linux ARM64 en conteneur est qualifiée pour les scénarios de persistance L3b. Les distributions complètes du produit ne sont pas encore qualifiées. Les décisions produit et les capacités annoncées par les éditeurs restent distinctes des résultats de tests.
+Date de vérification documentaire : 4 octobre 2026. La combinaison de développement macOS ARM64, client .NET 10/ODP.NET et serveur Oracle Enterprise 19.19 Linux ARM64 en conteneur est qualifiée pour les scénarios de persistance L3b. L’extension LDAP est qualifiée contre OpenLDAP 2.6 réel en LDAPS sur le runner Linux GitHub Actions. Les distributions complètes du produit ne sont pas encore qualifiées. Les décisions produit et les capacités annoncées par les éditeurs restent distinctes des résultats de tests.
 
 ## Base vérifiée
 
@@ -22,7 +22,15 @@ Le porteur accepte ces restrictions : support distinct par adaptateur. Oracle 19
 | osx-arm64 | Première cible macOS proposée | À qualifier | À qualifier | Version macOS compatible avec .NET et provider, accès à Oracle réel |
 | osx-x64 | Cible macOS Intel proposée | À qualifier | Non revendiqué | SQLite et modules testés sur machine Intel |
 
-La matrice de l’extension LDAP générique sera ajoutée en L5a, avec annuaire/version/schéma, transport, capacités et OS testés. Un LDAP non AD réel suffit à qualifier la cible retenue ; AD exige une preuve séparée seulement si revendiqué. Un RID ne décrit pas à lui seul le support d’Oracle, d’AD ou d’un module tiers. Les distributions Linux non listées dans une release restent non qualifiées, même si une compilation réussit.
+## Matrice LDAP L5a
+
+| Environnement | Niveau de preuve | Transport et capacités |
+| --- | --- | --- |
+| Linux GitHub Actions | Qualification réelle acquise contre OpenLDAP 2.6 épinglé | LDAPS, CA dédiée, bind, recherche, groupes, statut, identité stable après renommage, panne et refus du mauvais nom |
+| macOS ARM64 local | Qualification réelle partielle contre OpenLDAP | LDAP clair sélectionné explicitement ; chaîne LDAPS vérifiée par OpenSSL, mais injection de la CA non qualifiée dans la pile LDAP native |
+| Windows et macOS CI | Contrats seulement | Tests unitaires/contractuels ; aucune instance LDAP réelle bloquante |
+
+Cette matrice ne revendique ni Active Directory, ni StartTLS, ni groupes imbriqués. Un RID ne décrit pas à lui seul le support d’Oracle, de LDAP ou d’un module tiers. Les distributions Linux non listées dans une release restent non qualifiées, même si une compilation réussit.
 
 ## Artefacts proposés
 
@@ -43,4 +51,4 @@ Commencer sans trimming ni Native AOT afin d’éprouver le chargement dynamique
 
 ## Environnement observé
 
-Les lots L1 à L3b ont été compilés avec le SDK .NET `10.0.401` sur macOS 26.3 ARM64. SQLite a été testé sur fichiers locaux et Oracle via Oracle Entity Framework Core `10.23.26301` contre Oracle Free `23.26.3` puis Oracle Enterprise `19.19.0.0.0` Linux ARM64 en conteneur. Cette preuve qualifie l’adaptateur de persistance dans cet environnement ; elle ne qualifie ni un artefact de distribution, ni les autres lignes de la matrice, ni AD.
+Les lots L1 à L3b ont été compilés avec le SDK .NET `10.0.401` sur macOS 26.3 ARM64. SQLite a été testé sur fichiers locaux et Oracle via Oracle Entity Framework Core `10.23.26301` contre Oracle Free `23.26.3` puis Oracle Enterprise `19.19.0.0.0` Linux ARM64 en conteneur. L5a est qualifié sur OpenLDAP 2.6 réel par le job Linux GitHub Actions confirmé le 4 octobre 2026. Ces preuves qualifient leurs adaptateurs dans les environnements cités ; elles ne qualifient ni un artefact de distribution, ni les autres lignes de la matrice, ni Active Directory.

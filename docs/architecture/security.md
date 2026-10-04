@@ -1,6 +1,6 @@
 # Sécurité et administration extensibles
 
-Décidé : administration intégrée ; fournisseurs locaux ou distants sélectionnés par extensions ; LDAP par identifiant/mot de passe (recadrage ADR 0018) ; contrats d’authentification et d’autorisation indépendants du cœur. Les décisions L5 sont acceptées dans l’[ADR 0016](../adr/0016-securite-profils-l5.md) ; les signatures conceptuelles et les détails explicitement proposés restent à définir.
+Décidé : administration intégrée ; fournisseurs locaux ou distants sélectionnés par extensions ; LDAP par identifiant/mot de passe (ADR 0018) ; contrats d’authentification et d’autorisation indépendants du cœur ; grants exacts de stages selon l’ADR 0019.
 
 ## Frontières et contrats
 
@@ -63,7 +63,7 @@ Avant un connecteur de production : fixer schémas versionnés, preuve acceptée
 
 Un stage est le nœud dans l’administration, sans entité `StageId` distincte (S13). Les habilitations ciblent workflow/version/nœud/action, au travers d’un profil ou d’une identité. Les candidats éligibles, les tâches visibles et chaque commande sont filtrés dans ce contexte ; le serveur dérive le nœud actif et applique aussi affectation, révision, état et auto-approbation.
 
-Le fournisseur interne L5 évalue actuellement les permissions globales et ignore `ResourceType/ResourceId` de la requête. L5b doit livrer les grants contextualisés et migrations sur les deux bases avant L6 ; les permissions globales ne suffisent donc pas pour les stages. Les détails et choix encore proposés sont dans l’[ADR 0019](../adr/0019-workflow-stages.md).
+Le fournisseur interne L5 conserve les permissions globales pour l’administration. L5b ajoute un service distinct qui évalue exclusivement les grants `(WorkflowId, DefinitionVersion, NodeId, ActionId)` ; une permission globale ne produit donc jamais un droit métier implicite. Les mutations sont validées par le catalogue d’actions, auditées et persistées avec une révision atomique dans SQLite et Oracle. Voir l’[ADR 0019](../adr/0019-workflow-stages.md).
 
 ## Permissions et fraîcheur
 

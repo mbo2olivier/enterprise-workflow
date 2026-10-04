@@ -1,6 +1,6 @@
 # Preuves L5a — LDAP générique
 
-Date : 3 octobre 2026. R1 est arbitré dans l’ADR 0018 : rupture de l’ancienne API AD, image OpenLDAP prête à l’emploi, LDAPS par défaut, clair explicitement sélectionnable et qualification réelle portée par Linux.
+Date : 3 octobre 2026, qualification CI confirmée le 4 octobre 2026. R1 est arbitré dans l’ADR 0018 : rupture de l’ancienne API AD, image OpenLDAP prête à l’emploi, LDAPS par défaut, clair explicitement sélectionnable et qualification réelle portée par Linux.
 
 ## Livrables
 
@@ -19,6 +19,6 @@ Date : 3 octobre 2026. R1 est arbitré dans l’ADR 0018 : rupture de l’ancien
 - huit tests sécurité réussis sur macOS ARM64 ;
 - qualification OpenLDAP réelle en mode clair explicitement sélectionné : login, recherche, identité stable après renommage, groupes directs par recherche, statut actif/inactif, panne et bind utilisateur ;
 - négociation et chaîne LDAPS de la stack vérifiées avec OpenSSL ; la pile LDAP native macOS ne permet pas d’injecter une CA par callback de connexion, la preuve LDAPS applicative reste donc celle du job Linux ;
-- qualification Linux LDAPS, certificat au mauvais nom et matrice complète à confirmer sur GitHub Actions.
+- job Linux GitHub Actions réussi, avec OpenLDAP réel en LDAPS, chaîne de confiance dédiée, authentification/recherche/groupes/statut/identité stable et refus d’un certificat présenté sous un mauvais nom ; succès confirmé par le porteur le 4 octobre 2026.
 
-Le lot ne revendique ni Active Directory, ni StartTLS, ni groupes imbriqués.
+Le lot est clos pour son périmètre. Il ne revendique ni Active Directory, ni StartTLS, ni groupes imbriqués, ni qualification LDAP réelle sur Windows ou macOS ; ces deux OS exécutent les tests unitaires et contractuels sans service LDAP réel bloquant.

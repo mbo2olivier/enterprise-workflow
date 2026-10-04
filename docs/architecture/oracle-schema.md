@@ -1,6 +1,6 @@
 # Schéma physique Oracle du framework
 
-Statut : schéma workflow L3b/L4b et schéma sécurité L5 séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
+Statut : schéma workflow L3b/L4b et schéma sécurité L5/L5b séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
 
 Les tables appartiennent au schéma Oracle configuré dans la chaîne de connexion. Elles ne sont pas une API SQL publique : les mutations passent par `IWorkflowStore`, afin de préserver transactions, révisions, idempotence et fencing.
 
@@ -154,9 +154,13 @@ La migration `202610030005_InitialSecurityOracle` crée les tables ci-dessous da
 | `EwSecurityLocalAccounts` | Comptes locaux, hash Identity, verrouillage, activation et révision |
 | `EwSecuritySessions` | Digests de jetons, expiration, revalidation distante, révocation et révision |
 | `EwSecurityAudit` | Audit minimal des mutations de sécurité |
+| `EwWorkflowAccessGrants` | Grants exacts workflow/version/nœud/action vers une identité ou un profil |
+| `EwWorkflowPolicyState` | Révision globale monotone des politiques ; ligne singleton `global` |
 | `EW_SECURITY_MIGRATIONS` | Historique EF propre aux migrations de sécurité |
 
 Les noms sont cités car EF les crée comme identifiants délimités. Les appels applicatifs passent par les contrats L5 ; une mutation SQL directe peut contourner audit, concurrence ou protection du dernier administrateur.
+
+La migration `202610040007_WorkflowAccessOracle` ajoute les deux tables L5b. `EwWorkflowAccessGrants` contient `GrantId`, `WorkflowId`, `DefinitionVersion`, `NodeId`, `ActionId`, `RecipientKind`, les colonnes facultatives d’identité/profil et `PolicyRevision`. `GrantId` est le SHA-256 de la portée et du destinataire. La valeur interne non vide `$workflow` représente une action de niveau workflow/instance, car Oracle normalise une chaîne vide vers `NULL`. `EwWorkflowPolicyState` initialise la ligne `global` à zéro ; son incrément, la mutation du grant et l’audit partagent une transaction.
 
 ## Table de migrations
 

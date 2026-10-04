@@ -27,6 +27,13 @@ public sealed class OracleSecurityStoreTests
         var session = new SecuritySession(new string('a', 64), actor, now, now, now.AddHours(8), now, false, 0);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.CreateSessionAsync(session, TestContext.Current.CancellationToken)).Outcome);
         Assert.Equal(actor, (await store.FindSessionAsync(session.TokenDigest, TestContext.Current.CancellationToken)).Value!.Identity);
-        Assert.Equal(3, (await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Count);
+        var scope = new WorkflowAuthorizationScope("oracle-approval", 1, "manager", WorkflowActions.ApproveTask);
+        var recipient = WorkflowGrantRecipient.ForIdentity(actor);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.GrantAsync(new(scope, recipient), actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.True((await store.ResolveAsync(actor, null, scope, TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.False((await store.ResolveAsync(actor, null, new("oracle-approval", 1, "manager", WorkflowActions.RejectTask), TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.Equal(ProviderOutcome.Succeeded, (await store.RevokeAsync(scope, recipient, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.False((await store.ResolveAsync(actor, null, scope, TestContext.Current.CancellationToken)).Value!.Allowed);
+        Assert.Equal(5, (await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Count);
     }
 }

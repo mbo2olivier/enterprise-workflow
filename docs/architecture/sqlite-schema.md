@@ -1,6 +1,6 @@
 # Schéma physique SQLite du framework
 
-Statut : schéma workflow L3a/L4b et schéma sécurité L5 séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
+Statut : schéma workflow L3a/L4b et schéma sécurité L5/L5b séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
 
 Cette page décrit les tables possédées par le framework, leurs relations et leur usage. Elles ne constituent pas une API SQL publique : une application doit passer par `IWorkflowStore` et exécuter les migrations fournies. Une modification directe peut contourner le fencing, l’idempotence, les révisions et l’audit.
 
@@ -211,9 +211,31 @@ Ces tables sont possédées par `ISecurityProfileStore`, `ILocalAccountStore` et
 | `EwSecurityLocalAccounts` | Comptes locaux, hash Identity, verrouillage, activation et révision ; nom normalisé unique |
 | `EwSecuritySessions` | Digest SHA-256 du jeton, identité, bornes temporelles, révocation et révision |
 | `EwSecurityAudit` | Mutations de profils, associations, comptes, bootstrap, récupération et révocations |
+| `EwWorkflowAccessGrants` | Grants L5b exacts par workflow/version/nœud/action vers une identité ou un profil |
+| `EwWorkflowPolicyState` | Révision globale monotone des politiques L5b ; ligne singleton `global` |
 | `__EwSecurityMigrationsHistory` | Historique EF distinct du schéma sécurité |
 
 Le mot de passe et le jeton de session en clair ne sont jamais persistés. Le bootstrap, la récupération et la protection du dernier administrateur s’exécutent sous transaction sérialisable.
+
+### `EwWorkflowAccessGrants`
+
+| Colonne | Type SQLite | Null | Description |
+| --- | --- | --- | --- |
+| `GrantId` | `TEXT` | non | SHA-256 de la portée et du destinataire ; clé primaire |
+| `WorkflowId` | `TEXT` | non | Définition ciblée |
+| `DefinitionVersion` | `INTEGER` | non | Version positive exacte |
+| `NodeId` | `TEXT` | non | Nœud exact, ou valeur interne `$workflow` pour une action de niveau workflow/instance |
+| `ActionId` | `TEXT` | non | Action typée déclarée par le catalogue |
+| `RecipientKind` | `INTEGER` | non | `0` identité, `1` profil |
+| `RecipientProviderId` / `RecipientSubjectId` | `TEXT` | oui | Identité stable lorsque le destinataire est une identité |
+| `RecipientProfileId` | `TEXT` | oui | Profil interne lorsque le destinataire est un profil |
+| `PolicyRevision` | `INTEGER` | non | Révision globale lors de la création du grant |
+
+Index : portée (`WorkflowId`, `DefinitionVersion`, `NodeId`, `ActionId`), identité et profil. Les colonnes du destinataire non applicables restent nulles ; le contrat construit toujours une forme cohérente.
+
+### `EwWorkflowPolicyState`
+
+La ligne `Id = global` porte `Revision`. Chaque ajout ou retrait de grant incrémente cette valeur dans la même transaction que le grant et son audit. Les évaluations retournent la révision courante afin de corréler une décision avec l’état de politique observé.
 
 ## `__EFMigrationsHistory`
 
@@ -224,7 +246,7 @@ EF Core crée et maintient cette table technique lors de `SqliteWorkflowDatabase
 | `MigrationId` | `TEXT` | non | Identifiant unique et ordonné de la migration appliquée |
 | `ProductVersion` | `TEXT` | non | Version EF Core ayant produit la migration |
 
-Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations enregistrées sont `202610010001_InitialSqlite` et `202610030002_AddOutbox`. Cette table ne doit pas être éditée ou supprimée manuellement.
+Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations workflow enregistrées sont `202610010001_InitialSqlite` et `202610030002_AddOutbox`; l’historique sécurité contient `202610030004_InitialSecuritySqlite` et `202610040006_WorkflowAccessSqlite`. Ces tables ne doivent pas être éditées ou supprimées manuellement.
 
 ## Table interne `sqlite_sequence`
 

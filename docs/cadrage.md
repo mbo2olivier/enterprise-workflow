@@ -22,7 +22,11 @@ S12 : recadrage du 3 octobre 2026 : compatibilité LDAP indépendante d’AD et 
 
 S13 : précision ultérieure du porteur : les nœuds sont les stages dans l’administration. Aucune entité stage supplémentaire.
 
-S2 à S13 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
+S14 : confirmation par le porteur le 4 octobre 2026 de la réussite du job Linux GitHub Actions qualifiant l’extension sur OpenLDAP réel en LDAPS.
+
+S15 : validation le 4 octobre 2026 de R2-A, R3-A, R5-A, R6-A et R7-A pour L5b : modes d’affectation explicites, grants exacts positifs et révocables, catalogue typé, séparation L5b/L6 et lecture séparée des actions de stage.
+
+S2 à S15 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
 
@@ -85,4 +89,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; le socle sécurité L5 est implémenté et qualifié localement. LDAP générique L5a est implémenté avec qualification OpenLDAP locale en clair explicite et job LDAPS Linux intégré. Les habilitations par nœud L5b, fonctions métier, modules et UI restent à réaliser.
+L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; le socle sécurité L5 est implémenté et qualifié localement. LDAP générique L5a est terminé : qualification OpenLDAP locale en clair explicite et OpenLDAP/LDAPS sur Linux GitHub Actions acquises. Les habilitations exactes par nœud/action L5b sont implémentées et qualifiées sur SQLite et Oracle 19.19 ; tâches humaines, affectation/claim durables, fonctions métier, modules et UI restent à réaliser.

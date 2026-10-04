@@ -30,7 +30,7 @@ Tests purs pour graphe, DSL, transitions et décisions de retry ; tests de contr
 | T20 | UI Razor/Blazor, formulaires, accessibilité et thèmes | Déclaratif et composant personnalisé ; validation serveur ; clavier, labels, focus, erreurs et contraste | UI navigateur |
 | T21 | Charge et logs | Mesures reproductibles, payloads/secrets masqués | Environnement décrit |
 
-T22–T24 sont des critères nouveaux, **non exécutés**, et ne sont pas couverts par les preuves historiques L5.
+T22 est acquis par L5a. La partie habilitation/catalogue/candidats/persistance de T23 est acquise par L5b ; son branchement sur une tâche active relève de L6. T24 reste non exécuté. Ces critères ne sont pas couverts par les preuves historiques L5.
 
 | ID | Test | Résultat attendu | Environnement |
 | --- | --- | --- | --- |

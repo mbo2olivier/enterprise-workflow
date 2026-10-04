@@ -23,5 +23,5 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0015](0015-worker-retry-outbox-l4b.md) | Worker, retries, état et outbox L4b | Acceptée |
 | [0016](0016-securite-profils-l5.md) | Sécurité L5, sessions configurables et profils internes | Acceptée ; détails techniques signalés comme proposés |
 | [0017](0017-designation-approbateur.md) | Désignation explicite de l’approbateur ; Q11 résolue | Acceptée |
-| [0018](0018-ldap-generique.md) | LDAP indépendant d’AD ; remplace obligation AD de 0003/0016 | Acceptée et implémentée en L5a ; LDAPS Linux CI à confirmer |
-| [0019](0019-workflow-stages.md) | Stage = nœud ; droits workflow/nœud/action | Besoin accepté S12/S13 ; mécanismes proposés |
+| [0018](0018-ldap-generique.md) | LDAP indépendant d’AD ; remplace obligation AD de 0003/0016 | Acceptée, implémentée en L5a et qualifiée sur OpenLDAP/LDAPS Linux CI |
+| [0019](0019-workflow-stages.md) | Stage = nœud ; droits workflow/nœud/action | Acceptée R2-A/R3-A/R5-A/R6-A/R7-A ; périmètre L5b implémenté |
