@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L6 terminés localement ; LDAP L5a qualifié sur OpenLDAP/LDAPS Linux CI et L5b/L6 qualifiés sur SQLite/Oracle 19.19.** Le dépôt contient les droits de stages (stage = nœud), `HumanTask`/timers durables, affectation/claim/inbox, complétion autorisée et idempotente, ainsi que les stores et extensions de sécurité. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L6 terminés et L7a terminé localement ; L6 qualifié sur la matrice GitHub Actions Linux/macOS/Windows, SQLite et Oracle 19.19.** L7a prouve localement la coexistence de modules A/B, leurs dépendances privées, composants Razor et ressources versionnées ; G3-A reste à confirmer avant le loader définitif L7b. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -39,6 +39,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 14. [Preuve du lot L5a](docs/evidence/l5a.md)
 15. [Preuve du lot L5b](docs/evidence/l5b.md)
 16. [Preuve du lot L6](docs/evidence/l6.md)
+17. [Preuve du lot L7a](docs/evidence/l7a.md)
 
 ## Documents de référence
 

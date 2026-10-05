@@ -14,6 +14,8 @@ public sealed class ArchitectureTests
         {
             ["EnterpriseWorkflow.Abstractions"] = [],
             ["EnterpriseWorkflow.Core"] = ["EnterpriseWorkflow.Abstractions"],
+            ["EnterpriseWorkflow.Extensions.Abstractions"] = ["EnterpriseWorkflow.Runtime"],
+            ["EnterpriseWorkflow.Extensions"] = ["EnterpriseWorkflow.Extensions.Abstractions", "EnterpriseWorkflow.Runtime"],
             ["EnterpriseWorkflow.Persistence.Abstractions"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
             ["EnterpriseWorkflow.Persistence.Oracle"] = ["EnterpriseWorkflow.Persistence.Abstractions"],
             ["EnterpriseWorkflow.Persistence.Sqlite"] = ["EnterpriseWorkflow.Persistence.Abstractions"],
@@ -74,6 +76,7 @@ public sealed class ArchitectureTests
 
         Assert.Equal(
             [
+                (Project: "EnterpriseWorkflow.Extensions.Abstractions", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),
                 (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
                 (Project: "EnterpriseWorkflow.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite"),
                 (Project: "EnterpriseWorkflow.Runtime", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),

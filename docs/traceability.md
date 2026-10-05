@@ -39,4 +39,4 @@ S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le p
 
 ## Préconditions encore ouvertes
 
-Q06, Q07, Q08 et Q09b restent tracées au cadrage et aux portes du plan. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Ces points n’annulent pas les décisions confirmées. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
+Q06 et Q08 restent ouvertes. Q07 dispose désormais d'une preuve de coexistence L7a et d'une recommandation G3-A à confirmer avant L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.

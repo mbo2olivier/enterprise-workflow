@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : stratégie de validation. Au 4 octobre 2026, les **86 tests locaux** de la solution passent : architecture, modèle/DSL v1, SQLite, runtime, sécurité, démarrage authentifié, tâches, inbox, idempotence, séparation et timers. Les **11 tests Oracle explicites** passent sur Oracle Enterprise `19.19.0.0.0`, migrations L6, tâche et timer compris. Oracle Free reste la qualification L3b-I historique ; Docker et une chaîne injectée restent requis pour la suite Oracle.
+Statut : stratégie de validation. Au 4 octobre 2026, les **89 tests locaux** de la solution passent : architecture, modèle/DSL v1, SQLite, runtime, sécurité, démarrage authentifié, tâches, inbox, idempotence, séparation, timers et prototype de modules A/B L7a. Les **11 tests Oracle explicites** passent sur Oracle Enterprise `19.19.0.0.0`, migrations L6, tâche et timer compris. Oracle Free reste la qualification L3b-I historique ; Docker et une chaîne injectée restent requis pour la suite Oracle.
 
 ## Pyramide
 

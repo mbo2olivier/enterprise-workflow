@@ -26,3 +26,4 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0018](0018-ldap-generique.md) | LDAP indépendant d’AD ; remplace obligation AD de 0003/0016 | Acceptée, implémentée en L5a et qualifiée sur OpenLDAP/LDAPS Linux CI |
 | [0019](0019-workflow-stages.md) | Stage = nœud ; droits workflow/nœud/action | Acceptée R2-A/R3-A/R5-A/R6-A/R7-A ; périmètre L5b implémenté |
 | [0020](0020-attentes-metier-l6.md) | Tâches humaines, timers, idempotence, séparation et inbox | Acceptée D1-B/D2-A à D7-A ; L6 implémenté et qualifié SQLite/Oracle 19.19 |
+| [0021](0021-prototype-modules-ui-l7a.md) | Modules versionnés, rendu Blazor et ressources UI | D1-A à D4-A acceptées ; prototype concluant, G3-A recommandée |

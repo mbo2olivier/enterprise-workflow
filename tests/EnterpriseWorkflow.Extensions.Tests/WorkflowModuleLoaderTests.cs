@@ -1,0 +1,191 @@
+using System.Runtime.Loader;
+using System.Security.Cryptography;
+using System.Text.Json;
+using EnterpriseWorkflow.Abstractions;
+using EnterpriseWorkflow.Extensions;
+using EnterpriseWorkflow.Runtime;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+
+namespace EnterpriseWorkflow.Extensions.Tests;
+
+public sealed class WorkflowModuleLoaderTests
+{
+    [Fact]
+    public async Task VersionsCoexistWithPrivateDependenciesHandlersComponentsAndResources()
+    {
+        await using var artifacts = await ModuleArtifacts.CreateAsync();
+        var catalog = WorkflowModuleCatalog.Load([artifacts.VersionA, artifacts.VersionB]);
+
+        Assert.Equal(2, catalog.Modules.Length);
+        Assert.Equal("1.0.0", catalog.Modules[0].Manifest.Version);
+        Assert.Equal("2.0.0", catalog.Modules[1].Manifest.Version);
+        var contextA = Assert.IsAssignableFrom<AssemblyLoadContext>(AssemblyLoadContext.GetLoadContext(catalog.Modules[0].EntryAssembly));
+        var contextB = Assert.IsAssignableFrom<AssemblyLoadContext>(AssemblyLoadContext.GetLoadContext(catalog.Modules[1].EntryAssembly));
+        Assert.NotSame(AssemblyLoadContext.Default, contextA);
+        Assert.NotSame(contextA, contextB);
+        Assert.False(contextA.IsCollectible);
+        Assert.False(contextB.IsCollectible);
+
+        var services = new ServiceCollection();
+        services.AddEnterpriseWorkflowModules(catalog);
+        await using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<IWorkflowHandlerRegistry>();
+        Assert.True(registry.TryGet(new(new TechnicalId("fixture.approval"), 1), out var handlerA));
+        Assert.True(registry.TryGet(new(new TechnicalId("fixture.approval"), 2), out var handlerB));
+        Assert.Same(contextA, AssemblyLoadContext.GetLoadContext(handlerA!.HandlerType.Assembly));
+        Assert.Same(contextB, AssemblyLoadContext.GetLoadContext(handlerB!.HandlerType.Assembly));
+
+        var htmlA = await RenderAsync(catalog.Modules[0].Components.Single().ComponentType);
+        var htmlB = await RenderAsync(catalog.Modules[1].Components.Single().ComponentType);
+        Assert.Contains("private-a", htmlA, StringComparison.Ordinal);
+        Assert.Contains("private-b", htmlB, StringComparison.Ordinal);
+
+        foreach (var module in catalog.Modules)
+        {
+            Assert.True(catalog.TryOpenResource(module.Manifest.Id.Value, module.Manifest.Version,
+                module.ArtifactSha256, "resources/styles.css", out var resource, out var content));
+            await using (content)
+            using (var reader = new StreamReader(content!))
+                Assert.Contains("approval-panel", await reader.ReadToEndAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+            Assert.Equal("text/css", resource!.ContentType);
+            Assert.False(catalog.TryOpenResource(module.Manifest.Id.Value, module.Manifest.Version,
+                new string('0', 64), "resources/styles.css", out _, out _));
+        }
+    }
+
+    [Fact]
+    public async Task HandlerCollisionIsRejectedInsteadOfUsingRegistrationOrder()
+    {
+        await using var artifacts = await ModuleArtifacts.CreateAsync();
+        var catalog = WorkflowModuleCatalog.Load([artifacts.VersionA]);
+        var services = new ServiceCollection();
+
+        var exception = Assert.Throws<WorkflowHandlerRegistrationException>(() =>
+            services.AddEnterpriseWorkflowModules(catalog,
+                handlers => handlers.AddHumanTask<HostCollisionHandler>("fixture.approval", 1)));
+
+        Assert.Equal("EW4001_DUPLICATE_HANDLER", exception.Code);
+    }
+
+    [Fact]
+    public async Task TamperedResourcePreventsModuleCodeFromLoading()
+    {
+        await using var artifacts = await ModuleArtifacts.CreateAsync();
+        await File.AppendAllTextAsync(Path.Combine(artifacts.VersionA, "resources", "styles.css"), "tampered",
+            TestContext.Current.CancellationToken);
+
+        var exception = Assert.Throws<WorkflowModuleLoadException>(() =>
+            WorkflowModuleCatalog.Load([artifacts.VersionA]));
+
+        Assert.Equal("EW7006_MODULE_FILE_HASH_MISMATCH", exception.Code);
+    }
+
+    private static async Task<string> RenderAsync(Type componentType)
+    {
+        await using var services = new ServiceCollection().BuildServiceProvider();
+        await using var renderer = new HtmlRenderer(services, NullLoggerFactory.Instance);
+        return await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            var output = await renderer.RenderComponentAsync(componentType, ParameterView.Empty);
+            return output.ToHtmlString();
+        });
+    }
+
+    private sealed class HostCollisionHandler : IHumanTaskCompletionHandler
+    {
+        public ValueTask<HumanTaskCompletionResult> CompleteAsync(
+            HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+    }
+
+    private sealed class ModuleArtifacts : IAsyncDisposable
+    {
+        private readonly string _root;
+
+        private ModuleArtifacts(string root)
+        {
+            _root = root;
+            VersionA = Path.Combine(root, "approval", "1.0.0");
+            VersionB = Path.Combine(root, "approval", "2.0.0");
+        }
+
+        public string VersionA { get; }
+        public string VersionB { get; }
+
+        public static async Task<ModuleArtifacts> CreateAsync()
+        {
+            var root = Path.Combine(Path.GetTempPath(), $"enterprise-workflow-modules-{Guid.NewGuid():N}");
+            var artifacts = new ModuleArtifacts(root);
+            await StageAsync("ApprovalModule.V1", "PrivateDependency.V1", artifacts.VersionA, "1.0.0");
+            await StageAsync("ApprovalModule.V2", "PrivateDependency.V2", artifacts.VersionB, "2.0.0");
+            return artifacts;
+        }
+
+        private static async Task StageAsync(string moduleProject, string dependencyProject, string destination, string version)
+        {
+            Directory.CreateDirectory(Path.Combine(destination, "dependencies"));
+            Directory.CreateDirectory(Path.Combine(destination, "resources"));
+            var repository = FindRepositoryRoot();
+            var moduleOutput = FindFixtureOutput(repository, moduleProject,
+                "EnterpriseWorkflow.Fixtures.ApprovalModule.dll");
+            var dependencyOutput = FindFixtureOutput(repository, dependencyProject,
+                "EnterpriseWorkflow.Fixtures.PrivateDependency.dll");
+            var entryPath = Path.Combine(destination, "EnterpriseWorkflow.Fixtures.ApprovalModule.dll");
+            var dependencyPath = Path.Combine(destination, "dependencies", "EnterpriseWorkflow.Fixtures.PrivateDependency.dll");
+            var resourcePath = Path.Combine(destination, "resources", "styles.css");
+            File.Copy(Path.Combine(moduleOutput, "EnterpriseWorkflow.Fixtures.ApprovalModule.dll"), entryPath);
+            File.Copy(Path.Combine(dependencyOutput, "EnterpriseWorkflow.Fixtures.PrivateDependency.dll"), dependencyPath);
+            File.Copy(Path.Combine(repository, "tests", "Fixtures", moduleProject, "resources", "styles.css"), resourcePath);
+            var manifest = new
+            {
+                schemaVersion = 1,
+                id = "fixture.approval",
+                version,
+                contractVersion = 1,
+                entryAssembly = "EnterpriseWorkflow.Fixtures.ApprovalModule.dll",
+                entryType = "EnterpriseWorkflow.Fixtures.ApprovalModule.ApprovalModule",
+                entryAssemblySha256 = Hash(entryPath),
+                dependencies = new[] { new { path = "dependencies/EnterpriseWorkflow.Fixtures.PrivateDependency.dll", sha256 = Hash(dependencyPath) } },
+                resources = new[] { new { path = "resources/styles.css", contentType = "text/css", sha256 = Hash(resourcePath) } },
+                components = new[] { new { id = "fixture.approval-panel", type = "EnterpriseWorkflow.Fixtures.ApprovalModule.ApprovalPanel" } },
+            };
+            await File.WriteAllTextAsync(Path.Combine(destination, "module.json"), JsonSerializer.Serialize(manifest),
+                TestContext.Current.CancellationToken);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+            return ValueTask.CompletedTask;
+        }
+
+        private static string Hash(string path)
+        {
+            using var stream = File.OpenRead(path);
+            return Convert.ToHexStringLower(SHA256.HashData(stream));
+        }
+
+        private static string FindFixtureOutput(
+            string repository, string project, string expectedAssembly)
+        {
+            var output = Path.Combine(repository, "tests", "Fixtures", project, "bin", "Debug", "net10.0");
+            if (File.Exists(Path.Combine(output, expectedAssembly))) return output;
+            throw new FileNotFoundException($"Fixture output '{expectedAssembly}' was not built for '{project}'.");
+        }
+
+        private static string FindRepositoryRoot()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "EnterpriseWorkflow.slnx"))) return directory.FullName;
+                directory = directory.Parent;
+            }
+            throw new InvalidOperationException("Could not locate repository root.");
+        }
+    }
+}

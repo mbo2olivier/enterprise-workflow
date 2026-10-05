@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Experimental L7a module loader, version isolation, composition, and versioned UI resources.</Description>
+    <RootNamespace>EnterpriseWorkflow.Extensions</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

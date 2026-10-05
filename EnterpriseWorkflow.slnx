@@ -2,6 +2,8 @@
   <Folder Name="/src/">
     <Project Path="src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj" />
+    <Project Path="src/EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj" />
     <Project Path="src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
@@ -16,6 +18,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EnterpriseWorkflow.Core.Tests/EnterpriseWorkflow.Core.Tests.csproj" />
+    <Project Path="tests/EnterpriseWorkflow.Extensions.Tests/EnterpriseWorkflow.Extensions.Tests.csproj" />
     <Project Path="tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/EnterpriseWorkflow.Persistence.Sqlite.Tests.csproj" />
     <Project Path="tests/EnterpriseWorkflow.Runtime.Tests/EnterpriseWorkflow.Runtime.Tests.csproj" />
     <Project Path="tests/EnterpriseWorkflow.Security.Tests/EnterpriseWorkflow.Security.Tests.csproj" />

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>EnterpriseWorkflow.Fixtures.PrivateDependency</AssemblyName>
+    <RootNamespace>EnterpriseWorkflow.Fixtures.PrivateDependency</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

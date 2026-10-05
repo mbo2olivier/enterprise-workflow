@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Experimental startup contracts implemented by trusted Enterprise Workflow modules.</Description>
+    <RootNamespace>EnterpriseWorkflow.Extensions</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>

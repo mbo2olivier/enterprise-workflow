@@ -1,6 +1,6 @@
 # SDK, modules, formulaires et Studio
 
-Statut : conception proposée ; DLL métier et Studio différé sont confirmés. Les noms ci-dessous restent indicatifs.
+Statut : prototype L7a implémenté selon D1-A à D4-A ; loader définitif L7b et Studio différé. Les API de module restent expérimentales jusqu'à G3/L7b.
 
 ## Définition en C#
 
@@ -25,13 +25,13 @@ L’organisation exacte des dépendances sera alignée sur le mécanisme de publ
 
 ## Chargement et versionnement
 
-Proposition : contexte de chargement par module/version, résolution contrôlée des dépendances et partage des assemblies de contrats avec le Host. `AssemblyLoadContext` et `AssemblyDependencyResolver` sont les mécanismes .NET à évaluer ; ils ne constituent pas une isolation de sécurité. [Guide Microsoft](https://learn.microsoft.com/en-us/dotnet/core/tutorials/creating-app-with-plugin-support).
+L7a utilise un contexte de chargement non collectible par module/version/empreinte, une résolution limitée aux dépendances privées déclarées et le partage des assemblies de contrats avec le Host. `AssemblyLoadContext` ne constitue pas une isolation de sécurité. [Guide Microsoft](https://learn.microsoft.com/en-us/dotnet/core/tutorials/creating-app-with-plugin-support).
 
 Les modules sont du code approuvé exécuté avec les privilèges du processus. Aucun hot reload ni compilation distante au MVP. Les chemins du manifeste restent sous le répertoire autorisé ; aucune recherche opportuniste dans des emplacements non configurés.
 
 Une instance référence définition/version, module/version et empreinte. Conserver les artefacts tant qu’ils servent des instances ou à la restauration requise. Si le chargement côte à côte des versions fonctionne, chaque instance résout son code exact. Sinon, bloquer les remplacements incompatibles et demander le drainage selon un plan explicite. Ne jamais continuer silencieusement avec le nouveau code.
 
-Le prototype doit éprouver DI, dépendances privées, contrats partagés et ressources UI. Deux versions qui exportent des services sous la même clé ne doivent pas écraser leurs registrations. Un module configuré invalide rend le démarrage non prêt avec diagnostic précis.
+Le prototype éprouve DI, dépendances privées, contrats partagés et ressources UI. Deux versions A/B coexistent ; deux handlers sous la même clé exacte n'écrasent jamais leurs registrations. Un module configuré invalide rend le démarrage non prêt avec diagnostic précis. La recommandation G3-A retient donc la coexistence comme modèle nominal, sous réserve de confirmation avant L7b.
 
 ## Réutilisation entre organisations
 
@@ -41,7 +41,7 @@ Copier l’artefact complet, pas seulement la DLL si elle a des dépendances. V�
 
 MVP : texte court/long, date, nombre, booléen et choix ; labels, requis, messages et présentation simple. Validation serveur obligatoire. Formulaire et schéma de données versionnés avec l’instance. Une extension UI permet un composant personnalisé sans référence Razor dans le Core.
 
-UI métier et administration en Razor/Blazor, décision acceptée dans l’[ADR 0012](../adr/0012-ui-razor-blazor.md). Formulaires déclaratifs simples et composants Razor personnalisés sont confirmés ; le mode de rendu reste à préciser via Q09b. Pages : accueil des processus autorisés, démarrage, inbox, détail de tâche, détail d’instance/historique et administration. Thème via tokens CSS, logo et titre configurables ; les thèmes ne modifient pas les permissions. Textes externalisés, UTC en stockage, fuseau d’affichage explicite.
+UI métier et administration en Blazor Web App, SSR statique par défaut et Interactive Server par composant lorsque nécessaire, conformément à l'[ADR 0021](../adr/0021-prototype-modules-ui-l7a.md). Les ressources d'un module sont déclarées et hachées, puis servies par une URL immuable versionnée ; le Host ne dépend pas du manifeste de Static Web Assets d'une RCL chargée dynamiquement. Pages L8 : accueil des processus autorisés, démarrage, inbox, détail de tâche, détail d'instance/historique et administration. Thème via tokens CSS, logo et titre configurables ; les thèmes ne modifient pas les permissions. Textes externalisés, UTC en stockage, fuseau d'affichage explicite.
 
 ## CLI
 

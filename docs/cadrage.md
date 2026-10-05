@@ -71,9 +71,9 @@ Les arbitrages R1–R4 du [recadrage](spec-ldap-stages.md) complètent les quest
 | ID | Décision ouverte | Échéance |
 | --- | --- | --- |
 | Q06 | Volumes, latence, disponibilité, durée des instances, rétention et RPO/RTO | Avant dimensionnement et qualification de production |
-| Q07 | Coexistence des versions de DLL ou drainage | Avant loader définitif ; ADR 0009 proposé |
+| Q07 | Prototype concluant pour la coexistence ; G3-A recommandée, confirmation du porteur requise | Avant loader définitif L7b ; ADR 0009/0021 |
 | Q08 | Licence, gouvernance et identifiants NuGet/CLI | Avant publication |
-| Q09b | Mode de rendu Razor/Blazor, bibliothèque graphique du Studio et outillage frontend de build | Mode de rendu avant UI ; bibliothèque avant Studio |
+| Q09b | Mode de rendu résolu par D1-A/D2-A : Blazor Web App, SSR statique par défaut, Interactive Server ciblé et ressources de modules manifestées ; bibliothèque Studio encore ouverte | Rendu franchi pour L7a/L8 ; bibliothèque avant Studio |
 | Q10 | Résolue pour L1 : SDK minimal 10.0.100 avec roll-forward vers les feature bands stables .NET 10 ; preuves locales sur 10.0.102 ; runners `ubuntu-24.04`, `windows-2025`, `macos-15` ; GitHub Actions | À revoir lors de la qualification de distribution L10 |
 | Q11 | Résolue : approbateur explicitement choisi parmi les identités habilitées par profils internes (ADR 0017), sans attribut AD manager obligatoire | Arbitrage responsable franchi ; réalisation L5/L6/L8 |
 
