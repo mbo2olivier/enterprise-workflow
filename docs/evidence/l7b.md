@@ -12,6 +12,7 @@ Date : 5 octobre 2026. Décisions G3-A, M1-A et M2-A consignées dans l'[ADR 002
 - inventaire durable `EwModuleArtifacts` / `EW_MODULE_ARTIFACTS` et migrations provider ;
 - migration d’état en un seul pas, compare-and-swap sur révision/schéma, refus sous bail actif et audit `StateMigrated` atomique ;
 - sélection des fixtures alignée sur la configuration Debug/Release courante pour préserver la CI propre.
+- nettoyage des fixtures tolérant sous Windows le verrouillage attendu des DLL chargées dans les contextes non collectables ; le nettoyage strict reste appliqué sur les autres plateformes et avant tout chargement effectif.
 
 ## Vérifications locales acquises
 

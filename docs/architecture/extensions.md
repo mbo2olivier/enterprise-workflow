@@ -27,6 +27,8 @@ L’organisation exacte des dépendances sera alignée sur le mécanisme de publ
 
 L7a utilise un contexte de chargement non collectible par module/version/empreinte, une résolution limitée aux dépendances privées déclarées et le partage des assemblies de contrats avec le Host. `AssemblyLoadContext` ne constitue pas une isolation de sécurité. [Guide Microsoft](https://learn.microsoft.com/en-us/dotnet/core/tutorials/creating-app-with-plugin-support).
 
+Le contexte et ses assemblies restent chargés jusqu'à la fin du processus. Sous Windows, les DLL correspondantes peuvent donc rester verrouillées : le remplacement ou la suppression physique d'un artefact doit se faire après l'arrêt du Host, avant son redémarrage. Ce comportement est cohérent avec l'activation startup-only et l'absence de hot reload ; les répertoires de staging des tests ne sont nettoyés qu'au mieux sur Windows, puis par le répertoire temporaire du runner après la fin du processus.
+
 Les modules sont du code approuvé exécuté avec les privilèges du processus. Aucun hot reload ni compilation distante au MVP. Les chemins du manifeste restent sous le répertoire autorisé ; aucune recherche opportuniste dans des emplacements non configurés.
 
 Une instance référence définition/version, module/version et empreinte. Conserver les artefacts tant qu’ils servent des instances ou à la restauration requise. Si le chargement côte à côte des versions fonctionne, chaque instance résout son code exact. Sinon, bloquer les remplacements incompatibles et demander le drainage selon un plan explicite. Ne jamais continuer silencieusement avec le nouveau code.

@@ -224,7 +224,21 @@ public sealed class WorkflowModuleLoaderTests
 
         public ValueTask DisposeAsync()
         {
-            if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+            if (!Directory.Exists(_root)) return ValueTask.CompletedTask;
+
+            try
+            {
+                Directory.Delete(_root, recursive: true);
+            }
+            catch (IOException) when (OperatingSystem.IsWindows())
+            {
+                // Non-collectible AssemblyLoadContexts retain loaded DLLs until process exit.
+                // Windows locks those staged files; the runner removes its temporary tree later.
+            }
+            catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows())
+            {
+                // Windows can report the same loaded-assembly lock as access denied.
+            }
             return ValueTask.CompletedTask;
         }
 
