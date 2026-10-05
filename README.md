@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L6 terminés et L7a terminé localement ; L6 qualifié sur la matrice GitHub Actions Linux/macOS/Windows, SQLite et Oracle 19.19.** L7a prouve localement la coexistence de modules A/B, leurs dépendances privées, composants Razor et ressources versionnées ; G3-A reste à confirmer avant le loader définitif L7b. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L7b terminés localement ; L7b est qualifié sur SQLite et Oracle Enterprise 19.19, et L6 sur la matrice GitHub Actions Linux/macOS/Windows.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -40,6 +40,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 15. [Preuve du lot L5b](docs/evidence/l5b.md)
 16. [Preuve du lot L6](docs/evidence/l6.md)
 17. [Preuve du lot L7a](docs/evidence/l7a.md)
+18. [Preuve du lot L7b](docs/evidence/l7b.md)
 
 ## Documents de référence
 

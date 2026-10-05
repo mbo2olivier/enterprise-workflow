@@ -170,6 +170,7 @@
         "type": "Project",
         "dependencies": {
           "EnterpriseWorkflow.Extensions.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )",
           "EnterpriseWorkflow.Runtime": "[1.0.0, )"
         }
       },

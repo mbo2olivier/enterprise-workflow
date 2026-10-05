@@ -46,6 +46,83 @@ public sealed class SqliteWorkflowStoreTests
     }
 
     [Fact]
+    public async Task ModuleInventoryBlocksReferencedRemovalAndContentReplacement()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var artifact = new ModuleArtifactReference(new TechnicalId("fixture.approval"), "1.0.0", new string('a', 64));
+
+        var installed = await store.ReconcileModuleArtifactsAsync(
+            new ReconcileModuleArtifactsCommand([artifact]), TestContext.Current.CancellationToken);
+        var definition = BuildDefinition(artifact);
+        await store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var removed = await store.ReconcileModuleArtifactsAsync(
+            new ReconcileModuleArtifactsCommand([]), TestContext.Current.CancellationToken);
+        var replaced = await store.ReconcileModuleArtifactsAsync(
+            new ReconcileModuleArtifactsCommand([artifact with { Sha256 = new string('b', 64) }]),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(StoreOutcome.Succeeded, installed.Outcome);
+        Assert.Equal(artifact, Assert.Single(installed.Value!.InstalledArtifacts));
+        Assert.Equal((StoreOutcome.Conflict, "EW3051_REQUIRED_MODULE_ARTIFACT_MISSING"),
+            (removed.Outcome, removed.ErrorCode));
+        Assert.Equal((StoreOutcome.Conflict, "EW3051_REQUIRED_MODULE_ARTIFACT_MISSING"),
+            (replaced.Outcome, replaced.ErrorCode));
+    }
+
+    [Fact]
+    public async Task ExplicitStateMigrationIsAtomicAuditedAndRefusesAnActiveInstance()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var artifact = new ModuleArtifactReference(new TechnicalId("fixture.approval"), "1.0.0", new string('a', 64));
+        await store.ReconcileModuleArtifactsAsync(new ReconcileModuleArtifactsCommand([artifact]),
+            TestContext.Current.CancellationToken);
+        var definition = BuildDefinition(artifact);
+        await store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var started = await store.StartInstanceAsync(CreateStartCommand(definition, "migration-request"),
+            TestContext.Current.CancellationToken);
+        var snapshot = await store.ReadStateMigrationSnapshotAsync(started.Value!.InstanceId,
+            TestContext.Current.CancellationToken);
+        var actor = new ActorIdentity(new TechnicalId("local"), "migration-operator");
+
+        var migrated = await store.CommitStateMigrationAsync(new CommitStateMigrationCommand(
+            started.Value.InstanceId, snapshot.Value!.Revision, 1,
+            WorkflowState.Create("{\"migrated\":true}", 2), artifact, actor),
+            TestContext.Current.CancellationToken);
+        var stale = await store.CommitStateMigrationAsync(new CommitStateMigrationCommand(
+            started.Value.InstanceId, snapshot.Value.Revision, 1,
+            WorkflowState.Create("{\"migratedAgain\":true}", 2), artifact, actor),
+            TestContext.Current.CancellationToken);
+        var claimed = await store.ClaimDueWorkAsync(
+            new ClaimDueWorkCommand(new TechnicalId("worker.migration"), TimeSpan.FromSeconds(30)),
+            TestContext.Current.CancellationToken);
+        var activeSnapshot = await store.ReadStateMigrationSnapshotAsync(started.Value.InstanceId,
+            TestContext.Current.CancellationToken);
+        var active = await store.CommitStateMigrationAsync(new CommitStateMigrationCommand(
+            started.Value.InstanceId, activeSnapshot.Value!.Revision, 2,
+            WorkflowState.Create("{\"migrated\":3}", 3), artifact, actor),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(StoreOutcome.Succeeded, migrated.Outcome);
+        Assert.Equal((1L, 2), (migrated.Value!.Revision, migrated.Value.SchemaVersion));
+        Assert.Equal((StoreOutcome.Conflict, "EW3054_STALE_STATE_MIGRATION"), (stale.Outcome, stale.ErrorCode));
+        Assert.Equal(StoreOutcome.Succeeded, claimed.Outcome);
+        Assert.Equal((StoreOutcome.Conflict, "EW3056_STATE_MIGRATION_INSTANCE_ACTIVE"),
+            (active.Outcome, active.ErrorCode));
+        await using var connection = new SqliteConnection(databaseFile.ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM \"EwAudits\" WHERE \"EventType\" = 'StateMigrated'";
+        Assert.Equal(1L, Convert.ToInt64(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken),
+            System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public async Task ConcurrentClaimsHaveOneWinner()
     {
         await using var fixture = await StoreFixture.CreateAsync();
@@ -252,10 +329,11 @@ public sealed class SqliteWorkflowStoreTests
             null,
             null);
 
-    private static WorkflowDefinition BuildDefinition()
+    private static WorkflowDefinition BuildDefinition(ModuleArtifactReference? artifact = null)
     {
-        var compilation = WorkflowBuilder.Create("sqlite.contract", 1)
-            .Start("start")
+        var builder = WorkflowBuilder.Create("sqlite.contract", 1);
+        if (artifact is not null) builder.RequiresArtifact(artifact.Id.Value, artifact.Version, artifact.Sha256);
+        var compilation = builder.Start("start")
             .End("end")
             .Then("start", "end")
             .Validate();

@@ -28,6 +28,10 @@ S15 : validation le 4 octobre 2026 de R2-A, R3-A, R5-A, R6-A et R7-A pour L5b : 
 
 S16 : validation le 4 octobre 2026 de D1-B et D2-A à D7-A pour L6 : correction directe du schéma canonique v1 avant le premier tag officiel, tâches et timers typés, cycles d'affectation/claim explicites, formulaire/handler versionnés, reçu idempotent lié à l'acteur et au contenu, timer fondé sur l'horloge du store, séparation d'acteurs versionnée et inbox bornée. Voir [ADR 0020](adr/0020-attentes-metier-l6.md).
 
+S17 : confirmation par le porteur le 5 octobre 2026 de G3-A pour L7b : coexistence nominale des versions de modules, rétention de l'artefact exact et retrait bloqué tant qu'il reste référencé. Voir ADR 0009/0021.
+
+S18 : validation le 5 octobre 2026 de M1-A et M2-A pour L7b : migrations d’état explicites et atomiques fournies par l’artefact exact, inventaire durable des modules et retrait bloqué tant qu’une définition persistée référence l’artefact. La porte historique G3a est renommée G3-M afin de ne plus la confondre avec le choix G3-A. Voir ADR 0022.
+
 S2 à S15 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
@@ -71,7 +75,7 @@ Les arbitrages R1–R4 du [recadrage](spec-ldap-stages.md) complètent les quest
 | ID | Décision ouverte | Échéance |
 | --- | --- | --- |
 | Q06 | Volumes, latence, disponibilité, durée des instances, rétention et RPO/RTO | Avant dimensionnement et qualification de production |
-| Q07 | Prototype concluant pour la coexistence ; G3-A recommandée, confirmation du porteur requise | Avant loader définitif L7b ; ADR 0009/0021 |
+| Q07 | Résolue : G3-A retient la coexistence nominale, la rétention de l'artefact exact et le retrait bloqué s'il reste référencé | Franchie pour L7b ; ADR 0009/0021 |
 | Q08 | Licence, gouvernance et identifiants NuGet/CLI | Avant publication |
 | Q09b | Mode de rendu résolu par D1-A/D2-A : Blazor Web App, SSR statique par défaut, Interactive Server ciblé et ressources de modules manifestées ; bibliothèque Studio encore ouverte | Rendu franchi pour L7a/L8 ; bibliothèque avant Studio |
 | Q10 | Résolue pour L1 : SDK minimal 10.0.100 avec roll-forward vers les feature bands stables .NET 10 ; preuves locales sur 10.0.102 ; runners `ubuntu-24.04`, `windows-2025`, `macos-15` ; GitHub Actions | À revoir lors de la qualification de distribution L10 |

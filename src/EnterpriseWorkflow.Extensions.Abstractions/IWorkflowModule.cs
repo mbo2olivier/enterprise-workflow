@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EnterpriseWorkflow.Extensions;
 
 /// <summary>
-/// Experimental startup contract implemented by a trusted module entry point.
+/// Startup contract implemented by a trusted module entry point.
 /// Modules execute with the privileges of the host process and are not a security sandbox.
 /// </summary>
 public interface IWorkflowModule
@@ -14,4 +14,7 @@ public interface IWorkflowModule
 
     /// <summary>Adds exact, globally versioned handlers to the shared L4a registry.</summary>
     void ConfigureHandlers(WorkflowHandlerRegistryBuilder handlers);
+
+    /// <summary>Adds explicit single-step state-schema migrations owned by this exact module artifact.</summary>
+    void ConfigureStateMigrations(WorkflowStateMigrationRegistryBuilder migrations);
 }

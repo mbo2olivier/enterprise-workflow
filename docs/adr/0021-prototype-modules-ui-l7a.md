@@ -1,6 +1,6 @@
 # ADR 0021 — Prototype de modules versionnés et ressources UI L7a
 
-Date : 4 octobre 2026. **Statut : acceptée pour D1-A à D4-A ; décision G3 encore à confirmer.**
+Date : 4 octobre 2026. **Statut : acceptée pour D1-A à D4-A et G3-A.**
 
 ## Contexte
 
@@ -19,12 +19,12 @@ Le manifeste v1 est strict : propriétés inconnues, chemins non normalisés, re
 
 Deux versions de `EnterpriseWorkflow.Fixtures.ApprovalModule` et deux versions incompatibles de `EnterpriseWorkflow.Fixtures.PrivateDependency` sont chargées simultanément. Chaque composant Razor restitue la valeur de sa propre dépendance. Les handlers versions 1 et 2 alimentent le registre L4a sans fallback ; une collision exacte est refusée par `EW4001_DUPLICATE_HANDLER`. Une ressource CSS altérée est refusée avant activation par `EW7006_MODULE_FILE_HASH_MISMATCH`.
 
-## Recommandation G3 à confirmer
+## Décision G3 confirmée
 
-**G3-A — conserver la coexistence côte à côte** : le prototype ne révèle pas de contrainte imposant le drainage. L7b devra conserver l'artefact exact tant qu'une définition ou une restauration le référence, activer les changements uniquement au redémarrage et interdire le retrait d'une version encore requise. Le drainage reste une opération explicite possible, pas le modèle nominal.
+**G3-A — conserver la coexistence côte à côte** : le prototype ne révèle pas de contrainte imposant le drainage. L7b conserve l'artefact exact tant qu'une définition ou une restauration le référence, active les changements uniquement au redémarrage et interdit le retrait d'une version encore requise. Le drainage reste une opération explicite possible, pas le modèle nominal.
 
 Alternative **G3-B** : imposer le drainage avant tout remplacement incompatible. Elle simplifierait la rétention et le diagnostic, mais supprimerait le bénéfice démontré et empêcherait les instances longues de poursuivre leur code exact pendant le déploiement d'une nouvelle version.
 
 ## Limites
 
-Le prototype ne promet ni déchargement, ni isolation hostile, ni signature cryptographique, ni dépendance native/RID. Signature et packaging appartiennent à L9/L10. G3a reste ouverte avant toute évolution du schéma d'état.
+Le prototype ne promet ni déchargement, ni isolation hostile, ni signature cryptographique, ni dépendance native/RID. Signature et packaging appartiennent à L9/L10. La porte de migration d’état, renommée G3-M, est franchie par M1-A/M2-A dans l’ADR 0022.

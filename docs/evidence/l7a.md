@@ -24,4 +24,4 @@ Date : 4 octobre 2026. Décisions D1-A à D4-A consignées dans l'[ADR 0021](../
 
 ## Conclusion
 
-La coexistence est techniquement démontrée par le prototype local. L7b peut retenir G3-A après confirmation du porteur. La matrice GitHub Actions doit encore confirmer ces fixtures sur Linux, macOS et Windows ; elle ne bloque pas le constat local mais reste le critère de qualification distante.
+La coexistence est techniquement démontrée par le prototype local et le porteur a ensuite confirmé G3-A pour L7b. La matrice GitHub Actions doit encore confirmer ces fixtures sur Linux, macOS et Windows ; elle ne bloque pas le constat local mais reste le critère de qualification distante.

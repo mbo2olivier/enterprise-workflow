@@ -4,20 +4,20 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 
 | Exigence | ADR / conception | Lots | Tests |
 | --- | --- | --- | --- |
-| EF-01 Bibliothèques et Kernel | 0001, 0006 | L1, L7b, L9 | T14, T18 |
+| EF-01 Bibliothèques et Kernel | 0001, 0006, 0022 | L1, L7b, L9 | T14, T18 |
 | EF-02 C# et nœuds | 0007 ; extensions | L2, L4 | T01, T02, T12 |
 | EF-03 Durabilité | 0008 | L3a/b, L4 | T03–T07 |
 | EF-04 SQLite/Oracle | 0002 ; compatibilité | L3a/b, L10 | T03–T09, T13 |
 | EF-05 Tâches/formulaires | 0004 ; runtime | L6, L8 | T08, T10, T20 |
 | EF-06 Timers/retries/annulation | 0008 | L4, L6 | T05–T09 |
-| EF-07 Modules | 0009 | L7a/b | T12, T14 |
+| EF-07 Modules | 0009, 0021, 0022 | L7a/b | T12, T14 |
 | EF-08 Administration et sécurité extensible LDAP | 0003, 0018 ; sécurité | L5, L5a, L8 | T10, T11, T22 |
 | EF-09 Permissions et auto-approbation | 0003, 0011, 0019 ; sécurité | L5, L5b, L6, L8 | T08, T10, T11, T23, T24 |
 | EF-16 Stages = nœuds et actions habilitées | 0019 ; recadrage | L5b, L6, L8 | T23, T24 |
 | EF-10 Installations indépendantes | 0005 | L7b, L10 | T17 |
 | EF-11 UI/thèmes | 0004, 0012 ; extensions | L8 | T10, T20 |
 | EF-12 CLI/templates | 0010 ; extensions | L9 | T14 |
-| EF-13 Versions | 0009 | L7a/b | T12, T13 |
+| EF-13 Versions | 0009, 0022 | L7a/b | T12, T13 |
 | EF-14 Audit/diagnostic | 0008 ; exploitation | L3 à L10 | T06, T10, T13, T21 |
 | EF-15 Studio différé | 0004, 0007 | L11 | T15, T16 |
 | ENF-01 Plateformes | 0001, 0010 | L1, L10 | T14 |
@@ -39,4 +39,4 @@ S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le p
 
 ## Préconditions encore ouvertes
 
-Q06 et Q08 restent ouvertes. Q07 dispose désormais d'une preuve de coexistence L7a et d'une recommandation G3-A à confirmer avant L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
+Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a et la confirmation de G3-A pour L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.

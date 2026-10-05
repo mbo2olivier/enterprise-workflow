@@ -1,6 +1,6 @@
 # SDK, modules, formulaires et Studio
 
-Statut : prototype L7a implémenté selon D1-A à D4-A ; loader définitif L7b et Studio différé. Les API de module restent expérimentales jusqu'à G3/L7b.
+Statut : prototype L7a et loader définitif L7b implémentés ; coexistence G3-A, migrations M1-A et rétention M2-A qualifiées localement sur SQLite et Oracle Enterprise 19.19. Studio différé.
 
 ## Définition en C#
 
@@ -31,7 +31,9 @@ Les modules sont du code approuvé exécuté avec les privilèges du processus. 
 
 Une instance référence définition/version, module/version et empreinte. Conserver les artefacts tant qu’ils servent des instances ou à la restauration requise. Si le chargement côte à côte des versions fonctionne, chaque instance résout son code exact. Sinon, bloquer les remplacements incompatibles et demander le drainage selon un plan explicite. Ne jamais continuer silencieusement avec le nouveau code.
 
-Le prototype éprouve DI, dépendances privées, contrats partagés et ressources UI. Deux versions A/B coexistent ; deux handlers sous la même clé exacte n'écrasent jamais leurs registrations. Un module configuré invalide rend le démarrage non prêt avec diagnostic précis. La recommandation G3-A retient donc la coexistence comme modèle nominal, sous réserve de confirmation avant L7b.
+Le prototype éprouve DI, dépendances privées, contrats partagés et ressources UI. Deux versions A/B coexistent ; deux handlers sous la même clé exacte n'écrasent jamais leurs registrations. Un module configuré invalide rend le démarrage non prêt avec diagnostic précis. G3-A confirme la coexistence comme modèle nominal pour L7b.
+
+L7b ajoute un inventaire durable réconcilié par le Kernel avant readiness. Une définition publiée protège chaque triplet exact `(ModuleId, Version, Sha256)` qu’elle contient ; omettre cet artefact de la configuration ou remplacer ses octets sous le même identifiant/version bloque le démarrage. Un artefact non référencé peut être retiré. Les migrations d’état sont des arêtes explicites enregistrées par le module exact. Elles s’exécutent hors transaction, sans effet externe, puis utilisent un compare-and-swap atomique sur révision et schéma source ; un bail worker encore actif interdit le commit.
 
 ## Réutilisation entre organisations
 

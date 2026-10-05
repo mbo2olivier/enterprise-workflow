@@ -48,6 +48,15 @@ public sealed record StartCommandScope(
 /// <summary>Reference to an immutable published definition.</summary>
 public sealed record DefinitionReference(TechnicalId DefinitionId, int Version, string Sha256);
 
+/// <summary>Exact immutable module artifact installed in one Enterprise Workflow deployment.</summary>
+public sealed record ModuleArtifactReference(TechnicalId Id, string Version, string Sha256);
+
+/// <summary>Configured artifact set reconciled once during Kernel startup.</summary>
+public sealed record ReconcileModuleArtifactsCommand(IReadOnlyList<ModuleArtifactReference> ConfiguredArtifacts);
+
+/// <summary>Durable artifact inventory after a successful startup reconciliation.</summary>
+public sealed record ModuleArtifactReconciliationResult(IReadOnlyList<ModuleArtifactReference> InstalledArtifacts);
+
 /// <summary>State of a workflow instance.</summary>
 public enum WorkflowInstanceStatus
 {
@@ -69,6 +78,27 @@ public enum WorkflowInstanceStatus
     /// <summary>A cancellation transaction won.</summary>
     Cancelled,
 }
+
+/// <summary>Consistent state snapshot supplied to one explicit versioned migrator.</summary>
+public sealed record StateMigrationSnapshot(
+    WorkflowInstanceId InstanceId,
+    DefinitionReference Definition,
+    IReadOnlyList<ModuleArtifactReference> Artifacts,
+    WorkflowInstanceStatus Status,
+    long Revision,
+    WorkflowState State);
+
+/// <summary>Atomic compare-and-swap command for one state schema transition.</summary>
+public sealed record CommitStateMigrationCommand(
+    WorkflowInstanceId InstanceId,
+    long ExpectedRevision,
+    int SourceSchemaVersion,
+    WorkflowState ReplacementState,
+    ModuleArtifactReference MigratorArtifact,
+    ActorIdentity Actor);
+
+/// <summary>Committed explicit state migration.</summary>
+public sealed record StateMigrationResult(long Revision, int SchemaVersion);
 
 /// <summary>State of a durable work item.</summary>
 public enum WorkItemStatus

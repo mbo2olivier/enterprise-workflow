@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Extensions;
+using EnterpriseWorkflow.Core.Model;
+using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Runtime;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -84,6 +86,42 @@ public sealed class WorkflowModuleLoaderTests
         Assert.Equal("EW7006_MODULE_FILE_HASH_MISMATCH", exception.Code);
     }
 
+    [Fact]
+    public async Task KernelRestartReconcilesNewVersionAndRunsExactExplicitStateMigration()
+    {
+        await using var artifacts = await ModuleArtifacts.CreateAsync();
+        var firstCatalog = WorkflowModuleCatalog.Load([artifacts.VersionA]);
+        var restartedCatalog = WorkflowModuleCatalog.Load([artifacts.VersionA, artifacts.VersionB]);
+        var artifact = new ModuleArtifactReference(firstCatalog.Modules[0].Manifest.Id,
+            firstCatalog.Modules[0].Manifest.Version, firstCatalog.Modules[0].ArtifactSha256);
+        var store = new MaintenanceStoreStub(artifact);
+
+        Assert.Single((await WorkflowModuleKernel.ReconcileAsync(firstCatalog, store,
+            TestContext.Current.CancellationToken)).InstalledArtifacts);
+        Assert.Equal(2, (await WorkflowModuleKernel.ReconcileAsync(restartedCatalog, store,
+            TestContext.Current.CancellationToken)).InstalledArtifacts.Count);
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IWorkflowMaintenanceStore>(store);
+        services.AddEnterpriseWorkflowModules(restartedCatalog);
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var result = await scope.ServiceProvider.GetRequiredService<WorkflowStateMigrationService>().MigrateAsync(
+            store.InstanceId, artifact, 2, new ActorIdentity(new TechnicalId("local"), "operator"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(StoreOutcome.Succeeded, result.Outcome);
+        Assert.Equal(2, result.Value!.SchemaVersion);
+        Assert.Equal("{\"migrated\":true}", store.State.Value.CanonicalText);
+        Assert.Equal(1, store.CommitCount);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            scope.ServiceProvider.GetRequiredService<WorkflowStateMigrationService>().MigrateAsync(
+                store.InstanceId, artifact, 3, new ActorIdentity(new TechnicalId("local"), "operator"),
+                TestContext.Current.CancellationToken).AsTask());
+        Assert.Equal(2, store.State.SchemaVersion);
+        Assert.Equal(1, store.CommitCount);
+    }
+
     private static async Task<string> RenderAsync(Type componentType)
     {
         await using var services = new ServiceCollection().BuildServiceProvider();
@@ -100,6 +138,33 @@ public sealed class WorkflowModuleLoaderTests
         public ValueTask<HumanTaskCompletionResult> CompleteAsync(
             HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
             ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+    }
+
+    private sealed class MaintenanceStoreStub(ModuleArtifactReference artifact) : IWorkflowMaintenanceStore
+    {
+        public WorkflowInstanceId InstanceId { get; } = new(Guid.NewGuid());
+        public WorkflowState State { get; private set; } = WorkflowState.Create("{\"value\":1}", 1);
+        public int CommitCount { get; private set; }
+
+        public ValueTask<StoreResult<ModuleArtifactReconciliationResult>> ReconcileModuleArtifactsAsync(
+            ReconcileModuleArtifactsCommand command, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(StoreResults.Succeeded(new ModuleArtifactReconciliationResult(command.ConfiguredArtifacts)));
+
+        public ValueTask<StoreResult<StateMigrationSnapshot>> ReadStateMigrationSnapshotAsync(
+            WorkflowInstanceId instanceId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(StoreResults.Succeeded(new StateMigrationSnapshot(
+                InstanceId, new DefinitionReference(new TechnicalId("fixture.workflow"), 1, new string('d', 64)),
+                [artifact], WorkflowInstanceStatus.Waiting, CommitCount, State)));
+
+        public ValueTask<StoreResult<StateMigrationResult>> CommitStateMigrationAsync(
+            CommitStateMigrationCommand command, CancellationToken cancellationToken)
+        {
+            if (command.ExpectedRevision != CommitCount || command.SourceSchemaVersion != State.SchemaVersion)
+                return ValueTask.FromResult(StoreResults.Conflict<StateMigrationResult>("EW3054_STALE_STATE_MIGRATION"));
+            State = command.ReplacementState;
+            CommitCount++;
+            return ValueTask.FromResult(StoreResults.Succeeded(new StateMigrationResult(CommitCount, State.SchemaVersion)));
+        }
     }
 
     private sealed class ModuleArtifacts : IAsyncDisposable
@@ -172,8 +237,13 @@ public sealed class WorkflowModuleLoaderTests
         private static string FindFixtureOutput(
             string repository, string project, string expectedAssembly)
         {
-            var output = Path.Combine(repository, "tests", "Fixtures", project, "bin", "Debug", "net10.0");
-            if (File.Exists(Path.Combine(output, expectedAssembly))) return output;
+            var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name
+                ?? throw new InvalidOperationException("Could not determine the current build configuration.");
+            foreach (var candidate in new[] { configuration, "Debug", "Release" }.Distinct(StringComparer.Ordinal))
+            {
+                var output = Path.Combine(repository, "tests", "Fixtures", project, "bin", candidate, "net10.0");
+                if (File.Exists(Path.Combine(output, expectedAssembly))) return output;
+            }
             throw new FileNotFoundException($"Fixture output '{expectedAssembly}' was not built for '{project}'.");
         }
 

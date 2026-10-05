@@ -42,6 +42,37 @@ public sealed class OracleWorkflowStoreTests
     }
 
     [Fact]
+    public async Task ModuleRemovalAndExplicitStateMigrationAreQualifiedOnOracle()
+    {
+        var fixture = await ResetDatabaseAsync();
+        var artifact = new ModuleArtifactReference(new TechnicalId("fixture.approval"), "1.0.0", new string('a', 64));
+        Assert.Equal(StoreOutcome.Succeeded, (await fixture.Store.ReconcileModuleArtifactsAsync(
+            new ReconcileModuleArtifactsCommand([artifact]), TestContext.Current.CancellationToken)).Outcome);
+        var definition = BuildDefinition(artifact);
+        await fixture.Store.PublishDefinitionAsync(new PublishDefinitionCommand(definition), TestContext.Current.CancellationToken);
+        var started = await fixture.Store.StartInstanceAsync(CreateStartCommand(definition, "migration-request"),
+            TestContext.Current.CancellationToken);
+        var snapshot = await fixture.Store.ReadStateMigrationSnapshotAsync(started.Value!.InstanceId,
+            TestContext.Current.CancellationToken);
+        var migrated = await fixture.Store.CommitStateMigrationAsync(new CommitStateMigrationCommand(
+            started.Value.InstanceId, snapshot.Value!.Revision, 1,
+            WorkflowState.Create("{\"migrated\":true}", 2), artifact,
+            new ActorIdentity(new TechnicalId("local"), "migration-operator")),
+            TestContext.Current.CancellationToken);
+        var removed = await fixture.Store.ReconcileModuleArtifactsAsync(
+            new ReconcileModuleArtifactsCommand([]), TestContext.Current.CancellationToken);
+        var after = await fixture.Store.ReadStateMigrationSnapshotAsync(started.Value.InstanceId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(StoreOutcome.Succeeded, migrated.Outcome);
+        Assert.Equal((1L, 2), (migrated.Value!.Revision, migrated.Value.SchemaVersion));
+        Assert.Equal(2, after.Value!.State.SchemaVersion);
+        Assert.Equal("{\"migrated\":true}", after.Value.State.Value.CanonicalText);
+        Assert.Equal((StoreOutcome.Conflict, "EW3051_REQUIRED_MODULE_ARTIFACT_MISSING"),
+            (removed.Outcome, removed.ErrorCode));
+    }
+
+    [Fact]
     public async Task ConcurrentClaimsHaveOneWinner()
     {
         var fixture = await CreateStartedStoreAsync();
@@ -320,10 +351,11 @@ public sealed class OracleWorkflowStoreTests
         lease.WorkItemId, lease.Token, lease.Generation, lease.InstanceRevision,
         NodeCommitKind.Complete, null, null, null);
 
-    private static WorkflowDefinition BuildDefinition()
+    private static WorkflowDefinition BuildDefinition(ModuleArtifactReference? artifact = null)
     {
-        var compilation = WorkflowBuilder.Create("oracle.contract", 1)
-            .Start("start").End("end").Then("start", "end").Validate();
+        var builder = WorkflowBuilder.Create("oracle.contract", 1);
+        if (artifact is not null) builder.RequiresArtifact(artifact.Id.Value, artifact.Version, artifact.Sha256);
+        var compilation = builder.Start("start").End("end").Then("start", "end").Validate();
         return Assert.IsType<WorkflowDefinition>(compilation.Definition);
     }
 

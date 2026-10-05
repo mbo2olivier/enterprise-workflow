@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Experimental startup contracts implemented by trusted Enterprise Workflow modules.</Description>
+    <Description>Startup contracts implemented by trusted Enterprise Workflow modules.</Description>
     <RootNamespace>EnterpriseWorkflow.Extensions</RootNamespace>
   </PropertyGroup>
   <ItemGroup>

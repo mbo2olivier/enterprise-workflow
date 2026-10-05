@@ -1,6 +1,6 @@
 # Schéma physique SQLite du framework
 
-Statut : schéma workflow L3a à L6 et schéma sécurité L5/L5b séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
+Statut : schéma workflow L3a à L7b et schéma sécurité L5/L5b séparé. Les migrations sécurité appartiennent à `EnterpriseWorkflow.Security.Persistence.Sqlite` et utilisent leur propre historique `__EwSecurityMigrationsHistory`.
 
 Cette page décrit les tables possédées par le framework, leurs relations et leur usage. Elles ne constituent pas une API SQL publique : une application doit passer par `IWorkflowStore` et exécuter les migrations fournies. Une modification directe peut contourner le fencing, l’idempotence, les révisions et l’audit.
 
@@ -37,6 +37,7 @@ erDiagram
 | `EwHumanTaskReceipts` | Déduplication des complétions par tâche et clé | Avec la tâche ; aucune soumission sensible recopiée |
 | `EwTimers` | Attentes temporelles, échéance calculée par l’horloge du store et réveil unique | Avec l’instance |
 | `EwDesignatedAssignments` | Affectations préparées pour un futur nœud désigné | Consommées à l’activation ou supprimées avec l’instance |
+| `EwModuleArtifacts` | Inventaire durable des artefacts exacts réconciliés au démarrage | Tant que configurés ; retrait interdit si une définition les référence |
 | `__EFMigrationsHistory` | Versions de schéma déjà appliquées par EF Core | Pendant toute la vie de la base |
 | `sqlite_sequence` | Compteur interne SQLite utilisé par l’`AUTOINCREMENT` de `EwAudits` | Gérée exclusivement par SQLite |
 
@@ -56,6 +57,17 @@ Une ligne représente une version publiée et immuable d’une définition.
 | `PublishedAtUnixMilliseconds` | `INTEGER` | non | Instant de publication fourni par l’horloge SQLite |
 
 Clé primaire : (`DefinitionId`, `Version`). Une republication avec la même empreinte est idempotente ; une empreinte différente sous la même clé produit un conflit. La suppression est restreinte lorsqu’une instance référence la définition.
+
+## `EwModuleArtifacts`
+
+| Colonne | Type SQLite | Null | Description |
+| --- | --- | --- | --- |
+| `ModuleId` | `TEXT COLLATE BINARY` | non | Identifiant technique du module |
+| `Version` | `TEXT COLLATE BINARY` | non | Version immuable de l’artefact |
+| `Sha256` | `TEXT` | non | Empreinte exacte du manifeste et de tous ses fichiers déclarés |
+| `InstalledAtUnixMilliseconds` | `INTEGER` | non | Première réconciliation réussie selon l’horloge SQLite |
+
+Clé primaire : (`ModuleId`, `Version`). La relation avec `EwDefinitions` est contenue dans le tableau `artifacts` du JSON canonique et volontairement validée par `IWorkflowMaintenanceStore`, sans clé étrangère vers un contenu JSON. La réconciliation est atomique : un hash différent sous la même clé ou l’absence d’un artefact encore référencé provoque un rollback et bloque la readiness.
 
 ## `EwInstances`
 
@@ -175,7 +187,7 @@ Le journal L3a enregistre les mutations critiques dans la même transaction que 
 | --- | --- | --- | --- |
 | `Sequence` | `INTEGER AUTOINCREMENT` | non | Ordre local monotone et clé primaire |
 | `InstanceId` | `TEXT` | non | Instance concernée |
-| `EventType` | `TEXT` | non | `InstanceStarted`, `InstanceRunning`, `NodeCommitted` ou `InstanceCancelled` en L3a |
+| `EventType` | `TEXT` | non | Type de mutation, notamment `InstanceStarted`, `NodeCommitted`, `InstanceCancelled` ou `StateMigrated` |
 | `Revision` | `INTEGER` | non | Révision d’instance associée à l’événement |
 | `OccurredAtUnixMilliseconds` | `INTEGER` | non | Instant fourni par l’horloge SQLite |
 | `ActorProviderId` | `TEXT COLLATE BINARY` | oui | Fournisseur de l’acteur lorsqu’il existe |
@@ -278,7 +290,7 @@ EF Core crée et maintient cette table technique lors de `SqliteWorkflowDatabase
 | `MigrationId` | `TEXT` | non | Identifiant unique et ordonné de la migration appliquée |
 | `ProductVersion` | `TEXT` | non | Version EF Core ayant produit la migration |
 
-Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations workflow enregistrées sont `202610010001_InitialSqlite`, `202610030002_AddOutbox` et `202610040003_AddHumanTasksAndTimers`; l’historique sécurité contient `202610030004_InitialSecuritySqlite` et `202610040006_WorkflowAccessSqlite`. Ces tables ne doivent pas être éditées ou supprimées manuellement.
+Le store n’appelle jamais les migrations automatiquement. La racine de composition doit les appliquer avant de déclarer le service prêt. Les migrations workflow enregistrées sont `202610010001_InitialSqlite`, `202610030002_AddOutbox`, `202610040003_AddHumanTasksAndTimers` et `202610050004_AddModuleArtifacts`; l’historique sécurité contient `202610030004_InitialSecuritySqlite` et `202610040006_WorkflowAccessSqlite`. Ces tables ne doivent pas être éditées ou supprimées manuellement.
 
 ## Table interne `sqlite_sequence`
 
@@ -300,6 +312,8 @@ SQLite crée cette table système parce que `EwAudits.Sequence` utilise `AUTOINC
 | `CompleteHumanTaskAsync` | tâche, reçu, instance, activation | clôture, état, suite, affectations préparées, outbox, reçu et audit |
 | `ReadOpenHumanTasksAsync` | tâches et instances | aucune ; page stable bornée avant filtrage d’autorisation |
 | `FireNextDueTimerAsync` | timer, instance et activation | timer tiré, suite, révision et audit |
+| `ReconcileModuleArtifactsAsync` | définitions canoniques et `EwModuleArtifacts` | ajout/retrait cohérent dans `EwModuleArtifacts`, ou rollback si un artefact requis manque |
+| `CommitStateMigrationAsync` | instance, définition et baux actifs | état/schéma, révision et audit `StateMigrated` sous compare-and-swap |
 
 Toutes ces mutations utilisent une transaction d’écriture SQLite courte. Une condition de bail, de statut ou de révision non satisfaite provoque un rollback sans écriture partielle.
 

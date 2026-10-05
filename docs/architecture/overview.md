@@ -46,7 +46,7 @@ Préfixe de travail `EnterpriseWorkflow.*`, sans réservation NuGet. Les projets
 | Persistence.Sqlite | Mapping EF Core intégrable, contexte dédié, SQL/conversions et migrations SQLite | Persistence.Abstractions |
 | Persistence.Oracle | Mapping, SQL, conversions et migrations éprouvés sur Oracle Free et Enterprise 19.19 en L3b | Persistence.Abstractions |
 | AspNetCore | HTTP, DI, sessions, worker hébergé | Application, Runtime et contrats d’intégration |
-| PluginSystem | Manifestes, compatibilité, résolution des modules | Contrats purs et contrats DI dédiés |
+| PluginSystem | Manifestes, compatibilité, résolution des modules, inventaire et migrations d’état | Contrats DI dédiés, Runtime et Persistence.Abstractions |
 | UI / Administration | Formulaires, pages métier et administration | Application et contrats UI/sécurité |
 | Host | Racine de composition | Intégrations et adaptateurs sélectionnés |
 | Cli / Templates | Scaffolding, validation et packaging | Sdk, validateur, packaging |

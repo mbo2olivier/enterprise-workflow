@@ -17,6 +17,7 @@ public sealed class OracleWorkflowDbContext(DbContextOptions<OracleWorkflowDbCon
     internal DbSet<HumanTaskReceiptRow> HumanTaskReceipts => Set<HumanTaskReceiptRow>();
     internal DbSet<TimerRow> Timers => Set<TimerRow>();
     internal DbSet<DesignatedAssignmentRow> DesignatedAssignments => Set<DesignatedAssignmentRow>();
+    internal DbSet<ModuleArtifactRow> ModuleArtifacts => Set<ModuleArtifactRow>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.ConfigureEnterpriseWorkflowOracle();
@@ -40,6 +41,7 @@ public static class OracleWorkflowModelBuilderExtensions
         ConfigureHumanTaskReceipt(modelBuilder);
         ConfigureTimer(modelBuilder);
         ConfigureDesignatedAssignment(modelBuilder);
+        ConfigureModuleArtifact(modelBuilder);
         return modelBuilder;
     }
 
@@ -271,6 +273,17 @@ public static class OracleWorkflowModelBuilderExtensions
         entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("FK_EW_DA_INSTANCE");
     }
 
+    private static void ConfigureModuleArtifact(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<ModuleArtifactRow>();
+        entity.ToTable("EW_MODULE_ARTIFACTS");
+        entity.HasKey(row => new { row.ModuleId, row.Version }).HasName("PK_EW_MODULE_ARTIFACTS");
+        Text(entity.Property(row => row.ModuleId), "MODULE_ID", 128);
+        Text(entity.Property(row => row.Version), "MODULE_VERSION", 128);
+        Text(entity.Property(row => row.Sha256), "SHA256", 64, true);
+        Number19(entity.Property(row => row.InstalledAtUnixMilliseconds), "INSTALLED_AT_MS");
+    }
+
     private static void Text<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<T> property, string name, int length, bool fixedLength = false)
     {
         property.HasColumnName(name).HasMaxLength(length).IsUnicode(false)
@@ -289,6 +302,14 @@ internal sealed class DefinitionRow
     public int SchemaVersion { get; set; }
     public required string CanonicalJson { get; set; }
     public long PublishedAtUnixMilliseconds { get; set; }
+}
+
+internal sealed class ModuleArtifactRow
+{
+    public required string ModuleId { get; set; }
+    public required string Version { get; set; }
+    public required string Sha256 { get; set; }
+    public long InstalledAtUnixMilliseconds { get; set; }
 }
 
 internal sealed class InstanceRow

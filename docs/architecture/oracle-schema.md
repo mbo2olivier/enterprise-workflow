@@ -1,6 +1,6 @@
 # Schéma physique Oracle du framework
 
-Statut : schéma workflow L3b à L6 et schéma sécurité L5/L5b séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
+Statut : schéma workflow L3b à L7b et schéma sécurité L5/L5b séparé, qualifiés sur Oracle Database Enterprise 19.19. L’historique sécurité est `EW_SECURITY_MIGRATIONS`.
 
 Les tables appartiennent au schéma Oracle configuré dans la chaîne de connexion. Elles ne sont pas une API SQL publique : les mutations passent par `IWorkflowStore`, afin de préserver transactions, révisions, idempotence et fencing.
 
@@ -36,6 +36,17 @@ erDiagram
 | `PUBLISHED_AT_MS` | `NUMBER(19)` | non | Publication en millisecondes Unix UTC |
 
 Clé primaire : (`DEFINITION_ID`, `VERSION`). Une instance interdit la suppression de sa définition.
+
+### `EW_MODULE_ARTIFACTS`
+
+| Colonne | Type Oracle | Null | Rôle |
+| --- | --- | --- | --- |
+| `MODULE_ID` | `VARCHAR2(128 CHAR)` | non | Identifiant technique ordinal du module |
+| `MODULE_VERSION` | `VARCHAR2(128 CHAR)` | non | Version immuable |
+| `SHA256` | `CHAR(64 CHAR)` | non | Empreinte exacte de l’artefact |
+| `INSTALLED_AT_MS` | `NUMBER(19)` | non | Première réconciliation réussie selon l’horloge Oracle |
+
+Clé primaire : (`MODULE_ID`, `MODULE_VERSION`). Les références sont lues dans le JSON canonique de `EW_DEFINITIONS`. La réconciliation du Kernel conserve la transaction entière si un hash est remplacé ou si un artefact encore référencé disparaît. Une migration d’état verrouille l’instance, vérifie révision, schéma source et absence de bail actif, puis met à jour l’état et ajoute `StateMigrated` dans `EW_AUDITS` atomiquement.
 
 ### `EW_INSTANCES`
 
@@ -181,7 +192,7 @@ La migration `202610040007_WorkflowAccessOracle` ajoute les deux tables L5b. `Ew
 
 ## Table de migrations
 
-Oracle EF Core maintient `__EFMigrationsHistory`. Les migrations sont `202610010002_InitialOracle`, `202610030003_AddOutbox` et `202610040004_AddHumanTasksAndTimers`. `OracleWorkflowDatabase.MigrateAsync` doit être exécuté explicitement avec un compte autorisé à créer les objets ; le store ne lance aucune migration automatiquement.
+Oracle EF Core maintient `__EFMigrationsHistory`. Les migrations sont `202610010002_InitialOracle`, `202610030003_AddOutbox`, `202610040004_AddHumanTasksAndTimers` et `202610050005_AddModuleArtifacts`. `OracleWorkflowDatabase.MigrateAsync` doit être exécuté explicitement avec un compte autorisé à créer les objets ; le store ne lance aucune migration automatiquement.
 
 ## Propriété et privilèges
 

@@ -4,7 +4,7 @@ Date d’exécution : 3 octobre 2026. Environnement local : macOS ARM64, SDK .NE
 
 ## Décisions mises en œuvre
 
-L’ADR 0015 consigne les choix acceptés 1A à 5A et 6A : snapshot atomique au claim, configuration complète des paramètres, exceptions inattendues permanentes, intentions d’effets atomiques, conservation de version d’état et dead letter après erreur permanente ou tentatives épuisées. Le plan contient G1a pour attente/callback et G3a pour les migrations de schéma d’état.
+L’ADR 0015 consigne les choix acceptés 1A à 5A et 6A : snapshot atomique au claim, configuration complète des paramètres, exceptions inattendues permanentes, intentions d’effets atomiques, conservation de version d’état et dead letter après erreur permanente ou tentatives épuisées. Le plan contient G1a pour attente/callback et G3-M (anciennement G3a) pour les migrations de schéma d’état.
 
 ## Livrables vérifiés
 
@@ -49,4 +49,4 @@ Le test runtime abandonne un bail outbox après que le faux destinataire a appli
 - le dispatcher ne renouvelle pas son bail pendant un appel externe : l’entreprise doit dimensionner `OutboxLeaseDuration` au-dessus du timeout de son transport ; une livraison longue peut être redélivrée et doit rester idempotente ;
 - aucun mécanisme de rejeu administratif d’un message `Failed` n’est livré ; il devra être explicite, autorisé et audité ;
 - l’outbox ne modélise pas une réponse distante nécessaire à la suite du workflow ; décision reportée à G1a ;
-- aucune migration de `WorkflowState.SchemaVersion` n’est implicite ; décision reportée à G3a.
+- aucune migration de `WorkflowState.SchemaVersion` n’est implicite ; décision ensuite franchie par G3-M/M1-A en L7b.

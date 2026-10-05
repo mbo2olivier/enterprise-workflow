@@ -11,6 +11,8 @@ public sealed class ApprovalModule : IWorkflowModule
 
     public void ConfigureHandlers(WorkflowHandlerRegistryBuilder handlers) =>
         handlers.AddHumanTask<ApprovalHandler>("fixture.approval", 2);
+
+    public void ConfigureStateMigrations(WorkflowStateMigrationRegistryBuilder migrations) { }
 }
 
 public sealed class ApprovalHandler : IHumanTaskCompletionHandler

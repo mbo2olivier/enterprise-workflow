@@ -2,15 +2,15 @@
 
 Date : 30 septembre 2026.
 
-**Statut : Proposée — choix coexistence/drainage encore ouvert.**
+**Statut : Acceptée — G3-A, coexistence nominale.**
 
 ## Contexte
 
 Les workflows peuvent attendre longtemps ; remplacer une DLL peut changer le comportement d’une instance active.
 
-## Décision ou proposition
+## Décision
 
-Lier instance, définition et artefact exacts. Tester tôt la coexistence par module/version ; si elle échoue, bloquer les remplacements incompatibles et préparer un drainage explicite. Ne pas considérer ce repli comme une coexistence réalisée. Tout module configuré incompatible bloque la readiness.
+Lier instance, définition et artefact exacts. Conserver côte à côte les versions requises par les définitions, les instances et la restauration. Activer les changements uniquement au redémarrage et bloquer le retrait d'une version encore référencée. Le drainage reste une opération explicite possible, pas le modèle nominal. Tout module configuré incompatible bloque la readiness.
 
 ## Options considérées
 
@@ -22,4 +22,4 @@ Rétention des artefacts, résolution de DI par version et assets UI à tester. 
 
 ## Validation attendue
 
-Versions A/B avec dépendance privée, ancienne instance en attente, retrait interdit, hash modifié, restauration et ressources Razor. Le résultat du prototype doit clore Q07 avant loader définitif.
+Versions A/B avec dépendance privée, ancienne instance en attente, retrait interdit, hash modifié, restauration et ressources Razor. Le prototype L7a a validé la coexistence ; L7b doit maintenant qualifier la rétention et le retrait bloqué.

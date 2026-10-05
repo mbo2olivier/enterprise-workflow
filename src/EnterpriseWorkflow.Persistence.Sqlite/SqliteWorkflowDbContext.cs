@@ -23,6 +23,7 @@ public sealed class SqliteWorkflowDbContext(DbContextOptions<SqliteWorkflowDbCon
     internal DbSet<HumanTaskReceiptRow> HumanTaskReceipts => Set<HumanTaskReceiptRow>();
     internal DbSet<TimerRow> Timers => Set<TimerRow>();
     internal DbSet<DesignatedAssignmentRow> DesignatedAssignments => Set<DesignatedAssignmentRow>();
+    internal DbSet<ModuleArtifactRow> ModuleArtifacts => Set<ModuleArtifactRow>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
@@ -48,6 +49,7 @@ public static class SqliteWorkflowModelBuilderExtensions
         ConfigureHumanTaskReceipt(modelBuilder);
         ConfigureTimer(modelBuilder);
         ConfigureDesignatedAssignment(modelBuilder);
+        ConfigureModuleArtifact(modelBuilder);
         return modelBuilder;
     }
 
@@ -223,6 +225,16 @@ public static class SqliteWorkflowModelBuilderExtensions
         entity.Property(row => row.AssigneeSubjectId).HasMaxLength(512).UseCollation("BINARY");
         entity.HasOne<InstanceRow>().WithMany().HasForeignKey(row => row.InstanceId).OnDelete(DeleteBehavior.Cascade);
     }
+
+    private static void ConfigureModuleArtifact(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<ModuleArtifactRow>();
+        entity.ToTable("EwModuleArtifacts");
+        entity.HasKey(row => new { row.ModuleId, row.Version });
+        entity.Property(row => row.ModuleId).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.Version).HasMaxLength(128).UseCollation("BINARY");
+        entity.Property(row => row.Sha256).HasMaxLength(64).IsRequired();
+    }
 }
 
 internal sealed class DefinitionRow
@@ -233,6 +245,14 @@ internal sealed class DefinitionRow
     public int SchemaVersion { get; set; }
     public required string CanonicalJson { get; set; }
     public long PublishedAtUnixMilliseconds { get; set; }
+}
+
+internal sealed class ModuleArtifactRow
+{
+    public required string ModuleId { get; set; }
+    public required string Version { get; set; }
+    public required string Sha256 { get; set; }
+    public long InstalledAtUnixMilliseconds { get; set; }
 }
 
 internal sealed class InstanceRow

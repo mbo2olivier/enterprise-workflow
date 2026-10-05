@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components;
 namespace EnterpriseWorkflow.Extensions;
 
 /// <summary>
-/// Experimental startup-only catalog. Each configured artifact is loaded once into a dedicated,
+/// Startup-only catalog. Each configured artifact is loaded once into a dedicated,
 /// non-collectible context and retained until process exit.
 /// </summary>
 public sealed class WorkflowModuleCatalog
