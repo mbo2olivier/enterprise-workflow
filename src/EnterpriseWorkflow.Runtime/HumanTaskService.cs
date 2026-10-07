@@ -21,6 +21,9 @@ public sealed record HumanTaskCommandResult(
 /// <summary>Authorization-filtered inbox page.</summary>
 public sealed record HumanTaskInboxPage(IReadOnlyList<OpenHumanTask> Tasks, HumanTaskCursor? Next, int Scanned);
 
+/// <summary>Authorized server-side task snapshot for application services.</summary>
+public sealed record HumanTaskReadResult(bool Succeeded, HumanTaskSnapshot? Snapshot, string? ErrorCode = null);
+
 /// <summary>Authenticated application boundary for task assignment, claim, completion and inbox reads.</summary>
 public interface IHumanTaskService
 {
@@ -34,6 +37,8 @@ public interface IHumanTaskService
         IdentityReference actor, WorkflowActionId action, TechnicalId idempotencyKey,
         CanonicalJson submission, CancellationToken cancellationToken);
     ValueTask<HumanTaskInboxPage> ReadInboxAsync(IdentityReference actor, HumanTaskCursor? after,
+        CancellationToken cancellationToken);
+    ValueTask<HumanTaskReadResult> ReadAsync(HumanTaskId taskId, IdentityReference actor,
         CancellationToken cancellationToken);
 }
 
@@ -184,6 +189,22 @@ internal sealed class HumanTaskService(
         }
 
         return new HumanTaskInboxPage(accepted, cursor, scanned);
+    }
+
+    public async ValueTask<HumanTaskReadResult> ReadAsync(
+        HumanTaskId taskId,
+        IdentityReference actor,
+        CancellationToken cancellationToken)
+    {
+        var result = await store.GetHumanTaskAsync(taskId, cancellationToken).ConfigureAwait(false);
+        if (result.Outcome is not StoreOutcome.Succeeded || result.Value is null)
+            return new(false, null, result.ErrorCode ?? "runtime.human-task-not-found");
+        var snapshot = result.Value;
+        var exactAssignee = snapshot.Assignee is not null && IsSame(snapshot.Assignee, ToActor(actor));
+        if (!await IsAllowedAsync(actor, snapshot, WorkflowActions.ReadTask, cancellationToken).ConfigureAwait(false) ||
+            (!exactAssignee && !await HasAnyTaskActionAsync(actor, snapshot, cancellationToken).ConfigureAwait(false)))
+            return new(false, null, "security.task-read-denied");
+        return new(true, snapshot);
     }
 
     private async ValueTask<(HumanTaskSnapshot? Snapshot, HumanTaskCommandResult? Error)> LoadAsync(

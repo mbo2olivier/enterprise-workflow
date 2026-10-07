@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <Description>Integrated Enterprise Workflow Kernel and Blazor Web App.</Description>
+    <RootNamespace>EnterpriseWorkflow.Kernel</RootNamespace>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Presentation/EnterpriseWorkflow.Presentation.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Security.Persistence.Oracle/EnterpriseWorkflow.Security.Persistence.Oracle.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Web/EnterpriseWorkflow.Web.csproj" />
+  </ItemGroup>
+</Project>

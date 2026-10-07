@@ -2,6 +2,7 @@ using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Extensions;
 using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Runtime;
+using EnterpriseWorkflow.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EnterpriseWorkflow.Fixtures.ApprovalModule;
@@ -15,6 +16,8 @@ public sealed class ApprovalModule : IWorkflowModule
 
     public void ConfigureStateMigrations(WorkflowStateMigrationRegistryBuilder migrations) =>
         migrations.Add<ApprovalStateMigrator>(1, 2).Add<FailingStateMigrator>(2, 3);
+
+    public void ConfigurePresentation(WorkflowPresentationRegistryBuilder presentation) { }
 }
 
 public sealed class FailingStateMigrator : IWorkflowStateMigrator

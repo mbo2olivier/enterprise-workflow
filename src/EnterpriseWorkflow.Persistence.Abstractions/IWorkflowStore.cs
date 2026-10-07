@@ -17,6 +17,11 @@ public interface IWorkflowStore
         StartInstanceCommand command,
         CancellationToken cancellationToken);
 
+    /// <summary>Reads a bounded recent list owned by one exact initiator without returning raw state.</summary>
+    ValueTask<StoreResult<IReadOnlyList<WorkflowInstanceSummary>>> ReadWorkflowInstancesAsync(
+        ReadWorkflowInstancesCommand command,
+        CancellationToken cancellationToken);
+
     /// <summary>Claims at most one due work item and advances its fencing generation atomically.</summary>
     ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(
         ClaimDueWorkCommand command,

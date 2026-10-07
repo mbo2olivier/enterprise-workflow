@@ -26,4 +26,8 @@ Date : 5 octobre 2026. Décisions G3-A, M1-A et M2-A consignées dans l'[ADR 002
 
 Le conteneur officiel `container-registry.oracle.com/database/enterprise:19.19.0.0` est actif et sain. Après remise en cohérence et déverrouillage du compte de test jetable `EWTEST`, la suite Oracle Release réussit **12/12 tests**. Le scénario L7b qualifie sur le vrai provider l’application de la migration `202610050005_AddModuleArtifacts`, l’inventaire, le retrait référencé bloqué et la migration d’état 1 → 2. Le secret du conteneur a été utilisé en mémoire avec autorisation ponctuelle, sans affichage ni stockage.
 
-L7b satisfait donc son critère de sortie local sur les deux providers prioritaires. La matrice GitHub Actions reste la confirmation distante multi-OS des tests sans Oracle.
+L7b satisfait donc son critère de sortie local sur les deux providers prioritaires. La qualification distante multi-OS est consignée ci-dessous.
+
+## Qualification GitHub Actions acquise
+
+Le 5 octobre 2026, le porteur confirme la réussite de la matrice Linux/macOS/Windows. Sous Windows, les DLL chargées par les contextes non collectables restent verrouillées jusqu'à la fin du processus ; la fixture tolère uniquement ce verrouillage attendu lors du nettoyage de son staging temporaire. Après cette correction, la suite multi-OS confirme L7a et L7b.

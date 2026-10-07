@@ -35,4 +35,11 @@ public sealed class OracleWorkflowDatabase
         await using var context = CreateDbContext();
         await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Lists migrations that would be applied without changing the database.</summary>
+    public async Task<IReadOnlyList<string>> GetPendingMigrationsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var context = CreateDbContext();
+        return (await context.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
+    }
 }

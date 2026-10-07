@@ -15,4 +15,5 @@ public sealed class SqliteSecurityDatabase
     public SecurityDbContext CreateDbContext() => new(_options);
     public RelationalSecurityStore CreateStore(TimeProvider? timeProvider = null) => new(CreateDbContext, timeProvider ?? TimeProvider.System);
     public async Task MigrateAsync(CancellationToken cancellationToken = default) { await using var db = CreateDbContext(); await db.Database.MigrateAsync(cancellationToken); }
+    public async Task<IReadOnlyList<string>> GetPendingMigrationsAsync(CancellationToken cancellationToken = default) { await using var db = CreateDbContext(); return (await db.Database.GetPendingMigrationsAsync(cancellationToken)).ToArray(); }
 }

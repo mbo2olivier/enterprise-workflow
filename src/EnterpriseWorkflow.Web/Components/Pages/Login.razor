@@ -1,0 +1,29 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@layout LoginLayout
+
+<PageTitle>Connexion · Enterprise Workflow</PageTitle>
+<main class="login-page">
+    <section class="login-panel panel">
+        <span class="brand-mark login-brand">✦</span>
+        <p class="eyebrow">Enterprise Workflow</p>
+        <h1>Se connecter</h1>
+        <p>Utilisez les identifiants du fournisseur configuré pour cette installation.</p>
+        @if (!string.IsNullOrWhiteSpace(Error))
+        {
+            <div class="form-error" role="alert">Identifiants invalides ou fournisseur indisponible.</div>
+        }
+        <form method="post" action="/auth/login" class="request-form login-form">
+            <AntiforgeryToken />
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+            <label>Identifiant<input name="userName" autocomplete="username" required autofocus /></label>
+            <label>Mot de passe<input name="password" type="password" autocomplete="current-password" required /></label>
+            <button class="primary-button" type="submit">Se connecter</button>
+        </form>
+    </section>
+</main>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+}

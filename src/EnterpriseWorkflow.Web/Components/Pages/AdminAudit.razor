@@ -1,0 +1,22 @@
+@page "/admin/audit"
+@attribute [Authorize]
+@inject ISecurityProfileStore Profiles
+@inject IAuthorizationProvider Authorization
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>Audit · Enterprise Workflow</PageTitle>
+<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Audit de sécurité</h1><p>Les opérations critiques sont présentées dans l’ordre antéchronologique.</p></div>
+@if (!_allowed) { <section class="panel empty-state"><h2>Accès refusé</h2><p>La permission de lecture de l’audit est requise.</p></section> }
+else { <section class="panel data-panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Acteur</th><th>Action</th><th>Cible</th><th>Résultat</th></tr></thead><tbody>@foreach (var entry in _entries) { <tr><td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td><td>@entry.Actor.ProviderId / @entry.Actor.SubjectId</td><td>@entry.Action</td><td><code>@entry.Target</code></td><td><span class="status success">@entry.Outcome</span></td></tr> }</tbody></table></div></section> }
+</div>
+
+@code {
+    private bool _allowed;
+    private IReadOnlyList<SecurityAuditEntry> _entries = [];
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _allowed = (await Authorization.AuthorizeAsync(new(actor, WorkflowPermissions.ReadAudit), CancellationToken.None)).Allowed;
+        if (_allowed) _entries = await Profiles.ReadAuditAsync(250, CancellationToken.None);
+    }
+}

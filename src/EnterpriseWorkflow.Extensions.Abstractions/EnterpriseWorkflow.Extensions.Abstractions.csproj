@@ -4,6 +4,7 @@
     <RootNamespace>EnterpriseWorkflow.Extensions</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Presentation.Abstractions/EnterpriseWorkflow.Presentation.Abstractions.csproj" />
     <ProjectReference Include="../EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
   </ItemGroup>
   <ItemGroup>

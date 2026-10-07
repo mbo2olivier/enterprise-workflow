@@ -1,0 +1,17 @@
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(PortalLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="typeof(PortalLayout)">
+                <div class="content content-small empty-state"><h1>Page introuvable</h1><a class="primary-button" href="/">Retour à l’accueil</a></div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

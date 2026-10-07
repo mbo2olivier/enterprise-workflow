@@ -39,6 +39,12 @@ public sealed class SqliteWorkflowStoreTests
         Assert.Equal(StoreOutcome.Idempotent, repeatedPublication.Outcome);
         Assert.Equal(StoreOutcome.Succeeded, started.Outcome);
         Assert.True(started.Value!.WasCreated);
+        var owned = await reopenedStore.ReadWorkflowInstancesAsync(new(command.Scope.Actor, 10), TestContext.Current.CancellationToken);
+        Assert.Equal(started.Value.InstanceId, Assert.Single(owned.Value!).InstanceId);
+        Assert.Empty((await reopenedStore.ReadWorkflowInstancesAsync(new(
+            new(new("local"), "another-subject"), 10), TestContext.Current.CancellationToken)).Value!);
+        Assert.Equal(StoreOutcome.Conflict, (await reopenedStore.ReadWorkflowInstancesAsync(new(command.Scope.Actor, 0),
+            TestContext.Current.CancellationToken)).Outcome);
         Assert.Equal(StoreOutcome.Idempotent, repeatedStart.Outcome);
         Assert.False(repeatedStart.Value!.WasCreated);
         Assert.Equal(started.Value.InstanceId, repeatedStart.Value.InstanceId);

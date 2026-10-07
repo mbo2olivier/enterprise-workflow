@@ -4,13 +4,61 @@ using System.Text;
 
 namespace EnterpriseWorkflow.Security.Persistence;
 
-public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore, IWorkflowAccessStore
+public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore, IWorkflowAccessStore, IPresentationSettingsStore
 {
+    public async ValueTask<ProviderResult<IReadOnlyList<SecurityProfile>>> ListProfilesAsync(int maximumResults, CancellationToken cancellationToken)
+    {
+        await using var db = createContext();
+        var rows = await db.Profiles.OrderBy(x => x.DisplayName).ThenBy(x => x.Id)
+            .Take(Math.Clamp(maximumResults, 1, 500)).ToListAsync(cancellationToken);
+        var ids = rows.Select(x => x.Id).ToArray();
+        var permissions = await db.Permissions.Where(x => ids.Contains(x.ProfileId)).ToListAsync(cancellationToken);
+        IReadOnlyList<SecurityProfile> profiles = rows.Select(row => new SecurityProfile(
+            row.Id,
+            row.DisplayName,
+            permissions.Where(item => item.ProfileId == row.Id).Select(item => new PermissionId(item.PermissionId)).ToHashSet(),
+            row.GrantsAdministrativeAccess)).ToList();
+        return new(ProviderOutcome.Succeeded, profiles);
+    }
+
+    public async ValueTask<ProviderResult<IReadOnlyList<SecurityIdentityProfileAssignment>>> ListIdentityAssignmentsAsync(int maximumResults, CancellationToken cancellationToken)
+    {
+        await using var db = createContext();
+        var rows = await db.IdentityProfiles
+            .OrderBy(x => x.ProviderId).ThenBy(x => x.SubjectId).ThenBy(x => x.ProfileId)
+            .Take(Math.Clamp(maximumResults, 1, 1000))
+            .ToListAsync(cancellationToken);
+        IReadOnlyList<SecurityIdentityProfileAssignment> assignments = rows
+            .Select(x => new SecurityIdentityProfileAssignment(new(x.ProviderId, x.SubjectId), x.ProfileId)).ToList();
+        return new(ProviderOutcome.Succeeded, assignments);
+    }
+
+    public async ValueTask<ProviderResult<IReadOnlyList<SecurityGroupProfileMapping>>> ListGroupMappingsAsync(int maximumResults, CancellationToken cancellationToken)
+    {
+        await using var db = createContext();
+        var rows = await db.GroupProfiles
+            .OrderBy(x => x.ProviderId).ThenBy(x => x.GroupId).ThenBy(x => x.ProfileId)
+            .Take(Math.Clamp(maximumResults, 1, 1000))
+            .ToListAsync(cancellationToken);
+        IReadOnlyList<SecurityGroupProfileMapping> mappings = rows
+            .Select(x => new SecurityGroupProfileMapping(new(x.ProviderId, x.GroupId), x.ProfileId)).ToList();
+        return new(ProviderOutcome.Succeeded, mappings);
+    }
+
     public async ValueTask<ProviderResult<SecurityProfile>> UpsertProfileAsync(SecurityProfile profile, IdentityReference actor, CancellationToken cancellationToken)
     {
         await using var db = createContext();
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
         var row = await db.Profiles.FindAsync([profile.Id], cancellationToken);
+        if (profile.GrantsAdministrativeAccess && !profile.Permissions.Contains(WorkflowPermissions.ManageAccess))
+            return new(ProviderOutcome.Conflict, ErrorCode: "security.invalid-administrator-profile");
+        if (row?.GrantsAdministrativeAccess is true &&
+            (!profile.GrantsAdministrativeAccess || !profile.Permissions.Contains(WorkflowPermissions.ManageAccess)) &&
+            !await db.IdentityProfiles.AnyAsync(x => x.ProfileId != profile.Id &&
+                db.Profiles.Any(p => p.Id == x.ProfileId && p.GrantsAdministrativeAccess) &&
+                (x.ProviderId != SecurityProviderIds.Local || db.LocalAccounts.Any(a => a.SubjectId == x.SubjectId && a.Enabled)),
+                cancellationToken))
+            return new(ProviderOutcome.Conflict, ErrorCode: "security.last-administrator");
         if (row is null) db.Profiles.Add(new ProfileRow { Id = profile.Id, DisplayName = profile.DisplayName, GrantsAdministrativeAccess = profile.GrantsAdministrativeAccess });
         else { row.DisplayName = profile.DisplayName; row.GrantsAdministrativeAccess = profile.GrantsAdministrativeAccess; }
         await db.Permissions.Where(x => x.ProfileId == profile.Id).ExecuteDeleteAsync(cancellationToken);
@@ -64,6 +112,39 @@ public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContex
         await using var db = createContext();
         return await db.Audit.OrderByDescending(x => x.OccurredAtUnixMilliseconds).Take(Math.Clamp(maximumResults, 1, 1000))
             .Select(x => new SecurityAuditEntry(DateTimeOffset.FromUnixTimeMilliseconds(x.OccurredAtUnixMilliseconds), new IdentityReference(x.ActorProviderId, x.ActorSubjectId), x.Action, x.Target, x.Outcome)).ToListAsync(cancellationToken);
+    }
+
+    public async ValueTask<ProviderResult<PresentationSettings>> ReadAsync(CancellationToken cancellationToken)
+    {
+        await using var db = createContext();
+        var row = await db.PresentationSettings.AsNoTracking().SingleOrDefaultAsync(x => x.Id == "global", cancellationToken);
+        return new(ProviderOutcome.Succeeded, row is null ? PresentationSettings.Default : ToSettings(row));
+    }
+
+    public async ValueTask<ProviderResult<PresentationSettings>> UpdateAsync(
+        PresentationSettings settings, IdentityReference actor, CancellationToken cancellationToken)
+    {
+        if (!ValidSettings(settings)) return new(ProviderOutcome.Conflict, ErrorCode: "presentation.settings-invalid");
+        await using var db = createContext();
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        var row = await db.PresentationSettings.FindAsync(["global"], cancellationToken);
+        if (row is null)
+        {
+            if (settings.Revision != 0) return new(ProviderOutcome.Conflict, ErrorCode: "presentation.settings-stale");
+            row = new() { Id = "global", DisplayName = settings.DisplayName, LogoResourcePath = settings.LogoResourcePath,
+                AccentColor = settings.AccentColor, TimeZoneId = settings.TimeZoneId, Culture = settings.Culture, Revision = 1 };
+            db.PresentationSettings.Add(row);
+        }
+        else
+        {
+            if (row.Revision != settings.Revision) return new(ProviderOutcome.Conflict, ErrorCode: "presentation.settings-stale");
+            row.DisplayName = settings.DisplayName; row.LogoResourcePath = settings.LogoResourcePath;
+            row.AccentColor = settings.AccentColor; row.TimeZoneId = settings.TimeZoneId; row.Culture = settings.Culture;
+            row.Revision++;
+        }
+        AddAudit(db, actor, "presentation.settings.update", $"global:revision:{row.Revision}", "succeeded");
+        await db.SaveChangesAsync(cancellationToken); await tx.CommitAsync(cancellationToken);
+        return new(ProviderOutcome.Succeeded, ToSettings(row));
     }
 
     public async ValueTask<ProviderResult<WorkflowAccessGrant>> GrantAsync(WorkflowAccessGrant grant, IdentityReference actor, CancellationToken cancellationToken)
@@ -129,6 +210,7 @@ public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContex
         return new(ProviderOutcome.Succeeded, new WorkflowAccessEvaluation(allowed, revision));
     }
 
+    public async ValueTask<ProviderResult<IReadOnlyList<LocalAccount>>> ListAsync(int maximumResults, CancellationToken cancellationToken) { await using var db = createContext(); var rows = await db.LocalAccounts.OrderBy(x => x.NormalizedUserName).Take(Math.Clamp(maximumResults, 1, 500)).ToListAsync(cancellationToken); IReadOnlyList<LocalAccount> accounts = rows.Select(ToAccount).ToList(); return new(ProviderOutcome.Succeeded, accounts); }
     public async ValueTask<ProviderResult<LocalAccount>> FindByNormalizedNameAsync(string normalizedUserName, CancellationToken cancellationToken) { await using var db = createContext(); var row = await db.LocalAccounts.SingleOrDefaultAsync(x => x.NormalizedUserName == normalizedUserName, cancellationToken); return row is null ? new(ProviderOutcome.NotFound) : new(ProviderOutcome.Succeeded, ToAccount(row)); }
     public async ValueTask<ProviderResult<LocalAccount>> FindByIdentityAsync(IdentityReference identity, CancellationToken cancellationToken) { if (identity.ProviderId != SecurityProviderIds.Local) return new(ProviderOutcome.NotFound); await using var db = createContext(); var row = await db.LocalAccounts.FindAsync([identity.SubjectId], cancellationToken); return row is null ? new(ProviderOutcome.NotFound) : new(ProviderOutcome.Succeeded, ToAccount(row)); }
     public async ValueTask<ProviderResult<LocalAccount>> CreateAsync(LocalAccount account, IdentityReference actor, CancellationToken cancellationToken) { await using var db = createContext(); if (await db.LocalAccounts.AnyAsync(x => x.SubjectId == account.Identity.SubjectId || x.NormalizedUserName == account.NormalizedUserName, cancellationToken)) return new(ProviderOutcome.Conflict, ErrorCode: "security.account-exists"); db.LocalAccounts.Add(ToRow(account)); AddAudit(db, actor, "security.account.create", account.Identity.SubjectId, "succeeded"); await db.SaveChangesAsync(cancellationToken); return new(ProviderOutcome.Succeeded, account); }
@@ -200,4 +282,20 @@ public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContex
     private static LocalAccountRow ToRow(LocalAccount x) => new() { SubjectId = x.Identity.SubjectId, UserName = x.UserName, NormalizedUserName = x.NormalizedUserName, PasswordHash = x.PasswordHash, Enabled = x.Enabled, FailedAccessCount = x.FailedAccessCount, LockoutEndUnixMilliseconds = x.LockoutEndUtc?.ToUnixTimeMilliseconds(), Revision = x.Revision };
     private static SecuritySession ToSession(SessionRow x) => new(x.TokenDigest, new(x.ProviderId, x.SubjectId), DateTimeOffset.FromUnixTimeMilliseconds(x.CreatedAtUnixMilliseconds), DateTimeOffset.FromUnixTimeMilliseconds(x.LastSeenAtUnixMilliseconds), DateTimeOffset.FromUnixTimeMilliseconds(x.ExpiresAtUnixMilliseconds), DateTimeOffset.FromUnixTimeMilliseconds(x.RemoteStatusCheckedAtUnixMilliseconds), x.Revoked, x.Revision);
     private static SessionRow ToRow(SecuritySession x) => new() { TokenDigest = x.TokenDigest, ProviderId = x.Identity.ProviderId, SubjectId = x.Identity.SubjectId, CreatedAtUnixMilliseconds = x.CreatedAtUtc.ToUnixTimeMilliseconds(), LastSeenAtUnixMilliseconds = x.LastSeenAtUtc.ToUnixTimeMilliseconds(), ExpiresAtUnixMilliseconds = x.ExpiresAtUtc.ToUnixTimeMilliseconds(), RemoteStatusCheckedAtUnixMilliseconds = x.RemoteStatusCheckedAtUtc.ToUnixTimeMilliseconds(), Revoked = x.Revoked, Revision = x.Revision };
+    private static PresentationSettings ToSettings(PresentationSettingsRow x) =>
+        new(x.DisplayName, x.LogoResourcePath, x.AccentColor, x.TimeZoneId, x.Culture, x.Revision);
+    private static bool ValidSettings(PresentationSettings value)
+    {
+        if (string.IsNullOrWhiteSpace(value.DisplayName) || value.DisplayName.Length > 160 ||
+            value.AccentColor.Length != 7 || value.AccentColor[0] != '#' ||
+            !value.AccentColor.AsSpan(1).ToString().All(Uri.IsHexDigit) ||
+            string.IsNullOrWhiteSpace(value.TimeZoneId) || value.TimeZoneId.Length > 128 ||
+            string.IsNullOrWhiteSpace(value.Culture) || value.Culture.Length > 32 ||
+            value.LogoResourcePath is { Length: > 512 }) return false;
+        if (value.LogoResourcePath is not null && (!value.LogoResourcePath.StartsWith('/') ||
+            value.LogoResourcePath.Contains("..", StringComparison.Ordinal) || value.LogoResourcePath.Contains(':'))) return false;
+        try { _ = TimeZoneInfo.FindSystemTimeZoneById(value.TimeZoneId); _ = System.Globalization.CultureInfo.GetCultureInfo(value.Culture); }
+        catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException or System.Globalization.CultureNotFoundException) { return false; }
+        return true;
+    }
 }

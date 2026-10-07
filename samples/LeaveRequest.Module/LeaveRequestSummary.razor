@@ -1,0 +1,11 @@
+@using EnterpriseWorkflow.Core.Model
+@using Microsoft.AspNetCore.Components
+
+<section class="leave-request-summary">
+    <p class="eyebrow">Demande de congé</p>
+    <strong>Les données affichées sont limitées à la projection autorisée du formulaire.</strong>
+</section>
+
+@code {
+    [Parameter] public CanonicalJson? Values { get; set; }
+}

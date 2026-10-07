@@ -1,0 +1,9 @@
+@page "/admin/operations"
+@attribute [Authorize]
+@inject WorkflowModuleCatalog Modules
+@inject IConfiguration Configuration
+
+<PageTitle>Exploitation · Enterprise Workflow</PageTitle>
+<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Exploitation</h1><p>État de composition du Kernel. Les paramètres sensibles restent en lecture seule.</p></div>
+<section class="metric-grid"><article class="metric-card"><small>Modules actifs</small><strong>@Modules.Modules.Length</strong></article><article class="metric-card"><small>Base</small><strong>@(Configuration["Database:Provider"] ?? "Sqlite")</strong></article><article class="metric-card"><small>Migrations</small><strong>@(Configuration["Database:MigrationMode"] ?? "Validate")</strong></article></section>
+<section class="panel data-panel"><div class="section-heading"><div><p class="eyebrow">Artefacts exacts</p><h2>Modules chargés</h2></div></div>@if (Modules.Modules.Length == 0) { <p class="muted-copy">Aucun module externe n’est chargé.</p> } else { <div class="table-wrap"><table><thead><tr><th>Module</th><th>Version</th><th>Empreinte</th><th>Composants</th></tr></thead><tbody>@foreach (var module in Modules.Modules) { <tr><td>@module.Manifest.Id.Value</td><td>@module.Manifest.Version</td><td><code>@module.ArtifactSha256[..12]…</code></td><td>@module.Components.Length</td></tr> }</tbody></table></div> }</section></div>

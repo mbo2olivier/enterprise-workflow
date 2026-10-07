@@ -1,0 +1,37 @@
+@page "/"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>Today · Enterprise Workflow</PageTitle>
+<div class="content content-narrow">
+    <div class="page-intro"><p class="eyebrow">@DateTimeOffset.Now.ToString("dddd d MMMM", CultureInfo.GetCultureInfo("fr-FR"))</p><h1>Bonjour</h1><p>Voici ce qui mérite votre attention aujourd’hui.</p></div>
+    <section class="panel focus-panel">
+        <div class="section-heading"><div><p class="eyebrow">Votre journée</p><h2>À faire maintenant</h2></div><a class="text-button" href="/inbox">Tout voir →</a></div>
+        @if (_tasks is null)
+        {
+            <p class="loading">Chargement…</p>
+        }
+        else if (_tasks.Count == 0)
+        {
+            <div class="empty-state compact"><strong>Votre file est à jour</strong><p>Aucune tâche ne requiert votre intervention.</p></div>
+        }
+        else
+        {
+            <div class="stack-list">@foreach (var task in _tasks.Take(2)) { <a class="list-row" href="/tasks/@task.TaskId.Value"><span class="row-icon">✓</span><span class="row-main"><strong>@task.DefinitionId.Value</strong><small>@task.NodeId.Value</small></span><span class="status progress">En attente</span><span>→</span></a> }</div>
+        }
+    </section>
+    <section class="panel"><div class="section-heading"><div><p class="eyebrow">Catalogue</p><h2>Processus disponibles</h2></div><a class="text-button" href="/start">Démarrer →</a></div><p>@(_processCount == 0 ? "Aucun processus ne vous est actuellement ouvert." : $"{_processCount} processus sont disponibles.")</p></section>
+</div>
+
+@code {
+    private IReadOnlyList<OpenHumanTask>? _tasks;
+    private int _processCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _tasks = (await Portal.ReadInboxAsync(actor, null, CancellationToken.None)).Tasks;
+        _processCount = (await Portal.ListStartableProcessesAsync(actor, CancellationToken.None)).Count;
+    }
+}

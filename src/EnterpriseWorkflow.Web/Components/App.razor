@@ -1,0 +1,21 @@
+@inject IPresentationSettingsStore SettingsStore
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="_content/EnterpriseWorkflow.Web/enterprise-workflow.css" />
+    <HeadOutlet />
+</head>
+<body style="@($"--accent:{_settings.AccentColor}")">
+    <Routes />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+
+@code {
+    private PresentationSettings _settings = PresentationSettings.Default;
+    protected override async Task OnInitializedAsync() =>
+        _settings = (await SettingsStore.ReadAsync(CancellationToken.None)).Value ?? PresentationSettings.Default;
+}

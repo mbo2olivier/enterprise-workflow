@@ -1,0 +1,85 @@
+@page "/start/{ProcessId}/{Version:int}"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>@(_process?.Title ?? "Démarrer") · Enterprise Workflow</PageTitle>
+<div class="content content-small">
+    @if (_process is null)
+    {
+        <section class="panel empty-state"><h1>Processus indisponible</h1><p>Ce processus n’existe pas ou vous n’êtes pas autorisé à le démarrer.</p><a class="secondary-button" href="/start">Retour au catalogue</a></section>
+    }
+    else
+    {
+        <div class="page-intro"><p class="eyebrow">Nouveau dossier</p><h1>@_process.Title</h1><p>@_process.Description</p></div>
+        @if (!string.IsNullOrWhiteSpace(Error))
+        {
+            <div class="form-error" role="alert">La demande n’a pas pu être enregistrée. Vérifiez les champs et les identités désignées.</div>
+        }
+        @if (_process.DesignatedAssignmentNodes.Count > 0)
+        {
+            <form method="get" class="panel candidate-search" role="search">
+                <label for="candidate-query">Rechercher un responsable habilité</label>
+                <div class="candidate-search-row">
+                    <input id="candidate-query" name="candidate" value="@CandidateQuery" minlength="2" maxlength="256" required autocomplete="off" />
+                    <button class="secondary-button" type="submit">Rechercher</button>
+                </div>
+                <p class="field-help">Seules les identités actives et habilitées pour au moins une action de l’étape sont proposées.</p>
+            </form>
+        }
+        <form method="post" action="/workflow/start/@_process.Id/@_process.Version" class="panel request-form workflow-form">
+            <AntiforgeryToken />
+            <input type="hidden" name="idempotencyKey" value="@_idempotencyKey" />
+            <WorkflowFormFields Form="_process.StartForm" />
+            @foreach (var node in _process.DesignatedAssignmentNodes)
+            {
+                <fieldset class="assignment-fieldset">
+                    <legend>Responsable désigné · @node.Value</legend>
+                    @if (_candidates.TryGetValue(node, out var candidates) && candidates.Count > 0)
+                    {
+                        <label>Identité habilitée
+                            <select name="@($"assignment.{node.Value}.identity")" required>
+                                <option value="">Sélectionner…</option>
+                                @foreach (var candidate in candidates)
+                                {
+                                    <option value="@CandidateValue(candidate.Identity)">@candidate.DisplayName@if (!string.IsNullOrWhiteSpace(candidate.Email)) {<text> · @candidate.Email</text>}</option>
+                                }
+                            </select>
+                        </label>
+                    }
+                    else
+                    {
+                        <p class="field-help">Recherchez d’abord une identité habilitée pour cette étape.</p>
+                        <select aria-label="Aucun responsable disponible" disabled><option>Aucun candidat sélectionnable</option></select>
+                    }
+                </fieldset>
+            }
+            <div class="form-actions"><a class="secondary-button" href="/start">Annuler</a><button class="primary-button" type="submit">Envoyer la demande</button></div>
+        </form>
+    }
+</div>
+
+@code {
+    [Parameter] public string ProcessId { get; set; } = string.Empty;
+    [Parameter] public int Version { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "candidate")] public string? CandidateQuery { get; set; }
+    private WorkflowProcessCard? _process;
+    private readonly Dictionary<TechnicalId, IReadOnlyList<WorkflowCandidate>> _candidates = [];
+    private readonly string _idempotencyKey = $"web-{Guid.NewGuid():N}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _process = (await Portal.ListStartableProcessesAsync(actor, CancellationToken.None))
+            .SingleOrDefault(item => item.Id == ProcessId && item.Version == Version);
+        _candidates.Clear();
+        if (_process is null || string.IsNullOrWhiteSpace(CandidateQuery) || CandidateQuery.Trim().Length < 2) return;
+        foreach (var node in _process.DesignatedAssignmentNodes)
+            _candidates[node] = await Portal.SearchAssignmentCandidatesAsync(
+                actor, _process.Id, _process.Version, node, CandidateQuery, 20, CancellationToken.None);
+    }
+
+    private static string CandidateValue(IdentityReference identity) =>
+        $"{Uri.EscapeDataString(identity.ProviderId)}|{Uri.EscapeDataString(identity.SubjectId)}";
+}

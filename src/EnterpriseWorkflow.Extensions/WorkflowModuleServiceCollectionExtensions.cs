@@ -14,10 +14,12 @@ public static class WorkflowModuleServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(catalog);
         var migrations = WorkflowStateMigrationRegistry.Create(catalog);
+        var presentation = WorkflowPresentationCatalog.Create(catalog);
         foreach (var module in catalog.Modules) module.EntryPoint.ConfigureServices(services);
         foreach (var migration in migrations.Registrations) services.AddTransient(migration.MigratorType);
         services.AddSingleton(catalog);
         services.AddSingleton<IWorkflowStateMigrationRegistry>(migrations);
+        services.AddSingleton<IWorkflowPresentationCatalog>(presentation);
         services.AddScoped<WorkflowStateMigrationService>();
         return services.AddEnterpriseWorkflowHandlers(handlers =>
         {

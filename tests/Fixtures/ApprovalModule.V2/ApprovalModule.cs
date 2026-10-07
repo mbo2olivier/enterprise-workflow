@@ -1,6 +1,7 @@
 using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Extensions;
 using EnterpriseWorkflow.Runtime;
+using EnterpriseWorkflow.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EnterpriseWorkflow.Fixtures.ApprovalModule;
@@ -13,6 +14,8 @@ public sealed class ApprovalModule : IWorkflowModule
         handlers.AddHumanTask<ApprovalHandler>("fixture.approval", 2);
 
     public void ConfigureStateMigrations(WorkflowStateMigrationRegistryBuilder migrations) { }
+
+    public void ConfigurePresentation(WorkflowPresentationRegistryBuilder presentation) { }
 }
 
 public sealed class ApprovalHandler : IHumanTaskCompletionHandler

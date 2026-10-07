@@ -19,6 +19,16 @@ public sealed class SqliteSecurityStoreTests
         Assert.Equal(ProviderOutcome.Succeeded, (await store.MapGroupAsync(new("ad", "group-1"), profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
         var groupPermissions = await store.ResolvePermissionsAsync(new("ad", "member-1"), new HashSet<string> { "group-1" }, TestContext.Current.CancellationToken);
         Assert.Contains(WorkflowPermissions.ManageAccess, groupPermissions.Value!);
+        var listedProfile = Assert.Single((await store.ListProfilesAsync(10, TestContext.Current.CancellationToken)).Value!);
+        Assert.Equal(profile.Id, listedProfile.Id);
+        Assert.Equal(profile.DisplayName, listedProfile.DisplayName);
+        Assert.Equal(profile.GrantsAdministrativeAccess, listedProfile.GrantsAdministrativeAccess);
+        Assert.True(profile.Permissions.SetEquals(listedProfile.Permissions));
+        Assert.Equal(actor, Assert.Single((await store.ListIdentityAssignmentsAsync(10, TestContext.Current.CancellationToken)).Value!).Identity);
+        Assert.Equal("group-1", Assert.Single((await store.ListGroupMappingsAsync(10, TestContext.Current.CancellationToken)).Value!).Group.GroupId);
+        var demoted = await store.UpsertProfileAsync(profile with { GrantsAdministrativeAccess = false }, actor,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ProviderOutcome.Conflict, demoted.Outcome); Assert.Equal("security.last-administrator", demoted.ErrorCode);
         var refused = await store.UnassignIdentityAsync(actor, profile.Id, actor, TestContext.Current.CancellationToken);
         Assert.Equal(ProviderOutcome.Conflict, refused.Outcome); Assert.Equal("security.last-administrator", refused.ErrorCode);
         Assert.Equal(3, (await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Count);
@@ -31,8 +41,29 @@ public sealed class SqliteSecurityStoreTests
         var store = fixture.Database.CreateStore(); var actor = new IdentityReference(SecurityProviderIds.Local, "bootstrap");
         var account = new LocalAccount(new(SecurityProviderIds.Local, "one"), "Alice", "ALICE", "hash", true, 0, null, 0);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.CreateAsync(account, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(account.Identity, Assert.Single((await store.ListAsync(10, TestContext.Current.CancellationToken)).Value!).Identity);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.UpdateAsync(account with { FailedAccessCount = 1 }, TestContext.Current.CancellationToken)).Outcome);
         Assert.Equal(ProviderOutcome.Conflict, (await store.UpdateAsync(account with { FailedAccessCount = 2 }, TestContext.Current.CancellationToken)).Outcome);
+    }
+
+    [Fact]
+    public async Task PresentationSettingsAreBoundedAuditedAndUseOptimisticRevision()
+    {
+        await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = fixture.Database.CreateStore(); var actor = new IdentityReference(SecurityProviderIds.Local, "administrator");
+        var defaults = (await store.ReadAsync(TestContext.Current.CancellationToken)).Value!;
+        var updated = await store.UpdateAsync(defaults with
+        {
+            DisplayName = "Portail RH", AccentColor = "#2457A7", TimeZoneId = "UTC", Culture = "fr-FR",
+        }, actor, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ProviderOutcome.Succeeded, updated.Outcome);
+        Assert.Equal(1, updated.Value!.Revision);
+        Assert.Equal("Portail RH", (await fixture.Database.CreateStore().ReadAsync(TestContext.Current.CancellationToken)).Value!.DisplayName);
+        Assert.Equal("presentation.settings.update", Assert.Single(await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Action);
+        Assert.Equal(ProviderOutcome.Conflict, (await store.UpdateAsync(defaults, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal("presentation.settings-invalid", (await store.UpdateAsync(updated.Value with { AccentColor = "red" }, actor,
+            TestContext.Current.CancellationToken)).ErrorCode);
     }
 
     [Fact]

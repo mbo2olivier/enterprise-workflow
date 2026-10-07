@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Versioned process, form, projection, and presentation contracts for Enterprise Workflow.</Description>
+    <RootNamespace>EnterpriseWorkflow.Presentation</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
+  </ItemGroup>
+</Project>

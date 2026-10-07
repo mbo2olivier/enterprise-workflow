@@ -178,6 +178,30 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
     }
 
     /// <inheritdoc />
+    public async ValueTask<StoreResult<IReadOnlyList<WorkflowInstanceSummary>>> ReadWorkflowInstancesAsync(
+        ReadWorkflowInstancesCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.Limit is < 1 or > 500)
+            return StoreResults.Conflict<IReadOnlyList<WorkflowInstanceSummary>>("EW3055_INVALID_INSTANCE_PAGE_SIZE");
+        return await ExecuteAsync(async context =>
+        {
+            var rows = await context.Instances.AsNoTracking()
+                .Where(row => row.InitiatorProviderId == command.Initiator.ProviderId.Value &&
+                              row.InitiatorSubjectId == command.Initiator.SubjectId)
+                .OrderByDescending(row => row.CreatedAtUnixMilliseconds).ThenByDescending(row => row.Id)
+                .Take(command.Limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<WorkflowInstanceSummary> items = rows.Select(row => new WorkflowInstanceSummary(
+                new(ParseGuid(row.Id)), new(row.DefinitionId), row.DefinitionVersion,
+                (WorkflowInstanceStatus)row.Status, row.Revision, row.BusinessKey,
+                DateTimeOffset.FromUnixTimeMilliseconds(row.CreatedAtUnixMilliseconds),
+                DateTimeOffset.FromUnixTimeMilliseconds(row.UpdatedAtUnixMilliseconds))).ToList();
+            return StoreResults.Succeeded(items);
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(
         ClaimDueWorkCommand command,
         CancellationToken cancellationToken)

@@ -32,6 +32,13 @@ public sealed class OracleWorkflowStoreTests
         var repeatedStart = await reopened.StartInstanceAsync(command, TestContext.Current.CancellationToken);
         var conflict = await reopened.StartInstanceAsync(
             command with { RequestSha256 = "request-b" }, TestContext.Current.CancellationToken);
+        var owned = await reopened.ReadWorkflowInstancesAsync(
+            new(command.Scope.Actor, 10), TestContext.Current.CancellationToken);
+        var otherInitiator = await reopened.ReadWorkflowInstancesAsync(
+            new(new ActorIdentity(new TechnicalId("local"), "another-subject"), 10),
+            TestContext.Current.CancellationToken);
+        var invalidLimit = await reopened.ReadWorkflowInstancesAsync(
+            new(command.Scope.Actor, 0), TestContext.Current.CancellationToken);
 
         Assert.Equal(StoreOutcome.Succeeded, publication.Outcome);
         Assert.Equal(StoreOutcome.Idempotent, repeatedPublication.Outcome);
@@ -39,6 +46,12 @@ public sealed class OracleWorkflowStoreTests
         Assert.Equal(StoreOutcome.Idempotent, repeatedStart.Outcome);
         Assert.Equal(started.Value!.InstanceId, repeatedStart.Value!.InstanceId);
         Assert.Equal(StoreOutcome.Conflict, conflict.Outcome);
+        var summary = Assert.Single(owned.Value!);
+        Assert.Equal(started.Value.InstanceId, summary.InstanceId);
+        Assert.Equal(command.Definition.DefinitionId, summary.DefinitionId);
+        Assert.Equal(command.Definition.Version, summary.DefinitionVersion);
+        Assert.Empty(otherInitiator.Value!);
+        Assert.Equal(StoreOutcome.Conflict, invalidLimit.Outcome);
     }
 
     [Fact]

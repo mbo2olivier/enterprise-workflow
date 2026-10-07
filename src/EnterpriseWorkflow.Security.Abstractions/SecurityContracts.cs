@@ -39,6 +39,9 @@ public interface IWorkflowAccessStore
 
 public interface ISecurityProfileStore
 {
+    ValueTask<ProviderResult<IReadOnlyList<SecurityProfile>>> ListProfilesAsync(int maximumResults, CancellationToken cancellationToken);
+    ValueTask<ProviderResult<IReadOnlyList<SecurityIdentityProfileAssignment>>> ListIdentityAssignmentsAsync(int maximumResults, CancellationToken cancellationToken);
+    ValueTask<ProviderResult<IReadOnlyList<SecurityGroupProfileMapping>>> ListGroupMappingsAsync(int maximumResults, CancellationToken cancellationToken);
     ValueTask<ProviderResult<SecurityProfile>> UpsertProfileAsync(SecurityProfile profile, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> DeleteProfileAsync(string profileId, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> AssignIdentityAsync(IdentityReference identity, string profileId, IdentityReference actor, CancellationToken cancellationToken);
@@ -52,6 +55,7 @@ public interface ISecurityProfileStore
 
 public interface ILocalAccountStore
 {
+    ValueTask<ProviderResult<IReadOnlyList<LocalAccount>>> ListAsync(int maximumResults, CancellationToken cancellationToken);
     ValueTask<ProviderResult<LocalAccount>> FindByNormalizedNameAsync(string normalizedUserName, CancellationToken cancellationToken);
     ValueTask<ProviderResult<LocalAccount>> FindByIdentityAsync(IdentityReference identity, CancellationToken cancellationToken);
     ValueTask<ProviderResult<LocalAccount>> CreateAsync(LocalAccount account, IdentityReference actor, CancellationToken cancellationToken);
@@ -74,6 +78,13 @@ public interface ILocalSecurityProvisioningStore
     ValueTask<ProviderResult<bool>> BootstrapAsync(LocalAccount account, SecurityProfile administratorProfile, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> RecoverAdministrativeAccessAsync(IdentityReference identity, string administratorProfileId, CancellationToken cancellationToken);
     ValueTask<ProviderResult<LocalAccount>> ChangeLocalAccountAsync(IdentityReference identity, bool enabled, string? passwordHash, IdentityReference actor, CancellationToken cancellationToken);
+}
+
+public interface IPresentationSettingsStore
+{
+    ValueTask<ProviderResult<PresentationSettings>> ReadAsync(CancellationToken cancellationToken);
+    ValueTask<ProviderResult<PresentationSettings>> UpdateAsync(
+        PresentationSettings settings, IdentityReference actor, CancellationToken cancellationToken);
 }
 
 public sealed record LocalAccount(

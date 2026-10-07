@@ -1,0 +1,18 @@
+@page "/inbox"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>À traiter · Enterprise Workflow</PageTitle>
+<div class="content content-medium">
+    <div class="page-intro"><p class="eyebrow">Votre file</p><h1>À traiter</h1><p>Les tâches sont filtrées avec vos habilitations actuelles.</p></div>
+    @if (_tasks is null) { <p class="loading">Chargement…</p> }
+    else if (_tasks.Count == 0) { <section class="panel empty-state"><h2>Aucune tâche</h2><p>Votre file est à jour.</p></section> }
+    else { <section class="panel request-list">@foreach (var task in _tasks) { <article class="request-card"><div class="request-leading"><span class="row-icon large">✓</span><div><small class="request-id">@task.TaskId.Value</small><h3>@task.DefinitionId.Value</h3><p>@task.NodeId.Value · @task.CreatedAtUtc.ToLocalTime().ToString("g")</p></div></div><div class="request-trailing"><span class="status progress">@task.Status</span><a class="secondary-button" href="/tasks/@task.TaskId.Value">Consulter →</a></div></article> }</section> }
+</div>
+
+@code {
+    private IReadOnlyList<OpenHumanTask>? _tasks;
+    protected override async Task OnInitializedAsync() =>
+        _tasks = (await Portal.ReadInboxAsync(await Identity.GetRequiredAsync(), null, CancellationToken.None)).Tasks;
+}

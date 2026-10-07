@@ -1,0 +1,49 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IPresentationSettingsStore SettingsStore
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/" aria-label="Enterprise Workflow"><span class="brand-mark">✦</span></a>
+        <nav class="main-nav" aria-label="Navigation principale">
+            <NavLink href="/" Match="NavLinkMatch.All" class="nav-item"><span class="nav-icon">⌂</span><span>Today</span></NavLink>
+            <NavLink href="/start" class="nav-item"><span class="nav-icon">＋</span><span>Démarrer</span></NavLink>
+            <NavLink href="/inbox" class="nav-item"><span class="nav-icon">✓</span><span>À traiter</span></NavLink>
+            <NavLink href="/requests" class="nav-item"><span class="nav-icon">▤</span><span>Mes demandes</span></NavLink>
+        </nav>
+    </aside>
+    <main class="workspace">
+        <div class="grid-reveal" aria-hidden="true"></div>
+        <header class="topbar">
+            <div class="breadcrumbs"><a href="/">Home</a><span class="separator">/</span><span>@PageLabel</span></div>
+            <div class="top-profile-wrap">
+                <a class="top-profile-button" href="/admin"><span class="avatar">EW</span><span class="profile-copy"><strong>@_settings.DisplayName</strong><small>Session sécurisée</small></span></a>
+                <form method="post" action="/auth/logout"><AntiforgeryToken /><button class="icon-button" type="submit" aria-label="Se déconnecter">↪</button></form>
+            </div>
+        </header>
+        <div class="page-stage">@Body</div>
+    </main>
+</div>
+
+@code {
+    private PresentationSettings _settings = PresentationSettings.Default;
+    protected override async Task OnInitializedAsync() =>
+        _settings = (await SettingsStore.ReadAsync(CancellationToken.None)).Value ?? PresentationSettings.Default;
+
+    private string PageLabel
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+            return path switch
+            {
+                "" => "Today",
+                "start" => "Démarrer",
+                "inbox" => "À traiter",
+                "requests" => "Mes demandes",
+                _ when path.StartsWith("admin", StringComparison.Ordinal) => "Administration",
+                _ => "Enterprise Workflow",
+            };
+        }
+    }
+}

@@ -13,6 +13,7 @@ public sealed class SecurityDbContext(DbContextOptions<SecurityDbContext> option
     internal DbSet<SessionRow> Sessions => Set<SessionRow>();
     internal DbSet<WorkflowGrantRow> WorkflowGrants => Set<WorkflowGrantRow>();
     internal DbSet<WorkflowPolicyStateRow> WorkflowPolicyStates => Set<WorkflowPolicyStateRow>();
+    internal DbSet<PresentationSettingsRow> PresentationSettings => Set<PresentationSettingsRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,13 @@ public sealed class SecurityDbContext(DbContextOptions<SecurityDbContext> option
             entity.HasIndex(x => x.RecipientProfileId);
         });
         modelBuilder.Entity<WorkflowPolicyStateRow>(entity => { entity.ToTable("EwWorkflowPolicyState"); entity.HasKey(x => x.Id); entity.Property(x => x.Id).HasMaxLength(32); });
+        modelBuilder.Entity<PresentationSettingsRow>(entity =>
+        {
+            entity.ToTable("EwPresentationSettings"); entity.HasKey(x => x.Id); entity.Property(x => x.Id).HasMaxLength(32);
+            entity.Property(x => x.DisplayName).HasMaxLength(160); entity.Property(x => x.LogoResourcePath).HasMaxLength(512);
+            entity.Property(x => x.AccentColor).HasMaxLength(7); entity.Property(x => x.TimeZoneId).HasMaxLength(128);
+            entity.Property(x => x.Culture).HasMaxLength(32);
+        });
     }
 }
 
@@ -47,3 +55,4 @@ internal sealed class AuditRow { public string Id { get; set; } = Guid.NewGuid()
 internal sealed class SessionRow { public required string TokenDigest { get; set; } public required string ProviderId { get; set; } public required string SubjectId { get; set; } public long CreatedAtUnixMilliseconds { get; set; } public long LastSeenAtUnixMilliseconds { get; set; } public long ExpiresAtUnixMilliseconds { get; set; } public long RemoteStatusCheckedAtUnixMilliseconds { get; set; } public bool Revoked { get; set; } public long Revision { get; set; } }
 internal sealed class WorkflowGrantRow { public required string GrantId { get; set; } public required string WorkflowId { get; set; } public int DefinitionVersion { get; set; } public required string NodeId { get; set; } public required string ActionId { get; set; } public int RecipientKind { get; set; } public string? RecipientProviderId { get; set; } public string? RecipientSubjectId { get; set; } public string? RecipientProfileId { get; set; } public long PolicyRevision { get; set; } }
 internal sealed class WorkflowPolicyStateRow { public required string Id { get; set; } public long Revision { get; set; } }
+internal sealed class PresentationSettingsRow { public required string Id { get; set; } public required string DisplayName { get; set; } public string? LogoResourcePath { get; set; } public required string AccentColor { get; set; } public required string TimeZoneId { get; set; } public required string Culture { get; set; } public long Revision { get; set; } }

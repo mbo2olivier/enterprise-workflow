@@ -12,7 +12,9 @@ public sealed class LocalSecurityProvisioner(
         account = account with { PasswordHash = localAuthentication.HashPassword(account, password) };
         var profile = new SecurityProfile("administrators", "Administrateurs", new HashSet<PermissionId>
         {
-            WorkflowPermissions.ManageAccess, WorkflowPermissions.ReadAudit,
+            WorkflowPermissions.ManageAccess,
+            WorkflowPermissions.ReadAudit,
+            WorkflowPermissions.SearchApprovalCandidates,
         }, GrantsAdministrativeAccess: true);
         return await store.BootstrapAsync(account, profile, cancellationToken).ConfigureAwait(false);
     }

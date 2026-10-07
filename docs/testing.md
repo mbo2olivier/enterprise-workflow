@@ -1,6 +1,6 @@
 # Stratégie de validation
 
-Statut : stratégie de validation. Au 4 octobre 2026, les **89 tests locaux** de la solution passent : architecture, modèle/DSL v1, SQLite, runtime, sécurité, démarrage authentifié, tâches, inbox, idempotence, séparation, timers et prototype de modules A/B L7a. Les **11 tests Oracle explicites** passent sur Oracle Enterprise `19.19.0.0.0`, migrations L6, tâche et timer compris. Oracle Free reste la qualification L3b-I historique ; Docker et une chaîne injectée restent requis pour la suite Oracle.
+Statut : stratégie de validation. Au 7 octobre 2026, la suite complète de L8, le smoke Playwright Linux, la qualification Oracle Enterprise 19.19 et la matrice GitHub Actions sont confirmés avec succès par le porteur selon la [procédure de validation L8](l8-validation.md). La dernière suite locale complète intermédiaire comptait **100 tests : 99 réussis, 1 Playwright ignoré explicitement, 0 échec** avant l'exécution dédiée du smoke navigateur. Elle couvre architecture, modèle/DSL v1, SQLite, runtime, sécurité, tâches, modules, Kernel, contrats de présentation et composants web.
 
 ## Pyramide
 
@@ -30,7 +30,7 @@ Tests purs pour graphe, DSL, transitions et décisions de retry ; tests de contr
 | T20 | UI Razor/Blazor, formulaires, accessibilité et thèmes | Déclaratif et composant personnalisé ; validation serveur ; clavier, labels, focus, erreurs et contraste | UI navigateur |
 | T21 | Charge et logs | Mesures reproductibles, payloads/secrets masqués | Environnement décrit |
 
-T22 est acquis par L5a. T23 est acquis par L5b/L6, branchement sur tâche active compris. L6 couvre les primitives runtime de T24 (destinataire, claim concurrent, révocation relue avant première complétion, séparation et version de définition), mais le parcours bancaire complet et son UI restent non exécutés jusqu'à L8.
+T22 est acquis par L5a. T23 est acquis par L5b/L6, branchement sur tâche active compris. L6 couvre les primitives runtime de T24 (destinataire, claim concurrent, révocation relue avant première complétion, séparation et version de définition) et L8 en fournit le parcours UI ; la qualification navigateur et Oracle finale suit `docs/l8-validation.md`.
 
 | ID | Test | Résultat attendu | Environnement |
 | --- | --- | --- | --- |
@@ -54,7 +54,7 @@ Tester l’auto-approbation sans configuration, avec interdiction explicite et a
 
 Tester même nom affiché dans deux fournisseurs, tentative de fusion par email, suppression/retrait des accès avant complétion, accès direct aux routes administratives et droits d’une tâche d’autrui. Ne pas utiliser de credentials corporate réels dans les fixtures ou rapports.
 
-## CI — GitHub Actions confirmé
+## CI — GitHub Actions confirmé jusqu'à L8
 
 La première CI utilise GitHub Actions. Les commandes de compilation et de test restent utilisables hors Actions pour faciliter une future adaptation GitLab ; aucune pipeline GitLab n’est requise au premier lot.
 

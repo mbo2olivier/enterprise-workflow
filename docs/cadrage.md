@@ -32,6 +32,12 @@ S17 : confirmation par le porteur le 5 octobre 2026 de G3-A pour L7b : coexisten
 
 S18 : validation le 5 octobre 2026 de M1-A et M2-A pour L7b : migrations d’état explicites et atomiques fournies par l’artefact exact, inventaire durable des modules et retrait bloqué tant qu’une définition persistée référence l’artefact. La porte historique G3a est renommée G3-M afin de ne plus la confondre avec le choix G3-A. Voir ADR 0022.
 
+S19 : confirmation par le porteur le 5 octobre 2026 de la réussite de la matrice GitHub Actions Linux/macOS/Windows après L7b et après correction du nettoyage des fixtures confronté au verrouillage Windows des DLL non déchargeables.
+
+S20 : le dossier `prototype/` contient les UI métier et d'administration déjà validées et doit être réutilisé comme référence de L8. L'implémentation produit reste Razor/Blazor conformément à D07/D1-A ; elle traduit le système visuel et les interactions du prototype React sans embarquer un second runtime frontend ni conserver ses données simulées.
+
+S21 : validation le 5 octobre 2026 de L8-D1-A à L8-D8-A : RCL web et Kernel Blazor, formulaires/processus versionnés, projections de données autorisées, cookie opaque adossé aux sessions, migrations SQL `Validate|Apply`, définition publiée immuable, réglages de présentation bornés et Playwright Linux. Voir ADR 0023.
+
 S2 à S15 font autorité sur les propositions de S1. Les instructions d’implémentation de S1 ne constituent pas une demande de coder maintenant. Les recommandations non validées restent proposées.
 
 Le dépôt était vide et sans premier commit. Aucun AGENTS.md n’a été trouvé dans le dépôt ni dans les emplacements parents inspectés. SDK local observé : `10.0.102` ; cela ne fixe pas le patch à épingler pour la future CI.
@@ -95,4 +101,4 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 
 ## État
 
-L1 à L4b sont implémentés localement. SQLite et Oracle 19.19 sont qualifiés pour le worker séquentiel et l’outbox L4b ; le socle sécurité L5 est implémenté et qualifié localement. LDAP générique L5a est terminé : qualification OpenLDAP locale en clair explicite et OpenLDAP/LDAPS sur Linux GitHub Actions acquises. Les habilitations exactes par nœud/action L5b sont implémentées et qualifiées sur SQLite et Oracle 19.19 ; tâches humaines, affectation/claim durables, fonctions métier, modules et UI restent à réaliser.
+L1 à L8 sont implémentés et qualifiés. L8 fournit l'UI métier et d'administration issue du prototype ; la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions sont confirmés avec succès le 7 octobre 2026. SQLite et Oracle 19.19 qualifient le worker, la sécurité persistée, les tâches humaines, le Kernel modulaire et le parcours L8 ; OpenLDAP/LDAPS est qualifié sur le job Linux.

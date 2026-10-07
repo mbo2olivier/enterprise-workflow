@@ -253,11 +253,12 @@ public sealed class WorkflowModuleLoaderTests
         {
             var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name
                 ?? throw new InvalidOperationException("Could not determine the current build configuration.");
-            foreach (var candidate in new[] { configuration, "Debug", "Release" }.Distinct(StringComparer.Ordinal))
-            {
-                var output = Path.Combine(repository, "tests", "Fixtures", project, "bin", candidate, "net10.0");
-                if (File.Exists(Path.Combine(output, expectedAssembly))) return output;
-            }
+            var output = new[] { configuration, "Debug", "Release" }.Distinct(StringComparer.Ordinal)
+                .Select(candidate => Path.Combine(repository, "tests", "Fixtures", project, "bin", candidate, "net10.0"))
+                .Where(candidate => File.Exists(Path.Combine(candidate, expectedAssembly)))
+                .OrderByDescending(candidate => File.GetLastWriteTimeUtc(Path.Combine(candidate, expectedAssembly)))
+                .FirstOrDefault();
+            if (output is not null) return output;
             throw new FileNotFoundException($"Fixture output '{expectedAssembly}' was not built for '{project}'.");
         }
 

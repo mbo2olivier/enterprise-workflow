@@ -62,6 +62,12 @@
           "EnterpriseWorkflow.Core": "[1.0.0, )"
         }
       },
+      "enterpriseworkflow.presentation.abstractions": {
+        "type": "Project",
+        "dependencies": {
+          "EnterpriseWorkflow.Core": "[1.0.0, )"
+        }
+      },
       "enterpriseworkflow.runtime": {
         "type": "Project",
         "dependencies": {

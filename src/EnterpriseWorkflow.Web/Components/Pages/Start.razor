@@ -1,0 +1,18 @@
+@page "/start"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>Démarrer · Enterprise Workflow</PageTitle>
+<div class="content content-medium">
+    <div class="page-intro"><p class="eyebrow">Catalogue</p><h1>Démarrer une demande</h1><p>Choisissez le processus qui correspond à votre besoin.</p></div>
+    @if (_processes is null) { <p class="loading">Chargement…</p> }
+    else if (_processes.Count == 0) { <section class="panel empty-state"><h2>Aucun processus disponible</h2><p>Les processus installés apparaîtront ici lorsque vous disposerez du droit de les démarrer.</p></section> }
+    else { <section class="catalog-grid">@foreach (var process in _processes) { <a class="catalog-card" href="/start/@process.Id/@process.Version"><span class="catalog-icon">＋</span><span><strong>@process.Title</strong><small>@process.Description</small></span><span>→</span></a> }</section> }
+</div>
+
+@code {
+    private IReadOnlyList<WorkflowProcessCard>? _processes;
+    protected override async Task OnInitializedAsync() =>
+        _processes = await Portal.ListStartableProcessesAsync(await Identity.GetRequiredAsync(), CancellationToken.None);
+}

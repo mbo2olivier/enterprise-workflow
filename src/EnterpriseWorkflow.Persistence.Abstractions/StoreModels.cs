@@ -229,6 +229,20 @@ public sealed record StartInstanceCommand(
 /// <summary>Result persisted for a start receipt.</summary>
 public sealed record StartInstanceResult(WorkflowInstanceId InstanceId, bool WasCreated, long Revision);
 
+/// <summary>Bounded initiator-owned instance list without exposing workflow state.</summary>
+public sealed record ReadWorkflowInstancesCommand(ActorIdentity Initiator, int Limit);
+
+/// <summary>Safe workflow instance summary for application read models.</summary>
+public sealed record WorkflowInstanceSummary(
+    WorkflowInstanceId InstanceId,
+    TechnicalId DefinitionId,
+    int DefinitionVersion,
+    WorkflowInstanceStatus Status,
+    long Revision,
+    string? BusinessKey,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
+
 /// <summary>Claims at most one due work item using the store clock.</summary>
 public sealed record ClaimDueWorkCommand(TechnicalId OwnerId, TimeSpan LeaseDuration);
 

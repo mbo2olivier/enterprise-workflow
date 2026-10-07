@@ -152,7 +152,20 @@ public sealed record AuthorizationDecision(bool Allowed, string ReasonCode, bool
 
 public sealed record SecurityProfile(string Id, string DisplayName, IReadOnlySet<PermissionId> Permissions, bool GrantsAdministrativeAccess);
 public sealed record GroupReference(string ProviderId, string GroupId);
+public sealed record SecurityIdentityProfileAssignment(IdentityReference Identity, string ProfileId);
+public sealed record SecurityGroupProfileMapping(GroupReference Group, string ProfileId);
 public sealed record SecurityAuditEntry(DateTimeOffset OccurredAtUtc, IdentityReference Actor, string Action, string Target, string Outcome);
+public sealed record PresentationSettings(
+    string DisplayName,
+    string? LogoResourcePath,
+    string AccentColor,
+    string TimeZoneId,
+    string Culture,
+    long Revision = 0)
+{
+    public static PresentationSettings Default { get; } = new(
+        "Enterprise Workflow", null, "#1768E5", "UTC", "fr", 0);
+}
 public sealed record SecuritySession(
     string TokenDigest,
     IdentityReference Identity,

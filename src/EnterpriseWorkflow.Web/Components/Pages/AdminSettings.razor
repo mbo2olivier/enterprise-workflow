@@ -1,0 +1,45 @@
+@page "/admin/settings"
+@attribute [Authorize]
+@inject IPresentationSettingsStore SettingsStore
+@inject IAuthorizationProvider Authorization
+@inject WorkflowWebIdentityAccessor Identity
+@inject IConfiguration Configuration
+
+<PageTitle>Réglages · Enterprise Workflow</PageTitle>
+<div class="content content-small admin-content">
+    <div class="page-intro"><p class="eyebrow">Installation</p><h1>Réglages</h1><p>Personnalisez uniquement la présentation sûre de cette installation.</p></div>
+    @if (Saved) { <div class="notice success" role="status">Réglages enregistrés et audités.</div> }
+    @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">Les réglages ont été refusés (@Error).</div> }
+    @if (!_allowed) { <section class="panel empty-state"><h2>Accès refusé</h2><p>La permission de gestion des accès est requise.</p></section> }
+    else
+    {
+        <form method="post" action="/admin/settings/update" class="panel settings-panel request-form"><AntiforgeryToken /><input type="hidden" name="revision" value="@_settings.Revision" />
+            <div class="section-heading"><div><p class="eyebrow">Apparence</p><h2>Identité de l’installation</h2></div></div>
+            <label>Nom affiché<input name="displayName" value="@_settings.DisplayName" required maxlength="160" /></label>
+            <label>Logo manifesté (optionnel)<input name="logoResourcePath" value="@_settings.LogoResourcePath" maxlength="512" placeholder="/_content/Mon.Module/logo.svg" /></label>
+            <div class="field-grid"><label>Couleur d’accent<input name="accentColor" value="@_settings.AccentColor" required pattern="#[0-9A-Fa-f]{6}" /></label><label>Culture<input name="culture" value="@_settings.Culture" required maxlength="32" /></label></div>
+            <label>Fuseau horaire<input name="timeZoneId" value="@_settings.TimeZoneId" required maxlength="128" /></label>
+            <div class="form-actions"><button class="primary-button" type="submit">Enregistrer les réglages</button></div>
+        </form>
+        <section class="panel readonly-settings">
+            <div class="section-heading"><div><p class="eyebrow">Configuration effective</p><h2>Runtime</h2></div><span class="status progress">Lecture seule</span></div>
+            <dl><div><dt>Stockage</dt><dd>@(Configuration["Database:Provider"] ?? "Sqlite")</dd></div><div><dt>Migrations</dt><dd>@(Configuration["Database:MigrationMode"] ?? "Validate")</dd></div><div><dt>Authentification</dt><dd>@(Configuration["Security:AuthenticationProvider"] ?? "local")</dd></div><div><dt>Installation</dt><dd>@(Configuration["Installation:Id"] ?? "enterprise-workflow")</dd></div></dl>
+            <p>La base, les politiques de sécurité, le worker et les secrets restent modifiés par l’exploitant.</p>
+        </section>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "saved")] public string? SavedValue { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    private bool Saved => SavedValue == "1";
+    private bool _allowed;
+    private PresentationSettings _settings = PresentationSettings.Default;
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _allowed = (await Authorization.AuthorizeAsync(new(actor, WorkflowPermissions.ManageAccess), CancellationToken.None)).Allowed;
+        if (!_allowed) return;
+        _settings = (await SettingsStore.ReadAsync(CancellationToken.None)).Value ?? PresentationSettings.Default;
+    }
+}

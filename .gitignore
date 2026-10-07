@@ -8,3 +8,4 @@
 .vscode/
 TestResults/
 tests/ldap/certs/
+tests/oracle/.env

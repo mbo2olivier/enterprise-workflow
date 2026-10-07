@@ -34,6 +34,13 @@ public sealed class OracleSecurityStoreTests
         Assert.False((await store.ResolveAsync(actor, null, new("oracle-approval", 1, "manager", WorkflowActions.RejectTask), TestContext.Current.CancellationToken)).Value!.Allowed);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.RevokeAsync(scope, recipient, actor, TestContext.Current.CancellationToken)).Outcome);
         Assert.False((await store.ResolveAsync(actor, null, scope, TestContext.Current.CancellationToken)).Value!.Allowed);
-        Assert.Equal(5, (await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Count);
+        var settings = (await store.ReadAsync(TestContext.Current.CancellationToken)).Value!;
+        var updatedSettings = await store.UpdateAsync(settings with
+        {
+            DisplayName = "Oracle Workflow", AccentColor = "#2457A7", TimeZoneId = "UTC", Culture = "fr-FR",
+        }, actor, TestContext.Current.CancellationToken);
+        Assert.Equal(ProviderOutcome.Succeeded, updatedSettings.Outcome);
+        Assert.Equal("Oracle Workflow", (await database.CreateStore().ReadAsync(TestContext.Current.CancellationToken)).Value!.DisplayName);
+        Assert.Equal(6, (await store.ReadAuditAsync(10, TestContext.Current.CancellationToken)).Count);
     }
 }

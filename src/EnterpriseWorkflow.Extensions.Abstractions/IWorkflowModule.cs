@@ -1,4 +1,5 @@
 using EnterpriseWorkflow.Runtime;
+using EnterpriseWorkflow.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EnterpriseWorkflow.Extensions;
@@ -17,4 +18,7 @@ public interface IWorkflowModule
 
     /// <summary>Adds explicit single-step state-schema migrations owned by this exact module artifact.</summary>
     void ConfigureStateMigrations(WorkflowStateMigrationRegistryBuilder migrations);
+
+    /// <summary>Adds exact process and form declarations owned by this module artifact.</summary>
+    void ConfigurePresentation(WorkflowPresentationRegistryBuilder presentation);
 }

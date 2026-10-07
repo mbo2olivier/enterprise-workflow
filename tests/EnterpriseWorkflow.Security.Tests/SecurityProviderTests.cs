@@ -217,6 +217,8 @@ public sealed class SecurityProviderTests
     private sealed class AccountStore(LocalAccount account) : ILocalAccountStore
     {
         public LocalAccount Account { get; set; } = account;
+        public ValueTask<ProviderResult<IReadOnlyList<LocalAccount>>> ListAsync(int maximumResults, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ProviderResult<IReadOnlyList<LocalAccount>>(ProviderOutcome.Succeeded, [Account]));
         public ValueTask<ProviderResult<LocalAccount>> FindByNormalizedNameAsync(string normalizedUserName, CancellationToken cancellationToken) =>
             ValueTask.FromResult(string.Equals(Account.NormalizedUserName, normalizedUserName, StringComparison.Ordinal)
                 ? new ProviderResult<LocalAccount>(ProviderOutcome.Succeeded, Account)
@@ -277,6 +279,9 @@ public sealed class SecurityProviderTests
     private sealed class ProfileStore(IdentityReference identity, PermissionId permission) : ISecurityProfileStore
     {
         public IReadOnlySet<string>? LastGroups { get; private set; }
+        public ValueTask<ProviderResult<IReadOnlyList<SecurityProfile>>> ListProfilesAsync(int maximumResults, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ProviderResult<IReadOnlyList<SecurityIdentityProfileAssignment>>> ListIdentityAssignmentsAsync(int maximumResults, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ProviderResult<IReadOnlyList<SecurityGroupProfileMapping>>> ListGroupMappingsAsync(int maximumResults, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<ProviderResult<IReadOnlySet<PermissionId>>> ResolvePermissionsAsync(IdentityReference requested, IReadOnlySet<string>? currentGroupIds, CancellationToken cancellationToken)
         {
             LastGroups = currentGroupIds;

@@ -1,0 +1,64 @@
+@using System.Text.Json
+
+@foreach (var field in Form.Fields)
+{
+    var name = $"field.{field.Id.Value}";
+    <label for="@name">
+        <span>@field.Label@if (field.Required) { <span aria-hidden="true"> *</span> }</span>
+        @switch (field.Kind)
+        {
+            case WorkflowFormFieldKind.LongText:
+                <textarea id="@name" name="@name" required="@field.Required" maxlength="@field.MaximumLength" rows="4">@Value(field)</textarea>
+                break;
+            case WorkflowFormFieldKind.Date:
+                <input id="@name" name="@name" type="date" value="@Value(field)" required="@field.Required" />
+                break;
+            case WorkflowFormFieldKind.Number:
+                <input id="@name" name="@name" type="number" value="@Value(field)" required="@field.Required"
+                       min="@field.Minimum" max="@field.Maximum" step="any" />
+                break;
+            case WorkflowFormFieldKind.Boolean:
+                <span class="checkbox-field"><input id="@name" name="@name" type="checkbox" value="true" checked="@BooleanValue(field)" /><span>Oui</span></span>
+                break;
+            case WorkflowFormFieldKind.Choice:
+                <select id="@name" name="@name" required="@field.Required">
+                    <option value="">Sélectionner…</option>
+                    @foreach (var option in field.Options)
+                    {
+                        <option value="@option.Value" selected="@(Value(field) == option.Value)">@option.Label</option>
+                    }
+                </select>
+                break;
+            default:
+                <input id="@name" name="@name" type="text" value="@Value(field)" required="@field.Required"
+                       minlength="@field.MinimumLength" maxlength="@field.MaximumLength" />
+                break;
+        }
+        @if (!string.IsNullOrWhiteSpace(field.HelpText)) { <small class="field-help">@field.HelpText</small> }
+    </label>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorkflowFormDefinition Form { get; set; } = null!;
+    [Parameter] public CanonicalJson? Values { get; set; }
+
+    private string? Value(WorkflowFormField field)
+    {
+        if (Values is null) return null;
+        var root = Values.ToJsonElement();
+        if (!root.TryGetProperty(field.Id.Value, out var value)) return null;
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.GetRawText(),
+            _ => null,
+        };
+    }
+
+    private bool BooleanValue(WorkflowFormField field)
+    {
+        if (Values is null) return false;
+        var root = Values.ToJsonElement();
+        return root.TryGetProperty(field.Id.Value, out var value) && value.ValueKind is JsonValueKind.True;
+    }
+}

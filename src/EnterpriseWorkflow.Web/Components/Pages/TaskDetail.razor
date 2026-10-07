@@ -1,0 +1,72 @@
+@page "/tasks/{TaskId:guid}"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>Tâche · Enterprise Workflow</PageTitle>
+<div class="content content-small">
+    @if (_task is null)
+    {
+        <section class="panel empty-state"><h1>Tâche indisponible</h1><p>Cette tâche n’existe pas ou ne vous est pas accessible.</p><a class="secondary-button" href="/inbox">Retour à la file</a></section>
+    }
+    else
+    {
+        <div class="page-intro"><p class="eyebrow">@_task.ProcessTitle</p><h1>@_task.NodeLabel</h1><p>Créée le @_task.CreatedAtUtc.ToLocalTime().ToString("g") · révision @_task.Revision</p></div>
+        @if (Completed is not null) { <div class="notice success" role="status">L’action a été enregistrée.</div> }
+        @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">L’action n’a pas pu être enregistrée. La tâche a peut-être évolué.</div> }
+        @if (_task.CustomComponentType is not null)
+        {
+            <div class="panel custom-form-summary"><DynamicComponent Type="_task.CustomComponentType" Parameters="@CustomParameters(_task)" /></div>
+        }
+        @if (_task.Status is HumanTaskStatus.Available)
+        {
+            <form method="post" action="/workflow/tasks/@_task.TaskId.Value/claim" class="panel ownership-action"><AntiforgeryToken /><input type="hidden" name="revision" value="@_task.Revision" /><p>Cette tâche appartient à un pool habilité. Réservez-la avant de la traiter.</p><button class="primary-button" type="submit">Prendre en charge</button></form>
+        }
+        else if (_task.Status is HumanTaskStatus.Assigned or HumanTaskStatus.Claimed)
+        {
+            <form method="post" action="/workflow/tasks/@_task.TaskId.Value/action" class="panel request-form workflow-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="revision" value="@_task.Revision" />
+                <input type="hidden" name="idempotencyKey" value="@_idempotencyKey" />
+                <WorkflowFormFields Form="_task.Form" Values="_task.VisibleData" />
+                <div class="action-dock">
+                    @if (_task.Status is HumanTaskStatus.Claimed)
+                    {
+                        <button class="secondary-button" type="submit" formaction="/workflow/tasks/@_task.TaskId.Value/release" formnovalidate>Libérer</button>
+                    }
+                    @foreach (var action in _task.Actions)
+                    {
+                        <button class="@(action.ActionId.Value.Contains("reject", StringComparison.Ordinal) ? "secondary-button" : "primary-button")"
+                                type="submit" name="action" value="@action.ActionId.Value">@ActionLabel(action.ActionId.Value)</button>
+                    }
+                </div>
+            </form>
+        }
+        else
+        {
+            <section class="panel empty-state compact"><strong>Aucune action disponible</strong><p>La tâche attend une affectation ou a déjà été clôturée.</p></section>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid TaskId { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "completed")] public string? Completed { get; set; }
+    private WorkflowTaskView? _task;
+    private readonly string _idempotencyKey = $"web-{Guid.NewGuid():N}";
+
+    protected override async Task OnParametersSetAsync() =>
+        _task = await Portal.ReadTaskAsync(await Identity.GetRequiredAsync(), new(TaskId), CancellationToken.None);
+
+    private static string ActionLabel(string action) => action switch
+    {
+        "task.approve" => "Approuver",
+        "task.reject" => "Refuser",
+        "task.submit" => "Valider",
+        _ => action,
+    };
+
+    private static IDictionary<string, object> CustomParameters(WorkflowTaskView task) =>
+        new Dictionary<string, object> { ["Values"] = task.VisibleData };
+}

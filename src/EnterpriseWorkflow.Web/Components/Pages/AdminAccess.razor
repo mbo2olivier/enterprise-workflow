@@ -1,0 +1,87 @@
+@page "/admin/access"
+@attribute [Authorize]
+@inject ISecurityProfileStore Profiles
+@inject ILocalAccountStore Accounts
+@inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
+@inject IAuthorizationProvider Authorization
+@inject WorkflowWebIdentityAccessor Identity
+
+<PageTitle>Accès · Enterprise Workflow</PageTitle>
+<div class="content content-medium admin-content">
+    <div class="page-intro"><p class="eyebrow">Administration</p><h1>Accès</h1><p>Profils internes, identités et capacités effectives des fournisseurs configurés.</p></div>
+    @if (Saved) { <div class="notice success" role="status">Configuration des accès enregistrée et auditée.</div> }
+    @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">La modification a été refusée (@Error).</div> }
+    @if (!_allowed)
+    {
+        <section class="panel empty-state"><h2>Accès refusé</h2><p>La permission de gestion des accès est requise.</p></section>
+    }
+    else
+    {
+        <section class="metric-grid"><article class="metric-card"><small>Profils</small><strong>@_profiles.Count</strong></article><article class="metric-card"><small>Identités locales</small><strong>@_accounts.Count</strong></article><article class="metric-card"><small>Affectations</small><strong>@_assignments.Count</strong></article><article class="metric-card"><small>Groupes liés</small><strong>@_groups.Count</strong></article></section>
+        <section class="panel data-panel">
+            <div class="section-heading"><div><p class="eyebrow">Profils internes</p><h2>Permissions</h2></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Profil</th><th>Permissions</th><th>Administration</th></tr></thead><tbody>@foreach (var profile in _profiles) { <tr><td><strong>@profile.DisplayName</strong><small>@profile.Id</small></td><td>@string.Join(", ", profile.Permissions.Select(item => item.Value).Order())</td><td>@(profile.GrantsAdministrativeAccess ? "Oui" : "Non")</td></tr> }</tbody></table></div>
+            <form method="post" action="/admin/access/profiles" class="compact-form"><AntiforgeryToken />
+                <label>Identifiant<input name="profileId" required maxlength="160" /></label><label>Nom affiché<input name="displayName" required maxlength="256" /></label>
+                <label class="wide-field">Permissions, séparées par une virgule<input name="permissions" placeholder="workflow.approver.search, security.audit.read" /></label>
+                <label class="checkbox-field"><input type="checkbox" name="administrative" value="true" /> Accès administratif</label><button class="primary-button" type="submit">Créer ou remplacer</button>
+            </form>
+        </section>
+        <section class="panel data-panel">
+            <div class="section-heading"><div><p class="eyebrow">Identités locales</p><h2>Comptes</h2></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Utilisateur</th><th>Identité stable</th><th>État</th></tr></thead><tbody>@foreach (var account in _accounts) { <tr><td>@account.UserName</td><td><code>@account.Identity.SubjectId</code></td><td>@(account.Enabled ? "Actif" : "Désactivé")</td></tr> }</tbody></table></div>
+            <form method="post" action="/admin/access/accounts" class="compact-form"><AntiforgeryToken /><label>Utilisateur<input name="userName" required maxlength="256" autocomplete="off" /></label><label>Mot de passe initial<input type="password" name="password" required maxlength="1024" autocomplete="new-password" /></label><button class="primary-button" type="submit">Créer le compte</button></form>
+        </section>
+        <section class="panel data-panel">
+            <div class="section-heading"><div><p class="eyebrow">Fournisseurs</p><h2>Capacités déclarées</h2></div></div>
+            @if (Directories.Count == 0) { <p class="muted-copy">Aucun annuaire externe n’est configuré ; l’authentification locale reste disponible.</p> }
+            else { <div class="table-wrap"><table><thead><tr><th>Fournisseur</th><th>Recherche</th><th>Groupes</th><th>État du compte</th></tr></thead><tbody>@foreach (var directory in Directories.Values.OrderBy(item => item.ProviderId)) { <tr><td>@directory.ProviderId</td><td>@Capability(directory, DirectoryCapabilities.Search)</td><td>@Capability(directory, DirectoryCapabilities.Groups)</td><td>@Capability(directory, DirectoryCapabilities.AccountStatus)</td></tr> }</tbody></table></div> }
+        </section>
+        <section class="panel data-panel">
+            <div class="section-heading"><div><p class="eyebrow">Affectations directes</p><h2>Identités et profils</h2></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Identité</th><th>Profil</th><th></th></tr></thead><tbody>@foreach (var assignment in _assignments) { <tr><td>@assignment.Identity.ProviderId / @assignment.Identity.SubjectId</td><td>@assignment.ProfileId</td><td><form method="post" action="/admin/access/assignments/remove"><AntiforgeryToken />@IdentityHidden(assignment)<button class="text-button danger-button" type="submit">Retirer</button></form></td></tr> }</tbody></table></div>
+            <form method="post" action="/admin/access/assignments" class="compact-form"><AntiforgeryToken /><label>Fournisseur<input name="providerId" required maxlength="128" /></label><label>Identifiant stable<input name="subjectId" required maxlength="256" /></label><label>Profil<select name="profileId" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label><button class="primary-button" type="submit">Affecter</button></form>
+        </section>
+        <section class="panel data-panel">
+            <div class="section-heading"><div><p class="eyebrow">Groupes externes</p><h2>Mappings vers les profils</h2></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Groupe</th><th>Profil</th><th></th></tr></thead><tbody>@foreach (var mapping in _groups) { <tr><td>@mapping.Group.ProviderId / @mapping.Group.GroupId</td><td>@mapping.ProfileId</td><td><form method="post" action="/admin/access/groups/remove"><AntiforgeryToken />@GroupHidden(mapping)<button class="text-button danger-button" type="submit">Retirer</button></form></td></tr> }</tbody></table></div>
+            <form method="post" action="/admin/access/groups" class="compact-form"><AntiforgeryToken /><label>Fournisseur<input name="providerId" required maxlength="128" /></label><label>Identifiant du groupe<input name="groupId" required maxlength="256" /></label><label>Profil<select name="profileId" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label><button class="primary-button" type="submit">Associer</button></form>
+        </section>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "saved")] public string? SavedValue { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    private bool Saved => SavedValue == "1";
+    private bool _allowed;
+    private IReadOnlyList<SecurityProfile> _profiles = [];
+    private IReadOnlyList<LocalAccount> _accounts = [];
+    private IReadOnlyList<SecurityIdentityProfileAssignment> _assignments = [];
+    private IReadOnlyList<SecurityGroupProfileMapping> _groups = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _allowed = (await Authorization.AuthorizeAsync(new(actor, WorkflowPermissions.ManageAccess), CancellationToken.None)).Allowed;
+        if (!_allowed) return;
+        _profiles = (await Profiles.ListProfilesAsync(500, CancellationToken.None)).Value ?? [];
+        _accounts = (await Accounts.ListAsync(500, CancellationToken.None)).Value ?? [];
+        _assignments = (await Profiles.ListIdentityAssignmentsAsync(1000, CancellationToken.None)).Value ?? [];
+        _groups = (await Profiles.ListGroupMappingsAsync(1000, CancellationToken.None)).Value ?? [];
+    }
+
+    private static RenderFragment IdentityHidden(SecurityIdentityProfileAssignment assignment) => builder =>
+    {
+        var sequence = 0; Hidden(builder, ref sequence, "providerId", assignment.Identity.ProviderId); Hidden(builder, ref sequence, "subjectId", assignment.Identity.SubjectId); Hidden(builder, ref sequence, "profileId", assignment.ProfileId);
+    };
+    private static RenderFragment GroupHidden(SecurityGroupProfileMapping mapping) => builder =>
+    {
+        var sequence = 0; Hidden(builder, ref sequence, "providerId", mapping.Group.ProviderId); Hidden(builder, ref sequence, "groupId", mapping.Group.GroupId); Hidden(builder, ref sequence, "profileId", mapping.ProfileId);
+    };
+    private static void Hidden(RenderTreeBuilder builder, ref int sequence, string name, string value)
+    {
+        builder.OpenElement(sequence++, "input"); builder.AddAttribute(sequence++, "type", "hidden"); builder.AddAttribute(sequence++, "name", name); builder.AddAttribute(sequence++, "value", value); builder.CloseElement();
+    }
+    private static string Capability(IIdentityDirectory directory, DirectoryCapabilities capability) => directory.Capabilities.HasFlag(capability) ? "Disponible" : "Non prise en charge";
+}

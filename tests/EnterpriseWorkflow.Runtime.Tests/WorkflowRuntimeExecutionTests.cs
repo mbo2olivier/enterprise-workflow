@@ -418,6 +418,7 @@ public sealed class WorkflowRuntimeExecutionTests
 
         public ValueTask<StoreResult<DefinitionReference>> PublishDefinitionAsync(PublishDefinitionCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<StartInstanceResult>> StartInstanceAsync(StartInstanceCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<StoreResult<IReadOnlyList<WorkflowInstanceSummary>>> ReadWorkflowInstancesAsync(ReadWorkflowInstancesCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(ClaimDueWorkCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<WorkLease>> RenewLeaseAsync(RenewLeaseCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<StoreResult<CommitNodeResult>> CommitNodeResultAsync(CommitNodeResultCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();

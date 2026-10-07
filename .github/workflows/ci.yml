@@ -66,6 +66,16 @@ jobs:
           LDAPTLS_CACERT: ${{ github.workspace }}/tests/ldap/certs/ca.crt
           LDAPTLS_REQCERT: demand
 
+      - name: Install Playwright Chromium
+        if: runner.os == 'Linux'
+        run: pwsh tests/EnterpriseWorkflow.Web.Playwright.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Qualify web portal with Playwright
+        if: runner.os == 'Linux'
+        run: dotnet test tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj --configuration Release --no-build --no-restore
+        env:
+          PLAYWRIGHT_TEST_ENABLED: '1'
+
       - name: Dump OpenLDAP qualification logs after failure
         if: failure() && runner.os == 'Linux'
         run: docker compose -f tests/ldap/docker-compose.yml logs --no-color

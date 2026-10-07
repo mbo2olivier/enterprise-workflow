@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <Description>Reusable Blazor business and administration UI for Enterprise Workflow.</Description>
+    <RootNamespace>EnterpriseWorkflow.Web</RootNamespace>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EnterpriseWorkflow.Presentation/EnterpriseWorkflow.Presentation.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj" />
+  </ItemGroup>
+</Project>
