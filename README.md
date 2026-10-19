@@ -10,7 +10,7 @@ Le MVP suit un graphe séquentiel à décisions exclusives, sans boucles ni para
 
 ## Compiler et vérifier le socle
 
-`global.json` fixe la ligne minimale au SDK `10.0.100` et autorise les feature bands stables ultérieures de .NET 10 ; le SDK local `10.0.102` est donc accepté. Depuis la racine :
+`global.json` épingle le SDK `10.0.401`. Ce verrouillage est volontaire : le SDK Web ajoute des packages ASP.NET implicites dont la version varie avec le feature band et doit rester cohérente avec les `packages.lock.json`. Depuis la racine :
 
 ```bash
 dotnet restore EnterpriseWorkflow.slnx --locked-mode
