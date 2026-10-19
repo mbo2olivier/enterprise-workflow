@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup><RootNamespace>EnterpriseWorkflow.SecurityApi</RootNamespace></PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Security.Abstractions/EnterpriseWorkflow.Security.Abstractions.csproj" />
     <ProjectReference Include="../../src/EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj" />
+    <ProjectReference Include="../../src/EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj" />
     <ProjectReference Include="../../src/EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,12 @@
+<NavLink href="@Href" Match="@Match" class="@($"nav-item {CssClass}")">
+    <span class="nav-icon"><PhosphorIcon Name="@Icon" Size="27" /></span>
+    <span class="nav-label">@Label</span>
+</NavLink>
+
+@code {
+    [Parameter, EditorRequired] public string Href { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Icon { get; set; } = string.Empty;
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+    [Parameter] public string? CssClass { get; set; }
+}

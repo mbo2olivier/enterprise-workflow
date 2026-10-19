@@ -2,9 +2,37 @@
 
 Date : 7 octobre 2026.
 
-Statut : qualification terminée. Retour du porteur : `OK solution / Playwright Linux / Oracle 19.19 / GitHub Actions`.
+Statut : qualification initiale terminée. Retour du porteur : `OK solution / Playwright Linux / Oracle 19.19 / GitHub Actions`. Après la correction de fidélité visuelle du 7 octobre 2026, la compilation ciblée et la comparaison navigateur sont réussies ; la suite longue ci-dessous reste à rejouer par le porteur.
 
 Ce fichier constitue la procédure unique de qualification finale de L8. L'implémentation est terminée ; les commandes longues sont volontairement laissées au porteur afin qu'il puisse les exécuter dans son environnement et ne transmettre que le résultat ou les logs d'échec.
+
+## 0. Revalidation après correction de fidélité
+
+La correction concerne le shell Razor, les icônes, le menu utilisateur, Today, l’accueil d’administration, les pages Accès / Exploitation / Réglages, les modales de profils et d’identité locale, la feuille de style et le suivi du pointeur. Exécuter dans cet ordre :
+
+```bash
+dotnet build src/EnterpriseWorkflow.Kernel/EnterpriseWorkflow.Kernel.csproj --configuration Release --no-restore --disable-build-servers -p:UseSharedCompilation=false -m:1
+dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
+dotnet build tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj --configuration Release --no-restore --disable-build-servers -p:UseSharedCompilation=false -m:1
+PLAYWRIGHT_TEST_ENABLED=1 dotnet test tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj --configuration Release --no-build --no-restore
+```
+
+Résultat attendu : compilation sans avertissement, suites unitaires/intégration vertes et smoke Playwright vert. Sur Accès, le tableau reste visible en pleine largeur derrière les fenêtres de création/modification de profil et de création d’identité locale. Les captures comparatives manuelles sont consignées dans `design-qa.md`.
+
+## 0 bis. Validation ciblée des samples
+
+Les samples déclarent directement les couches dont les types apparaissent dans leur code ; leur compilation ne doit pas dépendre d’une référence transitive accidentelle. Pour revalider uniquement ce contrat, sans exécuter les suites longues :
+
+```bash
+dotnet restore samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj --locked-mode
+dotnet restore samples/ExecutableWorkflow/ExecutableWorkflow.csproj --locked-mode
+dotnet restore samples/SecurityApi/SecurityApi.csproj --locked-mode
+dotnet build samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj --configuration Release --no-restore --disable-build-servers
+dotnet build samples/ExecutableWorkflow/ExecutableWorkflow.csproj --configuration Release --no-restore --disable-build-servers
+dotnet build samples/SecurityApi/SecurityApi.csproj --configuration Release --no-restore --disable-build-servers
+```
+
+Résultat attendu : les trois restaurations en mode verrouillé et les trois compilations réussissent sans avertissement. En particulier, `LeaveRequest.Module` doit résoudre `WorkflowPresentationRegistryBuilder` depuis `EnterpriseWorkflow.Presentation.Abstractions`.
 
 ## 1. Solution complète
 

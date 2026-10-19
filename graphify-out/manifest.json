@@ -1,0 +1,2102 @@
+{
+  "EnterpriseWorkflow.slnx": {
+    "mtime": 1791300242.8197181,
+    "seen": 1792352254.211374,
+    "ast_hash": "335d2ea84bdb5f9b227da2f15b8bdcde",
+    "semantic_hash": "335d2ea84bdb5f9b227da2f15b8bdcde"
+  },
+  "global.json": {
+    "mtime": 1790855228.8648643,
+    "seen": 1792352254.211381,
+    "ast_hash": "78f44721445b1a1a4c0974f7117e898d",
+    "semantic_hash": "78f44721445b1a1a4c0974f7117e898d"
+  },
+  "prototype/.openai/hosting.json": {
+    "mtime": 1791051440.1308582,
+    "seen": 1792352254.211383,
+    "ast_hash": "0c0e50dd4ba5ca1697360d9e78b65fd0",
+    "semantic_hash": "0c0e50dd4ba5ca1697360d9e78b65fd0"
+  },
+  "prototype/package.json": {
+    "mtime": 1791051486.4597182,
+    "seen": 1792352254.211384,
+    "ast_hash": "0818520e5a808fbd79affc5145a85d36",
+    "semantic_hash": "0818520e5a808fbd79affc5145a85d36"
+  },
+  "prototype/scripts/prepare-sites-build.mjs": {
+    "mtime": 1791051440.1302643,
+    "seen": 1792352254.2113862,
+    "ast_hash": "efdb92be9abc28dca50711505953ac8b",
+    "semantic_hash": "efdb92be9abc28dca50711505953ac8b"
+  },
+  "prototype/src/App.jsx": {
+    "mtime": 1791146565.0985124,
+    "seen": 1792352254.211387,
+    "ast_hash": "f8cf11405c9a8890e088f622da313a61",
+    "semantic_hash": "f8cf11405c9a8890e088f622da313a61"
+  },
+  "prototype/src/main.jsx": {
+    "mtime": 1791051440.1329634,
+    "seen": 1792352254.2113879,
+    "ast_hash": "016c18bfcd1c1f50f66a6a4445e9b9fe",
+    "semantic_hash": "016c18bfcd1c1f50f66a6a4445e9b9fe"
+  },
+  "prototype/tests/sites-worker.test.mjs": {
+    "mtime": 1791051440.127947,
+    "seen": 1792352254.2113888,
+    "ast_hash": "ba3875f3c0980907476b0e64fda5f70e",
+    "semantic_hash": "ba3875f3c0980907476b0e64fda5f70e"
+  },
+  "prototype/vite.config.mjs": {
+    "mtime": 1791052135.2699776,
+    "seen": 1792352254.21139,
+    "ast_hash": "efc4d85454679a636ff0bf7971d561b6",
+    "semantic_hash": "efc4d85454679a636ff0bf7971d561b6"
+  },
+  "prototype/worker/index.js": {
+    "mtime": 1791051440.1320186,
+    "seen": 1792352254.211391,
+    "ast_hash": "1142dd8df21bcc631e67e2bf63638b60",
+    "semantic_hash": "1142dd8df21bcc631e67e2bf63638b60"
+  },
+  "samples/ExecutableWorkflow/ExecutableWorkflow.csproj": {
+    "mtime": 1791031062.7401106,
+    "seen": 1792352254.211392,
+    "ast_hash": "e76bada1ae99e105c847b1f05bfb51e1",
+    "semantic_hash": "e76bada1ae99e105c847b1f05bfb51e1"
+  },
+  "samples/ExecutableWorkflow/Program.cs": {
+    "mtime": 1791138206.74237,
+    "seen": 1792352254.211393,
+    "ast_hash": "fbba77c436b75f64aadf48ad1c5e72b7",
+    "semantic_hash": "fbba77c436b75f64aadf48ad1c5e72b7"
+  },
+  "samples/ExecutableWorkflow/packages.lock.json": {
+    "mtime": 1791136447.4834795,
+    "seen": 1792352254.211394,
+    "ast_hash": "514bb3df92875ec50d44d74363098e4c",
+    "semantic_hash": "514bb3df92875ec50d44d74363098e4c"
+  },
+  "samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj": {
+    "mtime": 1791214494.649058,
+    "seen": 1792352254.211395,
+    "ast_hash": "bd7c030f7a8adfc2966c01b259f9be0e",
+    "semantic_hash": "bd7c030f7a8adfc2966c01b259f9be0e"
+  },
+  "samples/LeaveRequest.Module/LeaveRequestModule.cs": {
+    "mtime": 1791214593.2801373,
+    "seen": 1792352254.2113972,
+    "ast_hash": "82ac45c307bbb7ef06583ad4cc537c99",
+    "semantic_hash": "82ac45c307bbb7ef06583ad4cc537c99"
+  },
+  "samples/LeaveRequest.Module/LeaveRequestSummary.razor": {
+    "mtime": 1791214506.6126275,
+    "seen": 1792352254.2113972,
+    "ast_hash": "d5497d3209a5908152876f53dfafb798",
+    "semantic_hash": "d5497d3209a5908152876f53dfafb798"
+  },
+  "samples/LeaveRequest.Module/packages.lock.json": {
+    "mtime": 1791214755.8008091,
+    "seen": 1792352254.211398,
+    "ast_hash": "d65539cd8f75702b168e379dacaedbb5",
+    "semantic_hash": "d65539cd8f75702b168e379dacaedbb5"
+  },
+  "samples/SecurityApi/Program.cs": {
+    "mtime": 1791127656.339461,
+    "seen": 1792352254.2113988,
+    "ast_hash": "c96b93e6bd378dc2ea009d7e26b1fdd2",
+    "semantic_hash": "c96b93e6bd378dc2ea009d7e26b1fdd2"
+  },
+  "samples/SecurityApi/SecurityApi.csproj": {
+    "mtime": 1791037540.3175066,
+    "seen": 1792352254.2114,
+    "ast_hash": "c1ca396cc24950aee81eb6498a648360",
+    "semantic_hash": "c1ca396cc24950aee81eb6498a648360"
+  },
+  "samples/SecurityApi/appsettings.json": {
+    "mtime": 1791127656.3702693,
+    "seen": 1792352254.211401,
+    "ast_hash": "51789def5f2646453063e925d64e5e53",
+    "semantic_hash": "51789def5f2646453063e925d64e5e53"
+  },
+  "samples/SecurityApi/packages.lock.json": {
+    "mtime": 1791037543.9086287,
+    "seen": 1792352254.211402,
+    "ast_hash": "c8bfba925e9e7c702d8136665f539716",
+    "semantic_hash": "c8bfba925e9e7c702d8136665f539716"
+  },
+  "src/EnterpriseWorkflow.Abstractions/AbstractionsAssembly.cs": {
+    "mtime": 1790843003.037936,
+    "seen": 1792352254.211403,
+    "ast_hash": "440b48ae14c741d9fa0a5138ea13db28",
+    "semantic_hash": "440b48ae14c741d9fa0a5138ea13db28"
+  },
+  "src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj": {
+    "mtime": 1790843002.9418294,
+    "seen": 1792352254.211405,
+    "ast_hash": "d99b0acdd5e8e6c701e8a54d3e62accb",
+    "semantic_hash": "d99b0acdd5e8e6c701e8a54d3e62accb"
+  },
+  "src/EnterpriseWorkflow.Abstractions/NodeStateUpdate.cs": {
+    "mtime": 1790846505.910989,
+    "seen": 1792352254.211405,
+    "ast_hash": "4d891603cc2452d897b381be137f8f48",
+    "semantic_hash": "4d891603cc2452d897b381be137f8f48"
+  },
+  "src/EnterpriseWorkflow.Abstractions/TechnicalId.cs": {
+    "mtime": 1790846505.8187156,
+    "seen": 1792352254.211406,
+    "ast_hash": "68485770c34cc707146b888912fe7834",
+    "semantic_hash": "68485770c34cc707146b888912fe7834"
+  },
+  "src/EnterpriseWorkflow.Abstractions/packages.lock.json": {
+    "mtime": 1791214755.7998044,
+    "seen": 1792352254.2114072,
+    "ast_hash": "7775d7ed0c14a6f23d84af2d83a88ad1",
+    "semantic_hash": "7775d7ed0c14a6f23d84af2d83a88ad1"
+  },
+  "src/EnterpriseWorkflow.Core/CoreAssembly.cs": {
+    "mtime": 1790843003.3094487,
+    "seen": 1792352254.211408,
+    "ast_hash": "ddfb0ca6f949178a418d456a659eab96",
+    "semantic_hash": "ddfb0ca6f949178a418d456a659eab96"
+  },
+  "src/EnterpriseWorkflow.Core/Diagnostics/WorkflowDiagnostic.cs": {
+    "mtime": 1790846506.0801322,
+    "seen": 1792352254.2114089,
+    "ast_hash": "fb1515b04ce233fd73eae7f4df03192f",
+    "semantic_hash": "fb1515b04ce233fd73eae7f4df03192f"
+  },
+  "src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj": {
+    "mtime": 1790843003.203366,
+    "seen": 1792352254.2114098,
+    "ast_hash": "6c7e0479b972046622916990eb60b28e",
+    "semantic_hash": "6c7e0479b972046622916990eb60b28e"
+  },
+  "src/EnterpriseWorkflow.Core/Model/CanonicalJson.cs": {
+    "mtime": 1790846878.2698119,
+    "seen": 1792352254.211411,
+    "ast_hash": "d897239c22e9ed15c501872d21fe17d2",
+    "semantic_hash": "d897239c22e9ed15c501872d21fe17d2"
+  },
+  "src/EnterpriseWorkflow.Core/Model/WorkflowDefinition.cs": {
+    "mtime": 1791135492.5610688,
+    "seen": 1792352254.211412,
+    "ast_hash": "bf8beef1547811c5b37d38fb605cc01c",
+    "semantic_hash": "bf8beef1547811c5b37d38fb605cc01c"
+  },
+  "src/EnterpriseWorkflow.Core/Model/WorkflowDefinitionLimits.cs": {
+    "mtime": 1790846506.2510843,
+    "seen": 1792352254.211413,
+    "ast_hash": "15046bffdca3753b1a4cdf6c82d0df1b",
+    "semantic_hash": "15046bffdca3753b1a4cdf6c82d0df1b"
+  },
+  "src/EnterpriseWorkflow.Core/Model/WorkflowDraft.cs": {
+    "mtime": 1791135492.5320072,
+    "seen": 1792352254.211414,
+    "ast_hash": "ef33e449185b0b5946f6cea96a5faa91",
+    "semantic_hash": "ef33e449185b0b5946f6cea96a5faa91"
+  },
+  "src/EnterpriseWorkflow.Core/Model/WorkflowState.cs": {
+    "mtime": 1790847287.6820388,
+    "seen": 1792352254.211415,
+    "ast_hash": "61f621a60e1c4b9a2c8a60ddcb68d539",
+    "semantic_hash": "61f621a60e1c4b9a2c8a60ddcb68d539"
+  },
+  "src/EnterpriseWorkflow.Core/Serialization/PublishedWorkflowDefinitionReader.cs": {
+    "mtime": 1791135570.0066555,
+    "seen": 1792352254.211416,
+    "ast_hash": "92444fc60d55d33ecad03b6b093cc29c",
+    "semantic_hash": "92444fc60d55d33ecad03b6b093cc29c"
+  },
+  "src/EnterpriseWorkflow.Core/Serialization/WorkflowDefinitionSerializer.cs": {
+    "mtime": 1791135569.9798558,
+    "seen": 1792352254.2114172,
+    "ast_hash": "6ebb0baa0834b8caac53855de3b84b2b",
+    "semantic_hash": "6ebb0baa0834b8caac53855de3b84b2b"
+  },
+  "src/EnterpriseWorkflow.Core/Validation/NodeTypeCatalog.cs": {
+    "mtime": 1791135492.5867069,
+    "seen": 1792352254.2114182,
+    "ast_hash": "496572f034d1f39b0f3581d253019fe2",
+    "semantic_hash": "496572f034d1f39b0f3581d253019fe2"
+  },
+  "src/EnterpriseWorkflow.Core/Validation/WorkflowCompilationResult.cs": {
+    "mtime": 1790846602.88646,
+    "seen": 1792352254.2114189,
+    "ast_hash": "5c49961ad19e7b620de1fc2b9a541ca4",
+    "semantic_hash": "5c49961ad19e7b620de1fc2b9a541ca4"
+  },
+  "src/EnterpriseWorkflow.Core/Validation/WorkflowDefinitionCompiler.cs": {
+    "mtime": 1791135538.3543184,
+    "seen": 1792352254.2114189,
+    "ast_hash": "9d42a492d6d8140f2bddbb2afbd1b6c8",
+    "semantic_hash": "9d42a492d6d8140f2bddbb2afbd1b6c8"
+  },
+  "src/EnterpriseWorkflow.Core/packages.lock.json": {
+    "mtime": 1791214755.800238,
+    "seen": 1792352254.2114198,
+    "ast_hash": "5f7e502340f91d3182398b55b7ed768e",
+    "semantic_hash": "5f7e502340f91d3182398b55b7ed768e"
+  },
+  "src/EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj": {
+    "mtime": 1791204474.8104846,
+    "seen": 1792352254.211421,
+    "ast_hash": "fbe9460dfcd6099d010a16ef5f6639f4",
+    "semantic_hash": "fbe9460dfcd6099d010a16ef5f6639f4"
+  },
+  "src/EnterpriseWorkflow.Extensions.Abstractions/IWorkflowModule.cs": {
+    "mtime": 1791204474.8296528,
+    "seen": 1792352254.211422,
+    "ast_hash": "ed1f66287c74975f541ed5777247d9dc",
+    "semantic_hash": "ed1f66287c74975f541ed5777247d9dc"
+  },
+  "src/EnterpriseWorkflow.Extensions.Abstractions/WorkflowStateMigrationContracts.cs": {
+    "mtime": 1791166100.4669645,
+    "seen": 1792352254.211423,
+    "ast_hash": "5bcd05f5849b597f41a5c07171201103",
+    "semantic_hash": "5bcd05f5849b597f41a5c07171201103"
+  },
+  "src/EnterpriseWorkflow.Extensions.Abstractions/packages.lock.json": {
+    "mtime": 1791214757.6891587,
+    "seen": 1792352254.211424,
+    "ast_hash": "3b551d47bf24715b2dab1cbe57128268",
+    "semantic_hash": "3b551d47bf24715b2dab1cbe57128268"
+  },
+  "src/EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj": {
+    "mtime": 1791166154.763074,
+    "seen": 1792352254.211425,
+    "ast_hash": "6ac21a5c6227ca82c5b2560235494045",
+    "semantic_hash": "6ac21a5c6227ca82c5b2560235494045"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleCatalog.cs": {
+    "mtime": 1791166868.5738163,
+    "seen": 1792352254.211426,
+    "ast_hash": "e491febd0218f89255dcf1dd7e755c7a",
+    "semantic_hash": "e491febd0218f89255dcf1dd7e755c7a"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleKernel.cs": {
+    "mtime": 1791166154.7111468,
+    "seen": 1792352254.211427,
+    "ast_hash": "dc4d86d63dfa254150e3b8ff8ac1b563",
+    "semantic_hash": "dc4d86d63dfa254150e3b8ff8ac1b563"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleLoadContext.cs": {
+    "mtime": 1791141726.6174269,
+    "seen": 1792352254.2114282,
+    "ast_hash": "8f6a1a0495042e3540be628c0d21345d",
+    "semantic_hash": "8f6a1a0495042e3540be628c0d21345d"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleLoadOptions.cs": {
+    "mtime": 1791141536.997007,
+    "seen": 1792352254.211429,
+    "ast_hash": "49e983090371ece17bb66f59394d234d",
+    "semantic_hash": "49e983090371ece17bb66f59394d234d"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleManifestReader.cs": {
+    "mtime": 1791142203.9991612,
+    "seen": 1792352254.2114298,
+    "ast_hash": "8af9ca584028ba754aae4169447a4541",
+    "semantic_hash": "8af9ca584028ba754aae4169447a4541"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleModels.cs": {
+    "mtime": 1791141536.9510038,
+    "seen": 1792352254.211431,
+    "ast_hash": "4ba9cdaa0f117b338ac1c88cea99ff9c",
+    "semantic_hash": "4ba9cdaa0f117b338ac1c88cea99ff9c"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleResourceEndpointRouteBuilderExtensions.cs": {
+    "mtime": 1791141602.7913806,
+    "seen": 1792352254.211432,
+    "ast_hash": "54493a25526ba86915907a88ed449e36",
+    "semantic_hash": "54493a25526ba86915907a88ed449e36"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowModuleServiceCollectionExtensions.cs": {
+    "mtime": 1791204615.1610544,
+    "seen": 1792352254.211433,
+    "ast_hash": "c97da48c5cfcd5c8c0d8c3cc24812cfd",
+    "semantic_hash": "c97da48c5cfcd5c8c0d8c3cc24812cfd"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowPresentationCatalog.cs": {
+    "mtime": 1791204615.134154,
+    "seen": 1792352254.211434,
+    "ast_hash": "883f80340d4e00ef6b5755cf88428603",
+    "semantic_hash": "883f80340d4e00ef6b5755cf88428603"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowStateMigrationRegistry.cs": {
+    "mtime": 1791166154.65796,
+    "seen": 1792352254.211435,
+    "ast_hash": "d9553a55910ebebff013fbac6ccd07ea",
+    "semantic_hash": "d9553a55910ebebff013fbac6ccd07ea"
+  },
+  "src/EnterpriseWorkflow.Extensions/WorkflowStateMigrationService.cs": {
+    "mtime": 1791167056.3647566,
+    "seen": 1792352254.211436,
+    "ast_hash": "5cf41c47db4465ce996801ebdaf29ea5",
+    "semantic_hash": "5cf41c47db4465ce996801ebdaf29ea5"
+  },
+  "src/EnterpriseWorkflow.Extensions/packages.lock.json": {
+    "mtime": 1791214755.8004973,
+    "seen": 1792352254.211436,
+    "ast_hash": "b09bdea8dbe090116a60f5e64deb34e7",
+    "semantic_hash": "b09bdea8dbe090116a60f5e64deb34e7"
+  },
+  "src/EnterpriseWorkflow.Kernel/EnterpriseWorkflow.Kernel.csproj": {
+    "mtime": 1791212782.053412,
+    "seen": 1792352254.211437,
+    "ast_hash": "feb33d83ab38f32ac1f66d5ec57f3db5",
+    "semantic_hash": "feb33d83ab38f32ac1f66d5ec57f3db5"
+  },
+  "src/EnterpriseWorkflow.Kernel/Program.cs": {
+    "mtime": 1791218272.2737374,
+    "seen": 1792352254.2114382,
+    "ast_hash": "a6e3562a929d744cd067f6ad6f6114c2",
+    "semantic_hash": "a6e3562a929d744cd067f6ad6f6114c2"
+  },
+  "src/EnterpriseWorkflow.Kernel/appsettings.Development.json": {
+    "mtime": 1791206700.3852928,
+    "seen": 1792352254.2114391,
+    "ast_hash": "3d3336a4fc787b94132f6175927140e4",
+    "semantic_hash": "3d3336a4fc787b94132f6175927140e4"
+  },
+  "src/EnterpriseWorkflow.Kernel/appsettings.json": {
+    "mtime": 1791217564.050884,
+    "seen": 1792352254.21144,
+    "ast_hash": "ebca8fe8df29c35d23cdff86d0ea4221",
+    "semantic_hash": "ebca8fe8df29c35d23cdff86d0ea4221"
+  },
+  "src/EnterpriseWorkflow.Kernel/packages.lock.json": {
+    "mtime": 1791212792.825317,
+    "seen": 1792352254.2114408,
+    "ast_hash": "16166284899cbcf89f0cf905e369bd11",
+    "semantic_hash": "16166284899cbcf89f0cf905e369bd11"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj": {
+    "mtime": 1790846818.3857048,
+    "seen": 1792352254.211442,
+    "ast_hash": "b5d55d9a7256d57942e2d47135049db1",
+    "semantic_hash": "b5d55d9a7256d57942e2d47135049db1"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/IWorkflowMaintenanceStore.cs": {
+    "mtime": 1791165915.2127738,
+    "seen": 1792352254.211443,
+    "ast_hash": "9807522c8f11bf0a8fa8da91f35ac1e8",
+    "semantic_hash": "9807522c8f11bf0a8fa8da91f35ac1e8"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/IWorkflowStore.cs": {
+    "mtime": 1791216023.7165751,
+    "seen": 1792352254.211444,
+    "ast_hash": "615725662f899f156c52996a81572679",
+    "semantic_hash": "615725662f899f156c52996a81572679"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/StoreContractRules.cs": {
+    "mtime": 1791135911.782545,
+    "seen": 1792352254.211445,
+    "ast_hash": "fac4102e89683b4c62b4ab07fe8f9284",
+    "semantic_hash": "fac4102e89683b4c62b4ab07fe8f9284"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/StoreModels.cs": {
+    "mtime": 1791216023.6941922,
+    "seen": 1792352254.211446,
+    "ast_hash": "d796ac817037883aebb7b6d8ab52e04d",
+    "semantic_hash": "d796ac817037883aebb7b6d8ab52e04d"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/StoreResult.cs": {
+    "mtime": 1790846920.7714128,
+    "seen": 1792352254.211447,
+    "ast_hash": "b2d0d7033cf2c801008897d783f2bb7b",
+    "semantic_hash": "b2d0d7033cf2c801008897d783f2bb7b"
+  },
+  "src/EnterpriseWorkflow.Persistence.Abstractions/packages.lock.json": {
+    "mtime": 1791214755.800285,
+    "seen": 1792352254.211448,
+    "ast_hash": "b8301befa889d3a469ba13bad3b4554e",
+    "semantic_hash": "b8301befa889d3a469ba13bad3b4554e"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj": {
+    "mtime": 1790865179.7605712,
+    "seen": 1792352254.2114491,
+    "ast_hash": "1ae5571a0ddc86b9d067dbc5b8b41f56",
+    "semantic_hash": "1ae5571a0ddc86b9d067dbc5b8b41f56"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/Migrations/202610010002_InitialOracle.cs": {
+    "mtime": 1790865341.58183,
+    "seen": 1792352254.21145,
+    "ast_hash": "972b24b771b1b64509506ca51b846a59",
+    "semantic_hash": "972b24b771b1b64509506ca51b846a59"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/Migrations/202610030003_AddOutbox.cs": {
+    "mtime": 1791028497.2617865,
+    "seen": 1792352254.2114508,
+    "ast_hash": "6fe6cdcb4e54db61fc1f51499ebd26d4",
+    "semantic_hash": "6fe6cdcb4e54db61fc1f51499ebd26d4"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/Migrations/202610040004_AddHumanTasksAndTimers.cs": {
+    "mtime": 1791138179.6265342,
+    "seen": 1792352254.211452,
+    "ast_hash": "7f6fdaaffe89245897f862defe1a4b8f",
+    "semantic_hash": "7f6fdaaffe89245897f862defe1a4b8f"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/Migrations/202610050005_AddModuleArtifacts.cs": {
+    "mtime": 1791165944.3175397,
+    "seen": 1792352254.211453,
+    "ast_hash": "3262610bffa24e74a4b5be0dee9e5b02",
+    "semantic_hash": "3262610bffa24e74a4b5be0dee9e5b02"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/OracleWorkflowDatabase.cs": {
+    "mtime": 1791205258.6698322,
+    "seen": 1792352254.211454,
+    "ast_hash": "6bbc69aa28f1f60613054c9b31f95689",
+    "semantic_hash": "6bbc69aa28f1f60613054c9b31f95689"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/OracleWorkflowDbContext.cs": {
+    "mtime": 1791165944.2661471,
+    "seen": 1792352254.211454,
+    "ast_hash": "92f8007596723c27fde54259b42884bc",
+    "semantic_hash": "92f8007596723c27fde54259b42884bc"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/OracleWorkflowStore.HumanWaits.cs": {
+    "mtime": 1791136336.0795865,
+    "seen": 1792352254.2114549,
+    "ast_hash": "330e40da26b2607995f6d88133aa3dba",
+    "semantic_hash": "330e40da26b2607995f6d88133aa3dba"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/OracleWorkflowStore.Maintenance.cs": {
+    "mtime": 1791167498.4112716,
+    "seen": 1792352254.211456,
+    "ast_hash": "d8091c42d5617b48826b290e6e6cfe92",
+    "semantic_hash": "d8091c42d5617b48826b290e6e6cfe92"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/OracleWorkflowStore.cs": {
+    "mtime": 1791216023.7516873,
+    "seen": 1792352254.211457,
+    "ast_hash": "3ea14ca8330ca1807ddc3de2bf002bef",
+    "semantic_hash": "3ea14ca8330ca1807ddc3de2bf002bef"
+  },
+  "src/EnterpriseWorkflow.Persistence.Oracle/packages.lock.json": {
+    "mtime": 1791037273.703646,
+    "seen": 1792352254.211458,
+    "ast_hash": "b3dea2aaf432558b4cb0a721466f9d79",
+    "semantic_hash": "b3dea2aaf432558b4cb0a721466f9d79"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj": {
+    "mtime": 1790862867.2338893,
+    "seen": 1792352254.2114592,
+    "ast_hash": "7584732117979e58cc42f30ab95b7d32",
+    "semantic_hash": "7584732117979e58cc42f30ab95b7d32"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/Migrations/202610010001_InitialSqlite.cs": {
+    "mtime": 1790865152.2254388,
+    "seen": 1792352254.21146,
+    "ast_hash": "278388bbc58f2d7aa552f99f4d4b765c",
+    "semantic_hash": "278388bbc58f2d7aa552f99f4d4b765c"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/Migrations/202610030002_AddOutbox.cs": {
+    "mtime": 1791028497.2341006,
+    "seen": 1792352254.211461,
+    "ast_hash": "e665db1fa34cc711b1b4174711e5c52c",
+    "semantic_hash": "e665db1fa34cc711b1b4174711e5c52c"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/Migrations/202610040003_AddHumanTasksAndTimers.cs": {
+    "mtime": 1791138179.5987108,
+    "seen": 1792352254.2114618,
+    "ast_hash": "0bcabdccde005318d53080102ee4c1f8",
+    "semantic_hash": "0bcabdccde005318d53080102ee4c1f8"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/Migrations/202610050004_AddModuleArtifacts.cs": {
+    "mtime": 1791165944.2911596,
+    "seen": 1792352254.211463,
+    "ast_hash": "aba757a9d241ebccda6d004fe0b382cf",
+    "semantic_hash": "aba757a9d241ebccda6d004fe0b382cf"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/SqliteWorkflowDatabase.cs": {
+    "mtime": 1791205258.6506133,
+    "seen": 1792352254.211464,
+    "ast_hash": "bfcb74ea1060a3667596e578ce252d44",
+    "semantic_hash": "bfcb74ea1060a3667596e578ce252d44"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/SqliteWorkflowDbContext.cs": {
+    "mtime": 1791165944.2401166,
+    "seen": 1792352254.211465,
+    "ast_hash": "4d1d6136a0e43bfebbf0c96d87d385d8",
+    "semantic_hash": "4d1d6136a0e43bfebbf0c96d87d385d8"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/SqliteWorkflowStore.HumanWaits.cs": {
+    "mtime": 1791136336.042233,
+    "seen": 1792352254.211466,
+    "ast_hash": "32446922d8c6419b3938a4d300f2a803",
+    "semantic_hash": "32446922d8c6419b3938a4d300f2a803"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/SqliteWorkflowStore.Maintenance.cs": {
+    "mtime": 1791167498.3858895,
+    "seen": 1792352254.211467,
+    "ast_hash": "ea7c0bebefb28efd7144814ba97afba8",
+    "semantic_hash": "ea7c0bebefb28efd7144814ba97afba8"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/SqliteWorkflowStore.cs": {
+    "mtime": 1791216023.7342484,
+    "seen": 1792352254.211468,
+    "ast_hash": "5116e09663deaea7b33e257e32e64954",
+    "semantic_hash": "5116e09663deaea7b33e257e32e64954"
+  },
+  "src/EnterpriseWorkflow.Persistence.Sqlite/packages.lock.json": {
+    "mtime": 1791037273.6956139,
+    "seen": 1792352254.2114692,
+    "ast_hash": "c58935f718ea700d96165b8519b96c7f",
+    "semantic_hash": "c58935f718ea700d96165b8519b96c7f"
+  },
+  "src/EnterpriseWorkflow.Presentation.Abstractions/EnterpriseWorkflow.Presentation.Abstractions.csproj": {
+    "mtime": 1791204375.4024317,
+    "seen": 1792352254.2114701,
+    "ast_hash": "68ccdca4e5552239a42e7c510a6b71e6",
+    "semantic_hash": "68ccdca4e5552239a42e7c510a6b71e6"
+  },
+  "src/EnterpriseWorkflow.Presentation.Abstractions/WorkflowPresentationModels.cs": {
+    "mtime": 1791204691.9924734,
+    "seen": 1792352254.2114701,
+    "ast_hash": "f954f5293b9df96a8d36397e386a0382",
+    "semantic_hash": "f954f5293b9df96a8d36397e386a0382"
+  },
+  "src/EnterpriseWorkflow.Presentation.Abstractions/WorkflowPresentationRegistryBuilder.cs": {
+    "mtime": 1791204474.7890308,
+    "seen": 1792352254.211471,
+    "ast_hash": "2f480cb7c5f0606186edd3aa8265de22",
+    "semantic_hash": "2f480cb7c5f0606186edd3aa8265de22"
+  },
+  "src/EnterpriseWorkflow.Presentation.Abstractions/packages.lock.json": {
+    "mtime": 1791214755.8042488,
+    "seen": 1792352254.2114718,
+    "ast_hash": "b8301befa889d3a469ba13bad3b4554e",
+    "semantic_hash": "b8301befa889d3a469ba13bad3b4554e"
+  },
+  "src/EnterpriseWorkflow.Presentation/EnterpriseWorkflow.Presentation.csproj": {
+    "mtime": 1791205524.8037136,
+    "seen": 1792352254.211473,
+    "ast_hash": "68faf7ea2d3469a14c4104d9ea43d7da",
+    "semantic_hash": "68faf7ea2d3469a14c4104d9ea43d7da"
+  },
+  "src/EnterpriseWorkflow.Presentation/WorkflowFormService.cs": {
+    "mtime": 1791204984.422199,
+    "seen": 1792352254.211474,
+    "ast_hash": "00235d514f6ae5ba99e1c22ee006331a",
+    "semantic_hash": "00235d514f6ae5ba99e1c22ee006331a"
+  },
+  "src/EnterpriseWorkflow.Presentation/WorkflowPortalService.cs": {
+    "mtime": 1791299542.370453,
+    "seen": 1792352254.211475,
+    "ast_hash": "884a280b812c1415976961ba070cebd5",
+    "semantic_hash": "884a280b812c1415976961ba070cebd5"
+  },
+  "src/EnterpriseWorkflow.Presentation/WorkflowPresentationServiceCollectionExtensions.cs": {
+    "mtime": 1791205524.8463147,
+    "seen": 1792352254.2114758,
+    "ast_hash": "f9b9835bca018ef626b7cd50f380148f",
+    "semantic_hash": "f9b9835bca018ef626b7cd50f380148f"
+  },
+  "src/EnterpriseWorkflow.Presentation/packages.lock.json": {
+    "mtime": 1791213901.2251601,
+    "seen": 1792352254.211477,
+    "ast_hash": "0033377516cbad7c62240a1ded3893be",
+    "semantic_hash": "0033377516cbad7c62240a1ded3893be"
+  },
+  "src/EnterpriseWorkflow.Runtime.Abstractions/EnterpriseWorkflow.Runtime.Abstractions.csproj": {
+    "mtime": 1790888246.9310992,
+    "seen": 1792352254.211477,
+    "ast_hash": "39ee256b8242b1aff36b86d4b6b5ff2f",
+    "semantic_hash": "39ee256b8242b1aff36b86d4b6b5ff2f"
+  },
+  "src/EnterpriseWorkflow.Runtime.Abstractions/NodeExecutionContext.cs": {
+    "mtime": 1791136275.2763412,
+    "seen": 1792352254.211478,
+    "ast_hash": "1ea55f382a1ac96e5d4d8fd58ad0fff8",
+    "semantic_hash": "1ea55f382a1ac96e5d4d8fd58ad0fff8"
+  },
+  "src/EnterpriseWorkflow.Runtime.Abstractions/NodeExecutionResults.cs": {
+    "mtime": 1791136461.1300762,
+    "seen": 1792352254.211479,
+    "ast_hash": "3f0e2992fcd405a1d37fd8107760d26d",
+    "semantic_hash": "3f0e2992fcd405a1d37fd8107760d26d"
+  },
+  "src/EnterpriseWorkflow.Runtime.Abstractions/NodeHandlers.cs": {
+    "mtime": 1791136242.434269,
+    "seen": 1792352254.2114801,
+    "ast_hash": "6eb0320d117d455fff1b39c10a10b547",
+    "semantic_hash": "6eb0320d117d455fff1b39c10a10b547"
+  },
+  "src/EnterpriseWorkflow.Runtime.Abstractions/packages.lock.json": {
+    "mtime": 1791214755.8040648,
+    "seen": 1792352254.211481,
+    "ast_hash": "f4691060688eb8ff0f3d5c9affde1916",
+    "semantic_hash": "f4691060688eb8ff0f3d5c9affde1916"
+  },
+  "src/EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj": {
+    "mtime": 1791136442.698071,
+    "seen": 1792352254.211482,
+    "ast_hash": "e267873a76a5ac54023458841e7d7d93",
+    "semantic_hash": "e267873a76a5ac54023458841e7d7d93"
+  },
+  "src/EnterpriseWorkflow.Runtime/ExternalEffectTransport.cs": {
+    "mtime": 1791030764.5695322,
+    "seen": 1792352254.2114828,
+    "ast_hash": "e7643ef9fd7e704db4309691f97b86b5",
+    "semantic_hash": "e7643ef9fd7e704db4309691f97b86b5"
+  },
+  "src/EnterpriseWorkflow.Runtime/HumanTaskService.cs": {
+    "mtime": 1791205295.090489,
+    "seen": 1792352254.211484,
+    "ast_hash": "2fe0a6428e5441eb1c3a45d92085007b",
+    "semantic_hash": "2fe0a6428e5441eb1c3a45d92085007b"
+  },
+  "src/EnterpriseWorkflow.Runtime/ScopedWorkflowHandlerResolver.cs": {
+    "mtime": 1791136275.355851,
+    "seen": 1792352254.211485,
+    "ast_hash": "34174a03e60c195d385ee65affb2a8bc",
+    "semantic_hash": "34174a03e60c195d385ee65affb2a8bc"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowDefinitionBindingValidator.cs": {
+    "mtime": 1791136275.3810925,
+    "seen": 1792352254.211485,
+    "ast_hash": "5f875795b0452b31be8dcc19f17c1cab",
+    "semantic_hash": "5f875795b0452b31be8dcc19f17c1cab"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowExecutionPump.cs": {
+    "mtime": 1791136349.9311044,
+    "seen": 1792352254.2114859,
+    "ast_hash": "b8a7682545152fca23760471465688c3",
+    "semantic_hash": "b8a7682545152fca23760471465688c3"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowHandlerRegistry.cs": {
+    "mtime": 1791136275.3302646,
+    "seen": 1792352254.211487,
+    "ast_hash": "e8e33674d827f60d7aec1ce84e6e237e",
+    "semantic_hash": "e8e33674d827f60d7aec1ce84e6e237e"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowHandlerServiceCollectionExtensions.cs": {
+    "mtime": 1790888247.4759593,
+    "seen": 1792352254.211488,
+    "ast_hash": "26da76818e9e79cd12a8771f43c2a5ab",
+    "semantic_hash": "26da76818e9e79cd12a8771f43c2a5ab"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowHostedServices.cs": {
+    "mtime": 1791136373.8116627,
+    "seen": 1792352254.211489,
+    "ast_hash": "e09070747288593c586448bda582bf8d",
+    "semantic_hash": "e09070747288593c586448bda582bf8d"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowOutboxPump.cs": {
+    "mtime": 1791030764.5964136,
+    "seen": 1792352254.2114902,
+    "ast_hash": "8425221b056d54684ad6043d515ca964",
+    "semantic_hash": "8425221b056d54684ad6043d515ca964"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowRetryDelayStrategy.cs": {
+    "mtime": 1791029028.1566434,
+    "seen": 1792352254.211491,
+    "ast_hash": "a2aaa65012d0f41ab6a70cea9b3dc3ec",
+    "semantic_hash": "a2aaa65012d0f41ab6a70cea9b3dc3ec"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowRuntimeOptions.cs": {
+    "mtime": 1791138004.604431,
+    "seen": 1792352254.211492,
+    "ast_hash": "eea94a1b742a03c4407169d73dd303d8",
+    "semantic_hash": "eea94a1b742a03c4407169d73dd303d8"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowRuntimeServiceCollectionExtensions.cs": {
+    "mtime": 1791138206.7150428,
+    "seen": 1792352254.211493,
+    "ast_hash": "772023a514e7928cc3ab0eda58ab866e",
+    "semantic_hash": "772023a514e7928cc3ab0eda58ab866e"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowStartService.cs": {
+    "mtime": 1791138206.6855726,
+    "seen": 1792352254.211494,
+    "ast_hash": "c6fb5654b94164e4a9070dac7ff159eb",
+    "semantic_hash": "c6fb5654b94164e4a9070dac7ff159eb"
+  },
+  "src/EnterpriseWorkflow.Runtime/WorkflowTimerPump.cs": {
+    "mtime": 1791136373.783734,
+    "seen": 1792352254.211495,
+    "ast_hash": "0d9e79d18ecd926d4047237ad1ada36e",
+    "semantic_hash": "0d9e79d18ecd926d4047237ad1ada36e"
+  },
+  "src/EnterpriseWorkflow.Runtime/packages.lock.json": {
+    "mtime": 1791214757.6890595,
+    "seen": 1792352254.211495,
+    "ast_hash": "fe248ff5897ae975f3b3a27075d5fad8",
+    "semantic_hash": "fe248ff5897ae975f3b3a27075d5fad8"
+  },
+  "src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj": {
+    "mtime": 1790843003.4772348,
+    "seen": 1792352254.2114959,
+    "ast_hash": "99483c8492c821764d2e962c273e4bc9",
+    "semantic_hash": "99483c8492c821764d2e962c273e4bc9"
+  },
+  "src/EnterpriseWorkflow.Sdk/SdkAssembly.cs": {
+    "mtime": 1790843003.581608,
+    "seen": 1792352254.211497,
+    "ast_hash": "ce1b5b6beb36c33e434864b5e4e42535",
+    "semantic_hash": "ce1b5b6beb36c33e434864b5e4e42535"
+  },
+  "src/EnterpriseWorkflow.Sdk/WorkflowBuilder.cs": {
+    "mtime": 1791135492.6125162,
+    "seen": 1792352254.211498,
+    "ast_hash": "0aa0a80fc18a976e46cc6ab236997c71",
+    "semantic_hash": "0aa0a80fc18a976e46cc6ab236997c71"
+  },
+  "src/EnterpriseWorkflow.Sdk/packages.lock.json": {
+    "mtime": 1791214755.8043098,
+    "seen": 1792352254.211499,
+    "ast_hash": "b8301befa889d3a469ba13bad3b4554e",
+    "semantic_hash": "b8301befa889d3a469ba13bad3b4554e"
+  },
+  "src/EnterpriseWorkflow.Security.Abstractions/EnterpriseWorkflow.Security.Abstractions.csproj": {
+    "mtime": 1791036248.8136091,
+    "seen": 1792352254.2115,
+    "ast_hash": "6642245dcc6f74cdfdaac5d5bde0a976",
+    "semantic_hash": "6642245dcc6f74cdfdaac5d5bde0a976"
+  },
+  "src/EnterpriseWorkflow.Security.Abstractions/SecurityContracts.cs": {
+    "mtime": 1791218118.1353304,
+    "seen": 1792352254.2115011,
+    "ast_hash": "71de3fe3161be15b1ff4802e2b408390",
+    "semantic_hash": "71de3fe3161be15b1ff4802e2b408390"
+  },
+  "src/EnterpriseWorkflow.Security.Abstractions/SecurityModels.cs": {
+    "mtime": 1791218118.1645155,
+    "seen": 1792352254.211502,
+    "ast_hash": "54a17c8e6e1aa1120ffb5c3a03eeb8c7",
+    "semantic_hash": "54a17c8e6e1aa1120ffb5c3a03eeb8c7"
+  },
+  "src/EnterpriseWorkflow.Security.Abstractions/packages.lock.json": {
+    "mtime": 1791214755.8038814,
+    "seen": 1792352254.211502,
+    "ast_hash": "7775d7ed0c14a6f23d84af2d83a88ad1",
+    "semantic_hash": "7775d7ed0c14a6f23d84af2d83a88ad1"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/EnterpriseWorkflow.Security.Persistence.Oracle.csproj": {
+    "mtime": 1791037109.2700064,
+    "seen": 1792352254.211503,
+    "ast_hash": "3e6232a342c45f02ea1de672aa22c1a2",
+    "semantic_hash": "3e6232a342c45f02ea1de672aa22c1a2"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/Migrations/202610030005_InitialSecurityOracle.cs": {
+    "mtime": 1791037239.7951064,
+    "seen": 1792352254.2115042,
+    "ast_hash": "3a2f435d01687b15db1df035bb963ba4",
+    "semantic_hash": "3a2f435d01687b15db1df035bb963ba4"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/Migrations/202610040007_WorkflowAccessOracle.cs": {
+    "mtime": 1791127860.1288795,
+    "seen": 1792352254.211505,
+    "ast_hash": "436b49f68c0f63fe0cecc30f751ec42a",
+    "semantic_hash": "436b49f68c0f63fe0cecc30f751ec42a"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/Migrations/202610050009_PresentationSettingsOracle.cs": {
+    "mtime": 1791218261.4458885,
+    "seen": 1792352254.211506,
+    "ast_hash": "4e8158e1ef2887340e16c6d8f68469df",
+    "semantic_hash": "4e8158e1ef2887340e16c6d8f68469df"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/Migrations/SecurityMigration.cs": {
+    "mtime": 1791037563.828101,
+    "seen": 1792352254.2115068,
+    "ast_hash": "21cd915daae9245f04b63b14247882e6",
+    "semantic_hash": "21cd915daae9245f04b63b14247882e6"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/OracleSecurityDatabase.cs": {
+    "mtime": 1791205258.7005012,
+    "seen": 1792352254.211508,
+    "ast_hash": "dab86a105d0ae4fa5caf53f91c720d32",
+    "semantic_hash": "dab86a105d0ae4fa5caf53f91c720d32"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Oracle/packages.lock.json": {
+    "mtime": 1791037273.7247112,
+    "seen": 1792352254.211509,
+    "ast_hash": "798f386830d2c283b7ac04f8109ae029",
+    "semantic_hash": "798f386830d2c283b7ac04f8109ae029"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj": {
+    "mtime": 1791037109.1718788,
+    "seen": 1792352254.21151,
+    "ast_hash": "09c7baa2b214902db64fcf14aeb6a809",
+    "semantic_hash": "09c7baa2b214902db64fcf14aeb6a809"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/Migrations/202610030004_InitialSecuritySqlite.cs": {
+    "mtime": 1791037239.7433863,
+    "seen": 1792352254.2115111,
+    "ast_hash": "ad287516a6314fda2a6fdeef73c793d2",
+    "semantic_hash": "ad287516a6314fda2a6fdeef73c793d2"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/Migrations/202610040006_WorkflowAccessSqlite.cs": {
+    "mtime": 1791127860.1025884,
+    "seen": 1792352254.211512,
+    "ast_hash": "beb9f249bea2ceb98a2194b986df45d6",
+    "semantic_hash": "beb9f249bea2ceb98a2194b986df45d6"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/Migrations/202610050008_PresentationSettingsSqlite.cs": {
+    "mtime": 1791218261.4189792,
+    "seen": 1792352254.211513,
+    "ast_hash": "a432f70f29c960bb286251d33350d473",
+    "semantic_hash": "a432f70f29c960bb286251d33350d473"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/Migrations/SecurityMigration.cs": {
+    "mtime": 1791037563.8038728,
+    "seen": 1792352254.211513,
+    "ast_hash": "096fa0196108713d5c9b7841cc76b579",
+    "semantic_hash": "096fa0196108713d5c9b7841cc76b579"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/SqliteSecurityDatabase.cs": {
+    "mtime": 1791205258.68606,
+    "seen": 1792352254.211514,
+    "ast_hash": "861afc49c3e2c1338b835b784caa9b7c",
+    "semantic_hash": "861afc49c3e2c1338b835b784caa9b7c"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence.Sqlite/packages.lock.json": {
+    "mtime": 1791037273.7152781,
+    "seen": 1792352254.211515,
+    "ast_hash": "80c43b47f621e4d46b11cee65bcea972",
+    "semantic_hash": "80c43b47f621e4d46b11cee65bcea972"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj": {
+    "mtime": 1791037269.9717429,
+    "seen": 1792352254.211516,
+    "ast_hash": "a0d199a3c5b615a5963b39ca6d71d26f",
+    "semantic_hash": "a0d199a3c5b615a5963b39ca6d71d26f"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence/RelationalSecurityStore.cs": {
+    "mtime": 1791302866.701556,
+    "seen": 1792352254.2115169,
+    "ast_hash": "948f0dbded241dbbbd8b269202d33b4e",
+    "semantic_hash": "948f0dbded241dbbbd8b269202d33b4e"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence/SecurityDbContext.cs": {
+    "mtime": 1791218143.8136358,
+    "seen": 1792352254.211518,
+    "ast_hash": "c9c429f73060ca779086308ce044008a",
+    "semantic_hash": "c9c429f73060ca779086308ce044008a"
+  },
+  "src/EnterpriseWorkflow.Security.Persistence/packages.lock.json": {
+    "mtime": 1791037273.6937547,
+    "seen": 1792352254.211518,
+    "ast_hash": "13ede47627406f93626b03cac4d8b5cc",
+    "semantic_hash": "13ede47627406f93626b03cac4d8b5cc"
+  },
+  "src/EnterpriseWorkflow.Security/AssemblyInfo.cs": {
+    "mtime": 1791044877.6639426,
+    "seen": 1792352254.211519,
+    "ast_hash": "0b9dd17869bb4dfd9ad657e3ddf8461f",
+    "semantic_hash": "0b9dd17869bb4dfd9ad657e3ddf8461f"
+  },
+  "src/EnterpriseWorkflow.Security/AuthorizedIdentitySearch.cs": {
+    "mtime": 1791127262.4989243,
+    "seen": 1792352254.21152,
+    "ast_hash": "5b1af763a3ed4ae1396544cc990b3f7d",
+    "semantic_hash": "5b1af763a3ed4ae1396544cc990b3f7d"
+  },
+  "src/EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj": {
+    "mtime": 1791043632.3617866,
+    "seen": 1792352254.211521,
+    "ast_hash": "f87cc9192cd5817e89da55210923fe67",
+    "semantic_hash": "f87cc9192cd5817e89da55210923fe67"
+  },
+  "src/EnterpriseWorkflow.Security/ExampleApiAuthenticationProvider.cs": {
+    "mtime": 1791038751.7488797,
+    "seen": 1792352254.211522,
+    "ast_hash": "93d7ef5b238652968bedd6aa664a76e2",
+    "semantic_hash": "93d7ef5b238652968bedd6aa664a76e2"
+  },
+  "src/EnterpriseWorkflow.Security/InternalProfileAuthorizationProvider.cs": {
+    "mtime": 1791036248.913947,
+    "seen": 1792352254.211523,
+    "ast_hash": "f46d5d0eb8a2a41731eb766e82fc0bb3",
+    "semantic_hash": "f46d5d0eb8a2a41731eb766e82fc0bb3"
+  },
+  "src/EnterpriseWorkflow.Security/InternalWorkflowAuthorizationService.cs": {
+    "mtime": 1791127262.448869,
+    "seen": 1792352254.211524,
+    "ast_hash": "7d39142cec4d8acc6eb2cd340ca892db",
+    "semantic_hash": "7d39142cec4d8acc6eb2cd340ca892db"
+  },
+  "src/EnterpriseWorkflow.Security/LdapDirectoryProvider.cs": {
+    "mtime": 1791049355.7310245,
+    "seen": 1792352254.2115252,
+    "ast_hash": "8cd6d9e08b7f5672d239f12df1ebe734",
+    "semantic_hash": "8cd6d9e08b7f5672d239f12df1ebe734"
+  },
+  "src/EnterpriseWorkflow.Security/LocalAccountAdministration.cs": {
+    "mtime": 1791037797.7332635,
+    "seen": 1792352254.2115252,
+    "ast_hash": "ae7ebbc5e5fe5fa290e5514c5f01a91d",
+    "semantic_hash": "ae7ebbc5e5fe5fa290e5514c5f01a91d"
+  },
+  "src/EnterpriseWorkflow.Security/LocalAuthenticationProvider.cs": {
+    "mtime": 1791038502.6519701,
+    "seen": 1792352254.211526,
+    "ast_hash": "e8019d5c6849e039ba060a510384e89f",
+    "semantic_hash": "e8019d5c6849e039ba060a510384e89f"
+  },
+  "src/EnterpriseWorkflow.Security/LocalSecurityProvisioner.cs": {
+    "mtime": 1791217170.3041549,
+    "seen": 1792352254.2115269,
+    "ast_hash": "d9ffb9b8408b6d915de71d7a758de4d5",
+    "semantic_hash": "d9ffb9b8408b6d915de71d7a758de4d5"
+  },
+  "src/EnterpriseWorkflow.Security/SecurityOptions.cs": {
+    "mtime": 1791049208.448482,
+    "seen": 1792352254.2115278,
+    "ast_hash": "87e5c1e664857f56cc4576fc5390023b",
+    "semantic_hash": "87e5c1e664857f56cc4576fc5390023b"
+  },
+  "src/EnterpriseWorkflow.Security/SecuritySessionManager.cs": {
+    "mtime": 1791043923.5720851,
+    "seen": 1792352254.211529,
+    "ast_hash": "b4a558caaecdfc4a94ce72689d0f7178",
+    "semantic_hash": "b4a558caaecdfc4a94ce72689d0f7178"
+  },
+  "src/EnterpriseWorkflow.Security/WorkflowAccessAdministration.cs": {
+    "mtime": 1791127262.473594,
+    "seen": 1792352254.21153,
+    "ast_hash": "24d75b3c2334b39f245ea3fd3a1debc2",
+    "semantic_hash": "24d75b3c2334b39f245ea3fd3a1debc2"
+  },
+  "src/EnterpriseWorkflow.Security/WorkflowActionCatalog.cs": {
+    "mtime": 1791127262.422246,
+    "seen": 1792352254.211531,
+    "ast_hash": "6007ebebb165d67c066f20cc499d3e1b",
+    "semantic_hash": "6007ebebb165d67c066f20cc499d3e1b"
+  },
+  "src/EnterpriseWorkflow.Security/packages.lock.json": {
+    "mtime": 1791213901.2247872,
+    "seen": 1792352254.211532,
+    "ast_hash": "298ad621c14bf2f68ff00a60f7b51095",
+    "semantic_hash": "298ad621c14bf2f68ff00a60f7b51095"
+  },
+  "src/EnterpriseWorkflow.Web/AssemblyInfo.cs": {
+    "mtime": 1791213886.7154436,
+    "seen": 1792352254.211532,
+    "ast_hash": "6a8486655561dce6b9538605193349e5",
+    "semantic_hash": "6a8486655561dce6b9538605193349e5"
+  },
+  "src/EnterpriseWorkflow.Web/Components/App.razor": {
+    "mtime": 1791382501.9695694,
+    "seen": 1792352254.211533,
+    "ast_hash": "ce251e58bfc41da9b0ab8001f0097b05",
+    "semantic_hash": "ce251e58bfc41da9b0ab8001f0097b05"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Layout/LoginLayout.razor": {
+    "mtime": 1791205830.047231,
+    "seen": 1792352254.211534,
+    "ast_hash": "de228f05f04dfc2621dc7782e6276b60",
+    "semantic_hash": "de228f05f04dfc2621dc7782e6276b60"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Layout/PortalLayout.razor": {
+    "mtime": 1791382959.592486,
+    "seen": 1792352254.2115352,
+    "ast_hash": "62aa9e85c77c35ef66e94e1f80e8eea7",
+    "semantic_hash": "62aa9e85c77c35ef66e94e1f80e8eea7"
+  },
+  "src/EnterpriseWorkflow.Web/Components/NavItem.razor": {
+    "mtime": 1791382959.577023,
+    "seen": 1792352254.211536,
+    "ast_hash": "6bf5f8bd7fcbd687f1db9283314fdaee",
+    "semantic_hash": "6bf5f8bd7fcbd687f1db9283314fdaee"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/Admin.razor": {
+    "mtime": 1791382959.606786,
+    "seen": 1792352254.211537,
+    "ast_hash": "d0eb7b3e4a71e85cfb7dad5fe5f05c38",
+    "semantic_hash": "d0eb7b3e4a71e85cfb7dad5fe5f05c38"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/AdminAccess.razor": {
+    "mtime": 1791385928.4661286,
+    "seen": 1792352254.2115378,
+    "ast_hash": "669d5c221f6199fbaccedab82c96797f",
+    "semantic_hash": "669d5c221f6199fbaccedab82c96797f"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/AdminAudit.razor": {
+    "mtime": 1791215256.6357412,
+    "seen": 1792352254.211539,
+    "ast_hash": "98e3d60924187569c8db48ec960f1fd0",
+    "semantic_hash": "98e3d60924187569c8db48ec960f1fd0"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/AdminOperations.razor": {
+    "mtime": 1791384940.9592652,
+    "seen": 1792352254.211539,
+    "ast_hash": "021a630982b49f02ebe31bb43ad88f8e",
+    "semantic_hash": "021a630982b49f02ebe31bb43ad88f8e"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/AdminSettings.razor": {
+    "mtime": 1791384940.9772146,
+    "seen": 1792352254.211541,
+    "ast_hash": "c17f6a2d14d8e0d032342378d8f87448",
+    "semantic_hash": "c17f6a2d14d8e0d032342378d8f87448"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/AdminWorkflows.razor": {
+    "mtime": 1791217795.4373612,
+    "seen": 1792352254.2115421,
+    "ast_hash": "35784de7f79693e83f34c531b59a81cf",
+    "semantic_hash": "35784de7f79693e83f34c531b59a81cf"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/Inbox.razor": {
+    "mtime": 1791205830.085314,
+    "seen": 1792352254.211543,
+    "ast_hash": "3c57f58da4ec2680597df9b6f1b3201a",
+    "semantic_hash": "3c57f58da4ec2680597df9b6f1b3201a"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/Login.razor": {
+    "mtime": 1791383463.0233696,
+    "seen": 1792352254.211544,
+    "ast_hash": "156697123feb31395b8b00ccf6211731",
+    "semantic_hash": "156697123feb31395b8b00ccf6211731"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/Requests.razor": {
+    "mtime": 1791216126.2015035,
+    "seen": 1792352254.211545,
+    "ast_hash": "063205543a9c88551615eddd735b78a3",
+    "semantic_hash": "063205543a9c88551615eddd735b78a3"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/Start.razor": {
+    "mtime": 1791205830.072477,
+    "seen": 1792352254.211545,
+    "ast_hash": "0b76df5cfd40e0a45bacf2ba081dcd45",
+    "semantic_hash": "0b76df5cfd40e0a45bacf2ba081dcd45"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/StartProcess.razor": {
+    "mtime": 1791217230.6269822,
+    "seen": 1792352254.2115462,
+    "ast_hash": "c6f58aa6f0be3f92303be9b9e523b454",
+    "semantic_hash": "c6f58aa6f0be3f92303be9b9e523b454"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/TaskDetail.razor": {
+    "mtime": 1791299738.9146826,
+    "seen": 1792352254.211547,
+    "ast_hash": "a61386bbc6c10d34b4461da5524fa870",
+    "semantic_hash": "a61386bbc6c10d34b4461da5524fa870"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Pages/Today.razor": {
+    "mtime": 1791382326.764696,
+    "seen": 1792352254.2115479,
+    "ast_hash": "0f2aa91531307d0ef10cc2e27afbc842",
+    "semantic_hash": "0f2aa91531307d0ef10cc2e27afbc842"
+  },
+  "src/EnterpriseWorkflow.Web/Components/PhosphorIcon.razor": {
+    "mtime": 1791385020.4170628,
+    "seen": 1792352254.211549,
+    "ast_hash": "b1fc2117149eec12a630096a7073e2dd",
+    "semantic_hash": "b1fc2117149eec12a630096a7073e2dd"
+  },
+  "src/EnterpriseWorkflow.Web/Components/RedirectToLogin.razor": {
+    "mtime": 1791205829.951974,
+    "seen": 1792352254.21155,
+    "ast_hash": "b9233abedf3680a9dc8f6392a45aa87d",
+    "semantic_hash": "b9233abedf3680a9dc8f6392a45aa87d"
+  },
+  "src/EnterpriseWorkflow.Web/Components/Routes.razor": {
+    "mtime": 1791205829.9385192,
+    "seen": 1792352254.211551,
+    "ast_hash": "2de5500893cb1a220edb448cecf89317",
+    "semantic_hash": "2de5500893cb1a220edb448cecf89317"
+  },
+  "src/EnterpriseWorkflow.Web/Components/WorkflowFormFields.razor": {
+    "mtime": 1791213580.3611605,
+    "seen": 1792352254.211551,
+    "ast_hash": "d7b05ac4277dc2a4c5d098a63aaa138f",
+    "semantic_hash": "d7b05ac4277dc2a4c5d098a63aaa138f"
+  },
+  "src/EnterpriseWorkflow.Web/Components/_Imports.razor": {
+    "mtime": 1791217804.990491,
+    "seen": 1792352254.211552,
+    "ast_hash": "f295784ac4ff222d35d3d64c8b67dfe1",
+    "semantic_hash": "f295784ac4ff222d35d3d64c8b67dfe1"
+  },
+  "src/EnterpriseWorkflow.Web/EnterpriseWorkflow.Web.csproj": {
+    "mtime": 1791205829.8712718,
+    "seen": 1792352254.211553,
+    "ast_hash": "0dc8dfcdc600f3adb4273a80f0baa3a2",
+    "semantic_hash": "0dc8dfcdc600f3adb4273a80f0baa3a2"
+  },
+  "src/EnterpriseWorkflow.Web/EnterpriseWorkflowWebExtensions.cs": {
+    "mtime": 1791213672.0460634,
+    "seen": 1792352254.211554,
+    "ast_hash": "89d95cb98e3be94a42dccde24af7f9a1",
+    "semantic_hash": "89d95cb98e3be94a42dccde24af7f9a1"
+  },
+  "src/EnterpriseWorkflow.Web/WorkflowSessionAuthenticationHandler.cs": {
+    "mtime": 1791207162.0952272,
+    "seen": 1792352254.211555,
+    "ast_hash": "9991774d57cb1887143671ae10d876cf",
+    "semantic_hash": "9991774d57cb1887143671ae10d876cf"
+  },
+  "src/EnterpriseWorkflow.Web/WorkflowWebIdentityAccessor.cs": {
+    "mtime": 1791206089.9922369,
+    "seen": 1792352254.2115562,
+    "ast_hash": "099a3aba40cc7818319a331efcbd80b8",
+    "semantic_hash": "099a3aba40cc7818319a331efcbd80b8"
+  },
+  "src/EnterpriseWorkflow.Web/WorkflowWebMutationEndpoints.cs": {
+    "mtime": 1791365936.0781002,
+    "seen": 1792352254.2115571,
+    "ast_hash": "2a3191609a5c981c45abb41f730b6960",
+    "semantic_hash": "2a3191609a5c981c45abb41f730b6960"
+  },
+  "src/EnterpriseWorkflow.Web/packages.lock.json": {
+    "mtime": 1791213901.224927,
+    "seen": 1792352254.2115579,
+    "ast_hash": "4da68a05d72f78fb8d6899a474f8c4aa",
+    "semantic_hash": "4da68a05d72f78fb8d6899a474f8c4aa"
+  },
+  "src/EnterpriseWorkflow.Web/wwwroot/enterprise-workflow.js": {
+    "mtime": 1791383463.0426345,
+    "seen": 1792352254.2115588,
+    "ast_hash": "735a4763299058e1cf8faae3a601722f",
+    "semantic_hash": "735a4763299058e1cf8faae3a601722f"
+  },
+  "tests/EnterpriseWorkflow.Core.Tests/ArchitectureTests.cs": {
+    "mtime": 1791216924.644315,
+    "seen": 1792352254.2115588,
+    "ast_hash": "b945e33c31656f451a51d4d5e88fe309",
+    "semantic_hash": "b945e33c31656f451a51d4d5e88fe309"
+  },
+  "tests/EnterpriseWorkflow.Core.Tests/EnterpriseWorkflow.Core.Tests.csproj": {
+    "mtime": 1790846837.5906892,
+    "seen": 1792352254.21156,
+    "ast_hash": "9dcecf8b63ea16228fa070f03bff9e5e",
+    "semantic_hash": "9dcecf8b63ea16228fa070f03bff9e5e"
+  },
+  "tests/EnterpriseWorkflow.Core.Tests/StoreContractTests.cs": {
+    "mtime": 1790865652.6757197,
+    "seen": 1792352254.211561,
+    "ast_hash": "5f93054137212d318074e2ce4acc76a8",
+    "semantic_hash": "5f93054137212d318074e2ce4acc76a8"
+  },
+  "tests/EnterpriseWorkflow.Core.Tests/WorkflowBuilderTests.cs": {
+    "mtime": 1791135590.4850206,
+    "seen": 1792352254.211562,
+    "ast_hash": "a2c2279479f0a177e21b7569b391c2a2",
+    "semantic_hash": "a2c2279479f0a177e21b7569b391c2a2"
+  },
+  "tests/EnterpriseWorkflow.Core.Tests/WorkflowValidationTests.cs": {
+    "mtime": 1791135590.5126748,
+    "seen": 1792352254.211563,
+    "ast_hash": "228f72d79aabedb5c0445bd781925f83",
+    "semantic_hash": "228f72d79aabedb5c0445bd781925f83"
+  },
+  "tests/EnterpriseWorkflow.Core.Tests/packages.lock.json": {
+    "mtime": 1791031078.8287754,
+    "seen": 1792352254.211564,
+    "ast_hash": "278f941f5fab48c40138c97f275568e3",
+    "semantic_hash": "278f941f5fab48c40138c97f275568e3"
+  },
+  "tests/EnterpriseWorkflow.Extensions.Tests/EnterpriseWorkflow.Extensions.Tests.csproj": {
+    "mtime": 1791214696.7723775,
+    "seen": 1792352254.211565,
+    "ast_hash": "776b362f6bd8f9d2cd2577fa6a68f858",
+    "semantic_hash": "776b362f6bd8f9d2cd2577fa6a68f858"
+  },
+  "tests/EnterpriseWorkflow.Extensions.Tests/LeaveRequestModuleTests.cs": {
+    "mtime": 1791214883.8098495,
+    "seen": 1792352254.211566,
+    "ast_hash": "2b82eb0c7081917cd1f616ae7e93d354",
+    "semantic_hash": "2b82eb0c7081917cd1f616ae7e93d354"
+  },
+  "tests/EnterpriseWorkflow.Extensions.Tests/WorkflowModuleLoaderTests.cs": {
+    "mtime": 1791205149.4055378,
+    "seen": 1792352254.2115672,
+    "ast_hash": "f382c381ef1f0c5358628715041de18b",
+    "semantic_hash": "f382c381ef1f0c5358628715041de18b"
+  },
+  "tests/EnterpriseWorkflow.Extensions.Tests/packages.lock.json": {
+    "mtime": 1791214757.6911376,
+    "seen": 1792352254.2115672,
+    "ast_hash": "a81ba46386a7a41c214154c7f562e53c",
+    "semantic_hash": "a81ba46386a7a41c214154c7f562e53c"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Oracle.Tests/EnterpriseWorkflow.Persistence.Oracle.Tests.csproj": {
+    "mtime": 1791037647.2469032,
+    "seen": 1792352254.211568,
+    "ast_hash": "59d0c886d05e98fce84d489986796813",
+    "semantic_hash": "59d0c886d05e98fce84d489986796813"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Oracle.Tests/OracleSecurityStoreTests.cs": {
+    "mtime": 1791218501.0719857,
+    "seen": 1792352254.2115688,
+    "ast_hash": "e0be017460ffff220154765bad5c9ca6",
+    "semantic_hash": "e0be017460ffff220154765bad5c9ca6"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Oracle.Tests/OracleWorkflowStoreTests.cs": {
+    "mtime": 1791300061.603269,
+    "seen": 1792352254.21157,
+    "ast_hash": "93b521bf6e0e7a185f69a9b8291cdfdc",
+    "semantic_hash": "93b521bf6e0e7a185f69a9b8291cdfdc"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Oracle.Tests/packages.lock.json": {
+    "mtime": 1791137761.8725421,
+    "seen": 1792352254.211571,
+    "ast_hash": "a6d528f425ccfc1a055b06d256fe8277",
+    "semantic_hash": "a6d528f425ccfc1a055b06d256fe8277"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/EnterpriseWorkflow.Persistence.Sqlite.Tests.csproj": {
+    "mtime": 1790862867.397469,
+    "seen": 1792352254.211572,
+    "ast_hash": "5cf09bf5df7ecf0e428b3478baf40d39",
+    "semantic_hash": "5cf09bf5df7ecf0e428b3478baf40d39"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/SqliteWorkflowStoreTests.cs": {
+    "mtime": 1791216170.0759363,
+    "seen": 1792352254.211573,
+    "ast_hash": "8a6ea725486b779a50ce269a1595ff49",
+    "semantic_hash": "8a6ea725486b779a50ce269a1595ff49"
+  },
+  "tests/EnterpriseWorkflow.Persistence.Sqlite.Tests/packages.lock.json": {
+    "mtime": 1791037273.7167866,
+    "seen": 1792352254.211573,
+    "ast_hash": "1f304c15099989711c7e659f540a0177",
+    "semantic_hash": "1f304c15099989711c7e659f540a0177"
+  },
+  "tests/EnterpriseWorkflow.Presentation.Tests/EnterpriseWorkflow.Presentation.Tests.csproj": {
+    "mtime": 1791204984.4640095,
+    "seen": 1792352254.211574,
+    "ast_hash": "5f59efebecc5ab77633ee66fcc976452",
+    "semantic_hash": "5f59efebecc5ab77633ee66fcc976452"
+  },
+  "tests/EnterpriseWorkflow.Presentation.Tests/WorkflowFormServiceTests.cs": {
+    "mtime": 1791204984.4779868,
+    "seen": 1792352254.211575,
+    "ast_hash": "3d315e3cc36033d9200c8626c84127a3",
+    "semantic_hash": "3d315e3cc36033d9200c8626c84127a3"
+  },
+  "tests/EnterpriseWorkflow.Presentation.Tests/packages.lock.json": {
+    "mtime": 1791205528.2120016,
+    "seen": 1792352254.211576,
+    "ast_hash": "579553d852ce8553edffb70c002c5cab",
+    "semantic_hash": "579553d852ce8553edffb70c002c5cab"
+  },
+  "tests/EnterpriseWorkflow.Runtime.Tests/EnterpriseWorkflow.Runtime.Tests.csproj": {
+    "mtime": 1791029517.9991653,
+    "seen": 1792352254.2115772,
+    "ast_hash": "0ccc5ebf92adc82bcce20adc3fab19cf",
+    "semantic_hash": "0ccc5ebf92adc82bcce20adc3fab19cf"
+  },
+  "tests/EnterpriseWorkflow.Runtime.Tests/WorkflowHandlerRegistryTests.cs": {
+    "mtime": 1790888663.055657,
+    "seen": 1792352254.2115781,
+    "ast_hash": "7ed4b50f9194d4f6606fce125ac3312b",
+    "semantic_hash": "7ed4b50f9194d4f6606fce125ac3312b"
+  },
+  "tests/EnterpriseWorkflow.Runtime.Tests/WorkflowRuntimeExecutionTests.cs": {
+    "mtime": 1791216057.367196,
+    "seen": 1792352254.2115788,
+    "ast_hash": "feff5b51699f6b820091cdc9380b017f",
+    "semantic_hash": "feff5b51699f6b820091cdc9380b017f"
+  },
+  "tests/EnterpriseWorkflow.Runtime.Tests/packages.lock.json": {
+    "mtime": 1791136447.5016108,
+    "seen": 1792352254.2115798,
+    "ast_hash": "bc8c910ae549baa2e5ee96a4dc7d49cc",
+    "semantic_hash": "bc8c910ae549baa2e5ee96a4dc7d49cc"
+  },
+  "tests/EnterpriseWorkflow.Security.Persistence.Sqlite.Tests/EnterpriseWorkflow.Security.Persistence.Sqlite.Tests.csproj": {
+    "mtime": 1791037686.6389017,
+    "seen": 1792352254.2115798,
+    "ast_hash": "34475c4b958f0041128dc4187592f185",
+    "semantic_hash": "34475c4b958f0041128dc4187592f185"
+  },
+  "tests/EnterpriseWorkflow.Security.Persistence.Sqlite.Tests/SqliteSecurityStoreTests.cs": {
+    "mtime": 1791302879.7749803,
+    "seen": 1792352254.211581,
+    "ast_hash": "3a00e1a11675c398a561ba61e97599a5",
+    "semantic_hash": "3a00e1a11675c398a561ba61e97599a5"
+  },
+  "tests/EnterpriseWorkflow.Security.Persistence.Sqlite.Tests/packages.lock.json": {
+    "mtime": 1791037690.3695467,
+    "seen": 1792352254.211582,
+    "ast_hash": "97b9aa06cffce71d0860c305895d5d1f",
+    "semantic_hash": "97b9aa06cffce71d0860c305895d5d1f"
+  },
+  "tests/EnterpriseWorkflow.Security.Tests/EnterpriseWorkflow.Security.Tests.csproj": {
+    "mtime": 1791036361.3047144,
+    "seen": 1792352254.211583,
+    "ast_hash": "9b4c9a010205fca5987fb348e7d39bd4",
+    "semantic_hash": "9b4c9a010205fca5987fb348e7d39bd4"
+  },
+  "tests/EnterpriseWorkflow.Security.Tests/LdapDirectoryIntegrationTests.cs": {
+    "mtime": 1791049539.663883,
+    "seen": 1792352254.211584,
+    "ast_hash": "ac450020169fe61869a0d939640cf052",
+    "semantic_hash": "ac450020169fe61869a0d939640cf052"
+  },
+  "tests/EnterpriseWorkflow.Security.Tests/SecurityProviderTests.cs": {
+    "mtime": 1791215070.0778592,
+    "seen": 1792352254.211585,
+    "ast_hash": "4a33436109dc51d71651fcfba3ab431e",
+    "semantic_hash": "4a33436109dc51d71651fcfba3ab431e"
+  },
+  "tests/EnterpriseWorkflow.Security.Tests/packages.lock.json": {
+    "mtime": 1791036366.8250408,
+    "seen": 1792352254.211586,
+    "ast_hash": "44d8fc0af059806f96a49d8ccb6cb28d",
+    "semantic_hash": "44d8fc0af059806f96a49d8ccb6cb28d"
+  },
+  "tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj": {
+    "mtime": 1791300846.5732925,
+    "seen": 1792352254.211586,
+    "ast_hash": "f8eb0708b4fbb98808213201df44fcca",
+    "semantic_hash": "f8eb0708b4fbb98808213201df44fcca"
+  },
+  "tests/EnterpriseWorkflow.Web.Playwright.Tests/PortalBrowserTests.cs": {
+    "mtime": 1791457041.8997138,
+    "seen": 1792352254.2115872,
+    "ast_hash": "4bf5d1ddbfdbb3ec97fd6939613485ef",
+    "semantic_hash": "4bf5d1ddbfdbb3ec97fd6939613485ef"
+  },
+  "tests/EnterpriseWorkflow.Web.Playwright.Tests/packages.lock.json": {
+    "mtime": 1791300851.693166,
+    "seen": 1792352254.2115881,
+    "ast_hash": "aadb4eaa37d85fb42d0a808cfa9777b5",
+    "semantic_hash": "aadb4eaa37d85fb42d0a808cfa9777b5"
+  },
+  "tests/EnterpriseWorkflow.Web.Tests/EnterpriseWorkflow.Web.Tests.csproj": {
+    "mtime": 1791213886.7644951,
+    "seen": 1792352254.211589,
+    "ast_hash": "5b46d1e3b1b54b5dc9aced19bec205a7",
+    "semantic_hash": "5b46d1e3b1b54b5dc9aced19bec205a7"
+  },
+  "tests/EnterpriseWorkflow.Web.Tests/WorkflowWebMutationEndpointsTests.cs": {
+    "mtime": 1791213886.7785883,
+    "seen": 1792352254.2115898,
+    "ast_hash": "e98c4749e3bdffd7becb6ff7ffbf4fa7",
+    "semantic_hash": "e98c4749e3bdffd7becb6ff7ffbf4fa7"
+  },
+  "tests/EnterpriseWorkflow.Web.Tests/packages.lock.json": {
+    "mtime": 1791213901.2282176,
+    "seen": 1792352254.211591,
+    "ast_hash": "9e8d4016ad162c41d6da5b7d6ed26cad",
+    "semantic_hash": "9e8d4016ad162c41d6da5b7d6ed26cad"
+  },
+  "tests/Fixtures/ApprovalModule.V1/ApprovalModule.V1.csproj": {
+    "mtime": 1791142170.6518202,
+    "seen": 1792352254.211592,
+    "ast_hash": "de7e15a91051f7bef7acf55740c5b71a",
+    "semantic_hash": "de7e15a91051f7bef7acf55740c5b71a"
+  },
+  "tests/Fixtures/ApprovalModule.V1/ApprovalModule.cs": {
+    "mtime": 1791204474.846668,
+    "seen": 1792352254.211593,
+    "ast_hash": "d0156e64eae6cd98c914665a6f104976",
+    "semantic_hash": "d0156e64eae6cd98c914665a6f104976"
+  },
+  "tests/Fixtures/ApprovalModule.V1/ApprovalPanel.razor": {
+    "mtime": 1791141650.9854515,
+    "seen": 1792352254.2115939,
+    "ast_hash": "cc431f9bc55dc7d9e57b893daa0f3b42",
+    "semantic_hash": "cc431f9bc55dc7d9e57b893daa0f3b42"
+  },
+  "tests/Fixtures/ApprovalModule.V1/packages.lock.json": {
+    "mtime": 1791214755.8007915,
+    "seen": 1792352254.2115939,
+    "ast_hash": "63a146c2ca72d848e84b8942aee3dfa0",
+    "semantic_hash": "63a146c2ca72d848e84b8942aee3dfa0"
+  },
+  "tests/Fixtures/ApprovalModule.V2/ApprovalModule.V2.csproj": {
+    "mtime": 1791142170.6754928,
+    "seen": 1792352254.211595,
+    "ast_hash": "e8e417123554b372a390a897ed750b05",
+    "semantic_hash": "e8e417123554b372a390a897ed750b05"
+  },
+  "tests/Fixtures/ApprovalModule.V2/ApprovalModule.cs": {
+    "mtime": 1791204474.8626153,
+    "seen": 1792352254.211596,
+    "ast_hash": "98bc1291ddb46c79faedd1ec57864945",
+    "semantic_hash": "98bc1291ddb46c79faedd1ec57864945"
+  },
+  "tests/Fixtures/ApprovalModule.V2/ApprovalPanel.razor": {
+    "mtime": 1791141651.182811,
+    "seen": 1792352254.211597,
+    "ast_hash": "cc431f9bc55dc7d9e57b893daa0f3b42",
+    "semantic_hash": "cc431f9bc55dc7d9e57b893daa0f3b42"
+  },
+  "tests/Fixtures/ApprovalModule.V2/packages.lock.json": {
+    "mtime": 1791214755.8003752,
+    "seen": 1792352254.2115982,
+    "ast_hash": "63a146c2ca72d848e84b8942aee3dfa0",
+    "semantic_hash": "63a146c2ca72d848e84b8942aee3dfa0"
+  },
+  "tests/Fixtures/PrivateDependency.V1/PrivateDependency.V1.csproj": {
+    "mtime": 1791142170.603065,
+    "seen": 1792352254.211599,
+    "ast_hash": "3d6b1e5d0cb4b1319dc891b67649fa28",
+    "semantic_hash": "3d6b1e5d0cb4b1319dc891b67649fa28"
+  },
+  "tests/Fixtures/PrivateDependency.V1/PrivateVersion.cs": {
+    "mtime": 1791141650.7336512,
+    "seen": 1792352254.2115998,
+    "ast_hash": "d1fb9d0a62f309e6f4579d6453669492",
+    "semantic_hash": "d1fb9d0a62f309e6f4579d6453669492"
+  },
+  "tests/Fixtures/PrivateDependency.V1/packages.lock.json": {
+    "mtime": 1791214755.803904,
+    "seen": 1792352254.2116008,
+    "ast_hash": "7775d7ed0c14a6f23d84af2d83a88ad1",
+    "semantic_hash": "7775d7ed0c14a6f23d84af2d83a88ad1"
+  },
+  "tests/Fixtures/PrivateDependency.V2/PrivateDependency.V2.csproj": {
+    "mtime": 1791142170.6276758,
+    "seen": 1792352254.2116008,
+    "ast_hash": "3d6b1e5d0cb4b1319dc891b67649fa28",
+    "semantic_hash": "3d6b1e5d0cb4b1319dc891b67649fa28"
+  },
+  "tests/Fixtures/PrivateDependency.V2/PrivateVersion.cs": {
+    "mtime": 1791141650.868144,
+    "seen": 1792352254.211602,
+    "ast_hash": "babf29bd07669628b15962df08dcde61",
+    "semantic_hash": "babf29bd07669628b15962df08dcde61"
+  },
+  "tests/Fixtures/PrivateDependency.V2/packages.lock.json": {
+    "mtime": 1791214755.8002255,
+    "seen": 1792352254.211603,
+    "ast_hash": "7775d7ed0c14a6f23d84af2d83a88ad1",
+    "semantic_hash": "7775d7ed0c14a6f23d84af2d83a88ad1"
+  },
+  "tests/ldap/generate-test-certificate.sh": {
+    "mtime": 1791049208.4999578,
+    "seen": 1792352254.2116039,
+    "ast_hash": "bea89fe6a7b907f866ae51086710b538",
+    "semantic_hash": "bea89fe6a7b907f866ae51086710b538"
+  },
+  "tests/oracle/official-setup/01-create-test-user.sh": {
+    "mtime": 1791368711.9388988,
+    "seen": 1792352254.211605,
+    "ast_hash": "808c91721f75233bb1b3844a37910db1",
+    "semantic_hash": "808c91721f75233bb1b3844a37910db1"
+  },
+  "tests/oracle/oracle-test.sh": {
+    "mtime": 1791368711.908359,
+    "seen": 1792352254.211606,
+    "ast_hash": "d5681125fda2df6841b78ecb17ec0971",
+    "semantic_hash": "d5681125fda2df6841b78ecb17ec0971"
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1791300243.055651,
+    "seen": 1792352254.211607,
+    "ast_hash": "e7dd1e54b0ad34b2e6194d8a34141c31",
+    "semantic_hash": "e7dd1e54b0ad34b2e6194d8a34141c31"
+  },
+  "README.md": {
+    "mtime": 1791380722.6664548,
+    "seen": 1792352254.2116082,
+    "ast_hash": "120110b90e766c078592c4c2afc70ea6",
+    "semantic_hash": "120110b90e766c078592c4c2afc70ea6"
+  },
+  "design-qa.md": {
+    "mtime": 1791457032.5392585,
+    "seen": 1792352254.2116082,
+    "ast_hash": "cf68a30487927b5102ecf8ba9c9b219b",
+    "semantic_hash": "cf68a30487927b5102ecf8ba9c9b219b"
+  },
+  "docs/adr/0001-dotnet-et-plateformes.md": {
+    "mtime": 1790802586.1567202,
+    "seen": 1792352254.2116091,
+    "ast_hash": "08ccdcf7ebf42f9db1bb4600bda3e9ba",
+    "semantic_hash": "08ccdcf7ebf42f9db1bb4600bda3e9ba"
+  },
+  "docs/adr/0002-persistance.md": {
+    "mtime": 1790802586.1568563,
+    "seen": 1792352254.21161,
+    "ast_hash": "700997167f24fd67c279115d12ba69f5",
+    "semantic_hash": "700997167f24fd67c279115d12ba69f5"
+  },
+  "docs/adr/0003-securite-extensible.md": {
+    "mtime": 1791041559.9337306,
+    "seen": 1792352254.2116108,
+    "ast_hash": "18071dc1d58f2eec21291282bb618dc2",
+    "semantic_hash": "18071dc1d58f2eec21291282bb618dc2"
+  },
+  "docs/adr/0004-perimetre-mvp.md": {
+    "mtime": 1790804582.799926,
+    "seen": 1792352254.211612,
+    "ast_hash": "f5086b521fb9bbd4c74e5b1fba775baf",
+    "semantic_hash": "f5086b521fb9bbd4c74e5b1fba775baf"
+  },
+  "docs/adr/0005-isolation-organisation.md": {
+    "mtime": 1790802586.1573787,
+    "seen": 1792352254.211613,
+    "ast_hash": "bba0afc134d218f7b4d77aba17979ed4",
+    "semantic_hash": "bba0afc134d218f7b4d77aba17979ed4"
+  },
+  "docs/adr/0006-frontieres-architecture.md": {
+    "mtime": 1790804582.8000865,
+    "seen": 1792352254.211614,
+    "ast_hash": "5850ff9c4c0e8eb391002bbc81795c00",
+    "semantic_hash": "5850ff9c4c0e8eb391002bbc81795c00"
+  },
+  "docs/adr/0007-modele-canonique.md": {
+    "mtime": 1790804582.8003016,
+    "seen": 1792352254.211614,
+    "ast_hash": "e1ea97a7f7432758356692e996ff7044",
+    "semantic_hash": "e1ea97a7f7432758356692e996ff7044"
+  },
+  "docs/adr/0008-durabilite.md": {
+    "mtime": 1790804582.8004138,
+    "seen": 1792352254.211615,
+    "ast_hash": "8fee92bf1d55be86da457b8c1f4aa94b",
+    "semantic_hash": "8fee92bf1d55be86da457b8c1f4aa94b"
+  },
+  "docs/adr/0009-modules-et-versions.md": {
+    "mtime": 1791165529.1293519,
+    "seen": 1792352254.211616,
+    "ast_hash": "3e6f1de3f4372539a1cdc49fa6a5ba0e",
+    "semantic_hash": "3e6f1de3f4372539a1cdc49fa6a5ba0e"
+  },
+  "docs/adr/0010-distribution.md": {
+    "mtime": 1790802586.157977,
+    "seen": 1792352254.211617,
+    "ast_hash": "aa7b62cad96cdcd8e660007905b22fa9",
+    "semantic_hash": "aa7b62cad96cdcd8e660007905b22fa9"
+  },
+  "docs/adr/0011-auto-approbation.md": {
+    "mtime": 1790803211.8771012,
+    "seen": 1792352254.211618,
+    "ast_hash": "03528a0ffe0627309065197e518a2f02",
+    "semantic_hash": "03528a0ffe0627309065197e518a2f02"
+  },
+  "docs/adr/0012-ui-razor-blazor.md": {
+    "mtime": 1790803211.8772664,
+    "seen": 1792352254.2116191,
+    "ast_hash": "cfa26484abd2d6d79281e277b8dda27a",
+    "semantic_hash": "cfa26484abd2d6d79281e277b8dda27a"
+  },
+  "docs/adr/0013-contrats-l2.md": {
+    "mtime": 1790845390.331735,
+    "seen": 1792352254.21162,
+    "ast_hash": "49ca710636c3e17199368b575e572950",
+    "semantic_hash": "49ca710636c3e17199368b575e572950"
+  },
+  "docs/adr/0014-binding-handlers-l4a.md": {
+    "mtime": 1790888573.6195567,
+    "seen": 1792352254.211621,
+    "ast_hash": "ec69b8db97e848953cd4214bd40058ff",
+    "semantic_hash": "ec69b8db97e848953cd4214bd40058ff"
+  },
+  "docs/adr/0015-worker-retry-outbox-l4b.md": {
+    "mtime": 1791030818.3756888,
+    "seen": 1792352254.211621,
+    "ast_hash": "6f6b9a7a511ff1635f6ac3989418c35a",
+    "semantic_hash": "6f6b9a7a511ff1635f6ac3989418c35a"
+  },
+  "docs/adr/0016-securite-profils-l5.md": {
+    "mtime": 1791041559.9338965,
+    "seen": 1792352254.211622,
+    "ast_hash": "a40b57f59ed67639625b0a4b8557ab51",
+    "semantic_hash": "a40b57f59ed67639625b0a4b8557ab51"
+  },
+  "docs/adr/0017-designation-approbateur.md": {
+    "mtime": 1791041559.9341197,
+    "seen": 1792352254.211623,
+    "ast_hash": "040240ac571da0cb1034163fea2eded0",
+    "semantic_hash": "040240ac571da0cb1034163fea2eded0"
+  },
+  "docs/adr/0018-ldap-generique.md": {
+    "mtime": 1791045401.4094012,
+    "seen": 1792352254.211624,
+    "ast_hash": "9931055341a0248607e7f50a1a88d2c2",
+    "semantic_hash": "9931055341a0248607e7f50a1a88d2c2"
+  },
+  "docs/adr/0019-workflow-stages.md": {
+    "mtime": 1791128013.616133,
+    "seen": 1792352254.2116249,
+    "ast_hash": "64870834a48302e85749c099d9413c29",
+    "semantic_hash": "64870834a48302e85749c099d9413c29"
+  },
+  "docs/adr/0020-attentes-metier-l6.md": {
+    "mtime": 1791135436.4281728,
+    "seen": 1792352254.211626,
+    "ast_hash": "ad4f8ebdfacce6a3baf67e3f522b2b5e",
+    "semantic_hash": "ad4f8ebdfacce6a3baf67e3f522b2b5e"
+  },
+  "docs/adr/0021-prototype-modules-ui-l7a.md": {
+    "mtime": 1791166792.1198206,
+    "seen": 1792352254.211627,
+    "ast_hash": "14a402fdd3f2d453930d58da41384424",
+    "semantic_hash": "14a402fdd3f2d453930d58da41384424"
+  },
+  "docs/adr/0022-loader-definitif-et-migrations-etat-l7b.md": {
+    "mtime": 1791166792.0068882,
+    "seen": 1792352254.211627,
+    "ast_hash": "efd9caebc1a6ef468802a1d16a55a634",
+    "semantic_hash": "efd9caebc1a6ef468802a1d16a55a634"
+  },
+  "docs/adr/0023-host-formulaires-et-administration-l8.md": {
+    "mtime": 1791204075.7981262,
+    "seen": 1792352254.211628,
+    "ast_hash": "a57fa2ba1c81964ae236dd194abe5876",
+    "semantic_hash": "a57fa2ba1c81964ae236dd194abe5876"
+  },
+  "docs/adr/README.md": {
+    "mtime": 1791204075.8183424,
+    "seen": 1792352254.2116292,
+    "ast_hash": "39fdf732ce5e25f6423831054803d798",
+    "semantic_hash": "39fdf732ce5e25f6423831054803d798"
+  },
+  "docs/architecture/extensions.md": {
+    "mtime": 1791201228.0233152,
+    "seen": 1792352254.21163,
+    "ast_hash": "f7749bd362d86303f437d81893b70eb8",
+    "semantic_hash": "f7749bd362d86303f437d81893b70eb8"
+  },
+  "docs/architecture/oracle-schema.md": {
+    "mtime": 1791194586.8264964,
+    "seen": 1792352254.211631,
+    "ast_hash": "115eed4b0e75fd8594d6089d46321768",
+    "semantic_hash": "115eed4b0e75fd8594d6089d46321768"
+  },
+  "docs/architecture/overview.md": {
+    "mtime": 1791167194.5195837,
+    "seen": 1792352254.211632,
+    "ast_hash": "021362d61f3c4be5a361a1ff504260cf",
+    "semantic_hash": "021362d61f3c4be5a361a1ff504260cf"
+  },
+  "docs/architecture/persistence.md": {
+    "mtime": 1791138179.56936,
+    "seen": 1792352254.211633,
+    "ast_hash": "6e74d20f0ef0d1445da530256c263a2f",
+    "semantic_hash": "6e74d20f0ef0d1445da530256c263a2f"
+  },
+  "docs/architecture/runtime.md": {
+    "mtime": 1791138710.2802465,
+    "seen": 1792352254.211634,
+    "ast_hash": "402efd9a1213513ebc9326807ff23d78",
+    "semantic_hash": "402efd9a1213513ebc9326807ff23d78"
+  },
+  "docs/architecture/security.md": {
+    "mtime": 1791128147.7907717,
+    "seen": 1792352254.211634,
+    "ast_hash": "12ca328103b863ce8ccca708caa95c0f",
+    "semantic_hash": "12ca328103b863ce8ccca708caa95c0f"
+  },
+  "docs/architecture/sqlite-schema.md": {
+    "mtime": 1791166829.1104481,
+    "seen": 1792352254.2116349,
+    "ast_hash": "3881a76a59cf3cfc4a5c313cf2a125e3",
+    "semantic_hash": "3881a76a59cf3cfc4a5c313cf2a125e3"
+  },
+  "docs/cadrage.md": {
+    "mtime": 1791369294.9980874,
+    "seen": 1792352254.211636,
+    "ast_hash": "8f7a7a9e9fb5e292371b752895cebc20",
+    "semantic_hash": "8f7a7a9e9fb5e292371b752895cebc20"
+  },
+  "docs/compatibilite.md": {
+    "mtime": 1791126008.1515272,
+    "seen": 1792352254.211637,
+    "ast_hash": "3856322dbc69eb6a97b8d90193a21aa8",
+    "semantic_hash": "3856322dbc69eb6a97b8d90193a21aa8"
+  },
+  "docs/contributing.md": {
+    "mtime": 1790804582.801501,
+    "seen": 1792352254.211638,
+    "ast_hash": "5681abff1dce9058542960cdbc26ecd3",
+    "semantic_hash": "5681abff1dce9058542960cdbc26ecd3"
+  },
+  "docs/evidence/l1.md": {
+    "mtime": 1790855229.3696642,
+    "seen": 1792352254.211639,
+    "ast_hash": "a2b133ed6a8ab38233d8a8c049d65649",
+    "semantic_hash": "a2b133ed6a8ab38233d8a8c049d65649"
+  },
+  "docs/evidence/l2.md": {
+    "mtime": 1790847344.178347,
+    "seen": 1792352254.2116401,
+    "ast_hash": "80e05984b03a89865313ac488d9d22d5",
+    "semantic_hash": "80e05984b03a89865313ac488d9d22d5"
+  },
+  "docs/evidence/l3a.md": {
+    "mtime": 1790863542.9972131,
+    "seen": 1792352254.211641,
+    "ast_hash": "f9baf1f0c305373f7ee246c80a1837fc",
+    "semantic_hash": "f9baf1f0c305373f7ee246c80a1837fc"
+  },
+  "docs/evidence/l3b.md": {
+    "mtime": 1790886506.836199,
+    "seen": 1792352254.211641,
+    "ast_hash": "e7db40dc77a6159e415350c726b7f043",
+    "semantic_hash": "e7db40dc77a6159e415350c726b7f043"
+  },
+  "docs/evidence/l4a.md": {
+    "mtime": 1790888725.0365527,
+    "seen": 1792352254.211642,
+    "ast_hash": "c14c49860636fe8518d44586fb3c47d3",
+    "semantic_hash": "c14c49860636fe8518d44586fb3c47d3"
+  },
+  "docs/evidence/l4b.md": {
+    "mtime": 1791166792.091702,
+    "seen": 1792352254.211643,
+    "ast_hash": "9e24030f3a0c909684798aadbb2555c4",
+    "semantic_hash": "9e24030f3a0c909684798aadbb2555c4"
+  },
+  "docs/evidence/l5.md": {
+    "mtime": 1791038783.0509286,
+    "seen": 1792352254.211644,
+    "ast_hash": "22a7049e12d18150368cf3a86c76b03d",
+    "semantic_hash": "22a7049e12d18150368cf3a86c76b03d"
+  },
+  "docs/evidence/l5a.md": {
+    "mtime": 1791126008.0248494,
+    "seen": 1792352254.211645,
+    "ast_hash": "062de274eb2b992c348ca21a5597493c",
+    "semantic_hash": "062de274eb2b992c348ca21a5597493c"
+  },
+  "docs/evidence/l5b.md": {
+    "mtime": 1791128182.2368734,
+    "seen": 1792352254.2116458,
+    "ast_hash": "08ce62ab6f77ae582e34a8788d77d58d",
+    "semantic_hash": "08ce62ab6f77ae582e34a8788d77d58d"
+  },
+  "docs/evidence/l6.md": {
+    "mtime": 1791140175.491997,
+    "seen": 1792352254.211647,
+    "ast_hash": "a60ac79ca54d31d2db72fd417b55aaff",
+    "semantic_hash": "a60ac79ca54d31d2db72fd417b55aaff"
+  },
+  "docs/evidence/l7a.md": {
+    "mtime": 1791202618.1157002,
+    "seen": 1792352254.211648,
+    "ast_hash": "8e597152507f39101e230e4c4a9a4c7b",
+    "semantic_hash": "8e597152507f39101e230e4c4a9a4c7b"
+  },
+  "docs/evidence/l7b.md": {
+    "mtime": 1791202766.7895694,
+    "seen": 1792352254.211649,
+    "ast_hash": "c0eb888f90be53cd6f09ce132901bb79",
+    "semantic_hash": "c0eb888f90be53cd6f09ce132901bb79"
+  },
+  "docs/evidence/l8.md": {
+    "mtime": 1791369294.9480696,
+    "seen": 1792352254.211649,
+    "ast_hash": "074ae36cf39fddf22c1721a5cc6612ed",
+    "semantic_hash": "074ae36cf39fddf22c1721a5cc6612ed"
+  },
+  "docs/glossary.md": {
+    "mtime": 1791041559.9343026,
+    "seen": 1792352254.2116501,
+    "ast_hash": "043f0d3c33ee0744f8057ceb7172e971",
+    "semantic_hash": "043f0d3c33ee0744f8057ceb7172e971"
+  },
+  "docs/implementation-plan.md": {
+    "mtime": 1791369314.243628,
+    "seen": 1792352254.211651,
+    "ast_hash": "7fbac34af9de122c911e842597d9b266",
+    "semantic_hash": "7fbac34af9de122c911e842597d9b266"
+  },
+  "docs/l2-readiness.md": {
+    "mtime": 1790855229.1788096,
+    "seen": 1792352254.211652,
+    "ast_hash": "d2f12bf6cd45318caa5d0507e218877c",
+    "semantic_hash": "d2f12bf6cd45318caa5d0507e218877c"
+  },
+  "docs/l8-readiness.md": {
+    "mtime": 1791369295.0127838,
+    "seen": 1792352254.2116532,
+    "ast_hash": "0629aa9fda5d2c65cc4da15ace908b98",
+    "semantic_hash": "0629aa9fda5d2c65cc4da15ace908b98"
+  },
+  "docs/l8-validation.md": {
+    "mtime": 1791385828.9974482,
+    "seen": 1792352254.211654,
+    "ast_hash": "dc32241cc4cc79408b27ccf6c4b16db3",
+    "semantic_hash": "dc32241cc4cc79408b27ccf6c4b16db3"
+  },
+  "docs/operations.md": {
+    "mtime": 1791045227.380823,
+    "seen": 1792352254.211655,
+    "ast_hash": "3e4bc16baf62c741d8f54c8fe6220e8a",
+    "semantic_hash": "3e4bc16baf62c741d8f54c8fe6220e8a"
+  },
+  "docs/prd.md": {
+    "mtime": 1791045401.4403574,
+    "seen": 1792352254.2116559,
+    "ast_hash": "5bc82f5964e80dc9a1669242e34521c6",
+    "semantic_hash": "5bc82f5964e80dc9a1669242e34521c6"
+  },
+  "docs/references/CONTEXTE_CODEX_WORKFLOW_DOTNET.md": {
+    "mtime": 1790802864.2792044,
+    "seen": 1792352254.2116559,
+    "ast_hash": "7b2379c934f974ea1e76aa0bf4c31856",
+    "semantic_hash": "7b2379c934f974ea1e76aa0bf4c31856"
+  },
+  "docs/references/README.md": {
+    "mtime": 1790845390.3348012,
+    "seen": 1792352254.211657,
+    "ast_hash": "36db0f0a0132f817bc7cbd3c731a4e70",
+    "semantic_hash": "36db0f0a0132f817bc7cbd3c731a4e70"
+  },
+  "docs/spec-ldap-stages.md": {
+    "mtime": 1791138068.4728754,
+    "seen": 1792352254.211658,
+    "ast_hash": "ce213a4d9f173ed56691817131eaa942",
+    "semantic_hash": "ce213a4d9f173ed56691817131eaa942"
+  },
+  "docs/testing.md": {
+    "mtime": 1791369294.983,
+    "seen": 1792352254.211659,
+    "ast_hash": "4cbde8f8cb9af76365d53a380edaff64",
+    "semantic_hash": "4cbde8f8cb9af76365d53a380edaff64"
+  },
+  "docs/traceability.md": {
+    "mtime": 1791166843.3062062,
+    "seen": 1792352254.2116601,
+    "ast_hash": "89dd5bdbdefbf4bd905d280443265309",
+    "semantic_hash": "89dd5bdbdefbf4bd905d280443265309"
+  },
+  "docs/ui-testing.md": {
+    "mtime": 1791457088.2443287,
+    "seen": 1792352254.211661,
+    "ast_hash": "0823799d5dadd7c52e3f0b5468ff19e8",
+    "semantic_hash": "0823799d5dadd7c52e3f0b5468ff19e8"
+  },
+  "prototype/AGENTS.md": {
+    "mtime": 1791385828.982478,
+    "seen": 1792352254.211662,
+    "ast_hash": "7e0b4bf74f8790005a5649cd18ef76c0",
+    "semantic_hash": "7e0b4bf74f8790005a5649cd18ef76c0"
+  },
+  "prototype/design-qa.md": {
+    "mtime": 1791164762.2664666,
+    "seen": 1792352254.211663,
+    "ast_hash": "5bc08b6b66c4fb80d5fb83710de19f86",
+    "semantic_hash": "5bc08b6b66c4fb80d5fb83710de19f86"
+  },
+  "prototype/index.html": {
+    "mtime": 1791051440.1268032,
+    "seen": 1792352254.211664,
+    "ast_hash": "4a0d4642f2258047351b763a76629860",
+    "semantic_hash": "4a0d4642f2258047351b763a76629860"
+  },
+  "samples/ExecutableWorkflow/README.md": {
+    "mtime": 1791136627.8454022,
+    "seen": 1792352254.211665,
+    "ast_hash": "80277f89bd7b62f452ecd4288d134916",
+    "semantic_hash": "80277f89bd7b62f452ecd4288d134916"
+  },
+  "samples/LeaveRequest.Module/README.md": {
+    "mtime": 1791214494.6913419,
+    "seen": 1792352254.211665,
+    "ast_hash": "1433cf7b5b9a0ff02b0f800b2e94f12b",
+    "semantic_hash": "1433cf7b5b9a0ff02b0f800b2e94f12b"
+  },
+  "samples/SecurityApi/README.md": {
+    "mtime": 1791127656.3979974,
+    "seen": 1792352254.2116659,
+    "ast_hash": "5c9d55e4601048d6cecc935a4fc119d8",
+    "semantic_hash": "5c9d55e4601048d6cecc935a4fc119d8"
+  },
+  "tests/ldap/README.md": {
+    "mtime": 1791049602.0727956,
+    "seen": 1792352254.211667,
+    "ast_hash": "6c0fa65fffbb3f7d5ed4df38bf2ec425",
+    "semantic_hash": "6c0fa65fffbb3f7d5ed4df38bf2ec425"
+  },
+  "tests/ldap/docker-compose.yml": {
+    "mtime": 1791046955.4607666,
+    "seen": 1792352254.211668,
+    "ast_hash": "5b3080d2c852e37b1e94e89adf4a20b8",
+    "semantic_hash": "5b3080d2c852e37b1e94e89adf4a20b8"
+  },
+  "tests/oracle/README.md": {
+    "mtime": 1791368711.9553661,
+    "seen": 1792352254.211669,
+    "ast_hash": "0175b199f68ea2d0fefa737b5e57e678",
+    "semantic_hash": "0175b199f68ea2d0fefa737b5e57e678"
+  },
+  "tests/oracle/docker-compose.19c.yml": {
+    "mtime": 1790885894.4050443,
+    "seen": 1792352254.21167,
+    "ast_hash": "773878ce3808500bd431b12f0536551a",
+    "semantic_hash": "773878ce3808500bd431b12f0536551a"
+  },
+  "tests/oracle/docker-compose.yml": {
+    "mtime": 1791368059.2350953,
+    "seen": 1792352254.211671,
+    "ast_hash": "724589d42c65ad8512b5c7f06d663d2f",
+    "semantic_hash": "724589d42c65ad8512b5c7f06d663d2f"
+  },
+  "prototype/qa-admin-mobile.png": {
+    "mtime": 1791164658.6721876,
+    "seen": 1792352254.211671,
+    "ast_hash": "8b04f531f84188c10fd7cdd5ff06a2b0",
+    "semantic_hash": "8b04f531f84188c10fd7cdd5ff06a2b0"
+  },
+  "prototype/qa-admin-overview.png": {
+    "mtime": 1791164639.6098788,
+    "seen": 1792352254.211672,
+    "ast_hash": "74efe22953137f37b5a7c02ce4cbb543",
+    "semantic_hash": "74efe22953137f37b5a7c02ce4cbb543"
+  },
+  "prototype/qa-admin-shell-comparison.png": {
+    "mtime": 1791164697.9660673,
+    "seen": 1792352254.211673,
+    "ast_hash": "c6108da087fdf2c18d6f165c34fe94e2",
+    "semantic_hash": "c6108da087fdf2c18d6f165c34fe94e2"
+  },
+  "prototype/qa-admin-workflow-access-full.png": {
+    "mtime": 1791164720.0182743,
+    "seen": 1792352254.2116742,
+    "ast_hash": "908a426d48748f4eda90f57ed7cf138d",
+    "semantic_hash": "908a426d48748f4eda90f57ed7cf138d"
+  },
+  "prototype/qa-admin-workflow-access.png": {
+    "mtime": 1791164640.3673785,
+    "seen": 1792352254.211675,
+    "ast_hash": "a4a7c3a220e7847901f3908b99c10891",
+    "semantic_hash": "a4a7c3a220e7847901f3908b99c10891"
+  },
+  "prototype/qa-annotation-comparison.png": {
+    "mtime": 1791053867.8511379,
+    "seen": 1792352254.211676,
+    "ast_hash": "55698f722d8d193cfe1909656ee1592b",
+    "semantic_hash": "55698f722d8d193cfe1909656ee1592b"
+  },
+  "prototype/qa-annotation-grid-default.png": {
+    "mtime": 1791053859.2064614,
+    "seen": 1792352254.2116768,
+    "ast_hash": "0aaafc6c99df528a15155d80af6e7797",
+    "semantic_hash": "0aaafc6c99df528a15155d80af6e7797"
+  },
+  "prototype/qa-annotation-grid-hover.png": {
+    "mtime": 1791053859.5416045,
+    "seen": 1792352254.211678,
+    "ast_hash": "62cddfde6fc59d8cecd737a94b476aa1",
+    "semantic_hash": "62cddfde6fc59d8cecd737a94b476aa1"
+  },
+  "prototype/qa-comparison.png": {
+    "mtime": 1791052356.1928654,
+    "seen": 1792352254.211679,
+    "ast_hash": "b4b2739067488a4db36936f5c6b9fd66",
+    "semantic_hash": "b4b2739067488a4db36936f5c6b9fd66"
+  },
+  "prototype/qa-implementation-detail.png": {
+    "mtime": 1791052345.1857054,
+    "seen": 1792352254.211679,
+    "ast_hash": "ad579b2775cc51da3351f1dff4af4bea",
+    "semantic_hash": "ad579b2775cc51da3351f1dff4af4bea"
+  },
+  "prototype/qa-implementation-today.png": {
+    "mtime": 1791052267.3670819,
+    "seen": 1792352254.21168,
+    "ast_hash": "53f55fc1926a6660d6f99f8154bfac37",
+    "semantic_hash": "53f55fc1926a6660d6f99f8154bfac37"
+  },
+  "prototype/qa-sidebar-rail-menu.png": {
+    "mtime": 1791120061.5518322,
+    "seen": 1792352254.2116811,
+    "ast_hash": "4dfd9e79197c10e20c32332f79a04b0e",
+    "semantic_hash": "4dfd9e79197c10e20c32332f79a04b0e"
+  },
+  "prototype/qa-sidebar-rail.png": {
+    "mtime": 1791120019.5018415,
+    "seen": 1792352254.211682,
+    "ast_hash": "44a02473fec0ae950e9fad831ca7031b",
+    "semantic_hash": "44a02473fec0ae950e9fad831ca7031b"
+  },
+  "qa-compare-access.png": {
+    "mtime": 1791385683.613687,
+    "seen": 1792352254.211683,
+    "ast_hash": "d1572f32319ca2f8d6e62d44d3a908f0",
+    "semantic_hash": "d1572f32319ca2f8d6e62d44d3a908f0"
+  },
+  "qa-compare-operations.png": {
+    "mtime": 1791385752.0976465,
+    "seen": 1792352254.211684,
+    "ast_hash": "464cd71ee2f988710d535099f89944f2",
+    "semantic_hash": "464cd71ee2f988710d535099f89944f2"
+  },
+  "qa-compare-settings.png": {
+    "mtime": 1791456995.3129923,
+    "seen": 1792352254.2116852,
+    "ast_hash": "c50d8f35d9489f0f4848a298bdb0c0e2",
+    "semantic_hash": "c50d8f35d9489f0f4848a298bdb0c0e2"
+  },
+  "qa-l8-access-fidelity.png": {
+    "mtime": 1791385673.680482,
+    "seen": 1792352254.211686,
+    "ast_hash": "942ca4d895af8607c1a4df7eddac99a8",
+    "semantic_hash": "942ca4d895af8607c1a4df7eddac99a8"
+  },
+  "qa-l8-admin-fidelity.png": {
+    "mtime": 1791383045.6912198,
+    "seen": 1792352254.2116868,
+    "ast_hash": "9c8808c65aa01d4e04a8878668f7e1e9",
+    "semantic_hash": "9c8808c65aa01d4e04a8878668f7e1e9"
+  },
+  "qa-l8-admin-mobile.png": {
+    "mtime": 1791383046.209355,
+    "seen": 1792352254.211688,
+    "ast_hash": "1308bb34aadc86cd5f70725009449911",
+    "semantic_hash": "1308bb34aadc86cd5f70725009449911"
+  },
+  "qa-l8-grid-hover.png": {
+    "mtime": 1791383034.984572,
+    "seen": 1792352254.211688,
+    "ast_hash": "6bce175f2c80ddd81bd64b879f62d1a8",
+    "semantic_hash": "6bce175f2c80ddd81bd64b879f62d1a8"
+  },
+  "qa-l8-login-grid-hover.png": {
+    "mtime": 1791383518.786497,
+    "seen": 1792352254.211689,
+    "ast_hash": "cbb2f0d4270cbb321f00f70d8a0ee047",
+    "semantic_hash": "cbb2f0d4270cbb321f00f70d8a0ee047"
+  },
+  "qa-l8-operations-fidelity.png": {
+    "mtime": 1791385725.0512013,
+    "seen": 1792352254.21169,
+    "ast_hash": "699989a84322996ba764de6bf7306013",
+    "semantic_hash": "699989a84322996ba764de6bf7306013"
+  },
+  "qa-l8-profile-menu.png": {
+    "mtime": 1791383035.4968743,
+    "seen": 1792352254.2116969,
+    "ast_hash": "5c89f43917ae6862b0c379f9eac289d9",
+    "semantic_hash": "5c89f43917ae6862b0c379f9eac289d9"
+  },
+  "qa-l8-settings-fidelity.png": {
+    "mtime": 1791456983.7686176,
+    "seen": 1792352254.2116978,
+    "ast_hash": "9af410d72304ffdbce7f1ad4cb8098de",
+    "semantic_hash": "9af410d72304ffdbce7f1ad4cb8098de"
+  },
+  "qa-l8-settings-mobile.png": {
+    "mtime": 1791456983.3293471,
+    "seen": 1792352254.2116978,
+    "ast_hash": "9af410d72304ffdbce7f1ad4cb8098de",
+    "semantic_hash": "9af410d72304ffdbce7f1ad4cb8098de"
+  },
+  "qa-l8-today-fidelity.png": {
+    "mtime": 1791383034.678465,
+    "seen": 1792352254.211699,
+    "ast_hash": "dcfc64c506c37c3b21fcb3e179634ff4",
+    "semantic_hash": "dcfc64c506c37c3b21fcb3e179634ff4"
+  },
+  "qa-reference-access-viewport.png": {
+    "mtime": 1791385665.274821,
+    "seen": 1792352254.2117,
+    "ast_hash": "91a51c1494b9ff6c899b07e7cee92b23",
+    "semantic_hash": "91a51c1494b9ff6c899b07e7cee92b23"
+  },
+  "qa-reference-access.png": {
+    "mtime": 1791385640.1035984,
+    "seen": 1792352254.211701,
+    "ast_hash": "be8520f2c194605d0e54670997afd6de",
+    "semantic_hash": "be8520f2c194605d0e54670997afd6de"
+  },
+  "qa-reference-operations.png": {
+    "mtime": 1791385713.8914769,
+    "seen": 1792352254.211702,
+    "ast_hash": "afb859f7e88db986d9961b752ff7b27b",
+    "semantic_hash": "afb859f7e88db986d9961b752ff7b27b"
+  },
+  "qa-reference-settings.png": {
+    "mtime": 1791385735.4995437,
+    "seen": 1792352254.211703,
+    "ast_hash": "9f31e15de10ad6c9bfa57554ab6b02ea",
+    "semantic_hash": "9f31e15de10ad6c9bfa57554ab6b02ea"
+  }
+}

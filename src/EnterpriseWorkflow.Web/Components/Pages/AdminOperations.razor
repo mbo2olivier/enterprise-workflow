@@ -1,9 +1,39 @@
 @page "/admin/operations"
 @attribute [Authorize]
+@using EnterpriseWorkflow.Runtime
+@using Microsoft.Extensions.Options
 @inject WorkflowModuleCatalog Modules
 @inject IConfiguration Configuration
+@inject IOptions<WorkflowRuntimeOptions> RuntimeOptions
 
 <PageTitle>Exploitation · Enterprise Workflow</PageTitle>
-<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Exploitation</h1><p>État de composition du Kernel. Les paramètres sensibles restent en lecture seule.</p></div>
-<section class="metric-grid"><article class="metric-card"><small>Modules actifs</small><strong>@Modules.Modules.Length</strong></article><article class="metric-card"><small>Base</small><strong>@(Configuration["Database:Provider"] ?? "Sqlite")</strong></article><article class="metric-card"><small>Migrations</small><strong>@(Configuration["Database:MigrationMode"] ?? "Validate")</strong></article></section>
-<section class="panel data-panel"><div class="section-heading"><div><p class="eyebrow">Artefacts exacts</p><h2>Modules chargés</h2></div></div>@if (Modules.Modules.Length == 0) { <p class="muted-copy">Aucun module externe n’est chargé.</p> } else { <div class="table-wrap"><table><thead><tr><th>Module</th><th>Version</th><th>Empreinte</th><th>Composants</th></tr></thead><tbody>@foreach (var module in Modules.Modules) { <tr><td>@module.Manifest.Id.Value</td><td>@module.Manifest.Version</td><td><code>@module.ArtifactSha256[..12]…</code></td><td>@module.Components.Length</td></tr> }</tbody></table></div> }</section></div>
+<div class="content content-medium admin-content">
+    <div class="admin-page-intro"><div><p class="eyebrow">Exploitation</p><h1>État de l’installation</h1><p>Diagnostiquez les exécutions et les composants sans modifier leur état arbitrairement.</p></div><span class="status success">Readiness positive</span></div>
+    <section class="operations-strip"><div><span class="health-pulse"></span><span><small>Host</small><strong>Disponible</strong></span></div><div><PhosphorIcon Name="pulse" Size="20" /><span><small>Worker</small><strong>Actif · concurrence @RuntimeOptions.Value.WorkerConcurrency</strong></span></div><div><PhosphorIcon Name="database" Size="20" /><span><small>Base</small><strong>@DatabaseLabel</strong></span></div><div><PhosphorIcon Name="plugs" Size="20" /><span><small>Outbox</small><strong>Dispatcher actif</strong></span></div></section>
+    <nav class="segmented-control" aria-label="Vues d’exploitation"><a class="@(ActiveTab == "instances" ? "active" : null)" href="/admin/operations?tab=instances">Instances</a><a class="@(ActiveTab == "outbox" ? "active" : null)" href="/admin/operations?tab=outbox">Outbox</a><a class="@(ActiveTab == "modules" ? "active" : null)" href="/admin/operations?tab=modules">Modules</a></nav>
+    @if (ActiveTab == "instances")
+    {
+        <section class="panel admin-table operations-table"><div class="admin-table-head"><span>Instance</span><span>Workflow</span><span>Stage actif</span><span>Statut</span><span></span></div><div class="admin-table-empty"><span class="row-icon"><PhosphorIcon Name="flow-arrow" Size="20" /></span><span><strong>Vue globale non exposée</strong><small>Le contrat public limite la lecture des instances à leur initiateur. Aucun état arbitraire n’est affiché ici.</small></span></div></section>
+    }
+    else if (ActiveTab == "outbox")
+    {
+        <section class="panel admin-table operations-table"><div class="admin-table-head"><span>Opération</span><span>Destination</span><span>Tentatives</span><span>État</span><span></span></div><div class="admin-table-empty"><span class="row-icon"><PhosphorIcon Name="plugs" Size="20" /></span><span><strong>Aucun diagnostic de livraison publié</strong><small>Le dispatcher est actif, mais le stockage ne publie pas encore de projection administrative de l’outbox.</small></span></div></section>
+    }
+    else
+    {
+        <section class="panel admin-table operations-table"><div class="admin-table-head"><span>Module</span><span>Version</span><span>Workflows</span><span>État</span><span></span></div>
+            @if (Modules.Modules.Length == 0) { <div class="admin-table-empty"><span class="row-icon"><PhosphorIcon Name="stack" Size="20" /></span><span><strong>Aucun module externe chargé</strong><small>L’installation utilise uniquement les composants du noyau.</small></span></div> }
+            @foreach (var module in Modules.Modules)
+            {
+                <div class="admin-table-row"><span class="table-primary"><span class="row-icon"><PhosphorIcon Name="stack" Size="20" /></span><span><strong>@module.Manifest.Id.Value</strong><small>Empreinte @module.ArtifactSha256[..12]…</small></span></span><span>@module.Manifest.Version</span><span>@module.Components.Length</span><span class="status success">Compatible</span><span></span></div>
+            }
+        </section>
+    }
+    <p class="operations-footnote"><PhosphorIcon Name="lock-key" Size="15" /> Les déploiements, migrations et restaurations restent réalisés par l’exploitant selon le runbook.</p>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
+    private string ActiveTab => Tab is "outbox" or "modules" ? Tab : "instances";
+    private string DatabaseLabel => $"{Configuration["Database:Provider"] ?? "Sqlite"} · {Configuration["Database:MigrationMode"] ?? "Validate"}";
+}

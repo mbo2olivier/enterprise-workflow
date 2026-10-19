@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L7b terminés localement ; L7b est qualifié sur SQLite et Oracle Enterprise 19.19, et L6 sur la matrice GitHub Actions Linux/macOS/Windows.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : lots L1 à L8 terminés et qualifiés ; L8 est confirmé sur la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -41,6 +41,8 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 16. [Preuve du lot L6](docs/evidence/l6.md)
 17. [Preuve du lot L7a](docs/evidence/l7a.md)
 18. [Preuve du lot L7b](docs/evidence/l7b.md)
+19. [Tester l’interface du Kernel](docs/ui-testing.md)
+20. [Preuve du lot L8](docs/evidence/l8.md)
 
 ## Documents de référence
 
@@ -52,6 +54,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 - [Modules, SDK, formulaires et Studio](docs/architecture/extensions.md)
 - [Compatibilité et distribution](docs/compatibilite.md)
 - [Stratégie de tests](docs/testing.md)
+- [Guide de test de l’interface](docs/ui-testing.md)
 - [Exploitation](docs/operations.md)
 - [Traçabilité](docs/traceability.md)
 - [Conventions proposées](docs/contributing.md)

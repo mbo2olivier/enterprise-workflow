@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
 using static Microsoft.Playwright.Assertions;
@@ -14,7 +15,7 @@ public sealed class PortalBrowserTests
     private static readonly string[] FocusableTags = ["A", "BUTTON", "INPUT", "SELECT"];
 
     [Fact]
-    public async Task LoginSettingsThemeKeyboardAndMobileAreQualifiedOnSqlite()
+    public async Task PortalAndAdministrationAreQualifiedOnSqlite()
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("PLAYWRIGHT_TEST_ENABLED"), "1", StringComparison.Ordinal))
             Assert.Skip("Playwright qualification runs only in the dedicated Linux job.");
@@ -41,12 +42,66 @@ public sealed class PortalBrowserTests
 
             await page.GotoAsync($"{baseAddress}/login");
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Se connecter" })).ToBeVisibleAsync();
+            await page.Mouse.MoveAsync(280, 220);
+            await Expect(page.Locator(".login-page")).ToHaveAttributeAsync("style", new Regex("--pointer-x:"));
+            await Expect(page.Locator(".login-grid-reveal")).ToHaveCountAsync(1);
             await page.Locator("input[name=userName]").FillAsync("browser-admin");
             await page.Locator("input[name=password]").FillAsync(password);
             await page.GetByRole(AriaRole.Button, new() { Name = "Se connecter" }).ClickAsync();
             await Expect(page).ToHaveURLAsync(baseAddress + "/");
 
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Hello, browser-admin" })).ToBeVisibleAsync();
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "À faire maintenant" })).ToBeVisibleAsync();
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Mes demandes récentes" })).ToBeVisibleAsync();
+            Assert.Equal(4, await page.Locator(".sidebar .nav-item svg").CountAsync());
+            Assert.Equal(0, await page.Locator(".topbar > form[action='/auth/logout']").CountAsync());
+
+            await page.Mouse.MoveAsync(600, 300);
+            await Expect(page.Locator(".workspace")).ToHaveAttributeAsync("style", new Regex("--pointer-x:"));
+
+            await page.Locator("summary[aria-label='Ouvrir le menu utilisateur']").ClickAsync();
+            await Expect(page.GetByRole(AriaRole.Menuitem, new() { Name = "Administration" })).ToBeVisibleAsync();
+            await Expect(page.GetByRole(AriaRole.Menuitem, new() { Name = "Se déconnecter" })).ToBeVisibleAsync();
+            await page.GetByRole(AriaRole.Menuitem, new() { Name = "Administration" }).ClickAsync();
+            await Expect(page).ToHaveURLAsync(baseAddress + "/admin");
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Administration", Exact = true })).ToBeVisibleAsync();
+            Assert.Equal(4, await page.Locator(".admin-health-grid .health-card").CountAsync());
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Requiert votre attention" })).ToBeVisibleAsync();
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Derniers changements" })).ToBeVisibleAsync();
+
+            await page.GotoAsync(baseAddress + "/admin/access");
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Accès", Exact = true })).ToBeVisibleAsync();
+            Assert.Equal(3, await page.Locator(".segmented-control a").CountAsync());
+            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Nouveau profil" })).ToBeVisibleAsync();
+            Assert.Equal(1, await page.Locator(".access-profile-table").CountAsync());
+            Assert.Equal(0, await page.Locator(".metric-grid, .data-panel").CountAsync());
+            await page.GetByRole(AriaRole.Link, new() { Name = "Nouveau profil" }).ClickAsync();
+            await Expect(page.GetByRole(AriaRole.Dialog).GetByRole(AriaRole.Heading, new() { Name = "Nouveau profil" })).ToBeVisibleAsync();
+            Assert.Equal(1, await page.Locator(".access-profile-table").CountAsync());
+            await page.GetByRole(AriaRole.Link, new() { Name = "Fermer la fenêtre" }).ClickAsync();
+
+            await page.GetByRole(AriaRole.Link, new() { Name = "Identités", Exact = true }).ClickAsync();
+            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Nouvelle identité" })).ToBeVisibleAsync();
+            await page.GetByRole(AriaRole.Link, new() { Name = "Nouvelle identité" }).ClickAsync();
+            var identityDialog = page.GetByRole(AriaRole.Dialog);
+            await Expect(identityDialog.GetByRole(AriaRole.Heading, new() { Name = "Nouvelle identité" })).ToBeVisibleAsync();
+            await Expect(identityDialog.Locator("form[action='/admin/access/accounts']")).ToHaveCountAsync(1);
+            await identityDialog.GetByLabel("Identifiant de connexion").FillAsync("browser-user");
+            await identityDialog.GetByLabel("Mot de passe temporaire").FillAsync("BrowserIdentity_2026");
+            await identityDialog.GetByRole(AriaRole.Button, new() { Name = "Créer l’identité" }).ClickAsync();
+            await Expect(page).ToHaveURLAsync(baseAddress + "/admin/access?tab=identities&saved=1");
+            await Expect(page.Locator(".identity-table").GetByText("browser-user", new() { Exact = true })).ToBeVisibleAsync();
+
+            await page.GotoAsync(baseAddress + "/admin/operations");
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "État de l’installation" })).ToBeVisibleAsync();
+            Assert.Equal(4, await page.Locator(".operations-strip > div").CountAsync());
+            Assert.Equal(3, await page.Locator(".segmented-control a").CountAsync());
+            Assert.Equal(1, await page.Locator(".operations-table").CountAsync());
+
             await page.GotoAsync(baseAddress + "/admin/settings");
+            Assert.Equal(3, await page.Locator(".settings-panel").CountAsync());
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Politique de sécurité" })).ToBeVisibleAsync();
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Runtime" })).ToBeVisibleAsync();
             await page.Locator("input[name=displayName]").FillAsync("Portail de qualification");
             await page.Locator("input[name=accentColor]").FillAsync("#2457A7");
             var form = page.Locator("form[action='/admin/settings/update']");

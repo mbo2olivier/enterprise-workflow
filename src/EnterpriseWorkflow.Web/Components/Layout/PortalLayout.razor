@@ -1,49 +1,114 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
-@inject IPresentationSettingsStore SettingsStore
+@inject WorkflowWebIdentityAccessor Identity
+@inject ILocalAccountStore LocalAccounts
+@inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
 <div class="app-shell">
-    <aside class="sidebar">
-        <a class="brand" href="/" aria-label="Enterprise Workflow"><span class="brand-mark">✦</span></a>
-        <nav class="main-nav" aria-label="Navigation principale">
-            <NavLink href="/" Match="NavLinkMatch.All" class="nav-item"><span class="nav-icon">⌂</span><span>Today</span></NavLink>
-            <NavLink href="/start" class="nav-item"><span class="nav-icon">＋</span><span>Démarrer</span></NavLink>
-            <NavLink href="/inbox" class="nav-item"><span class="nav-icon">✓</span><span>À traiter</span></NavLink>
-            <NavLink href="/requests" class="nav-item"><span class="nav-icon">▤</span><span>Mes demandes</span></NavLink>
+    <aside class="sidebar @(IsAdmin ? "admin-mode" : null)">
+        <a class="brand" href="/" aria-label="Enterprise Workflow">
+            <span class="brand-mark"><PhosphorIcon Name="sparkle" Size="20" /></span>
+        </a>
+        <nav class="main-nav" aria-label="@(IsAdmin ? "Navigation de l’administration" : "Navigation principale")">
+            @if (IsAdmin)
+            {
+                <NavItem Href="/admin" Label="Vue d’ensemble" Icon="gauge" Match="NavLinkMatch.All" />
+                <NavItem Href="/admin/access" Label="Accès" Icon="shield-check" />
+                <NavItem Href="/admin/workflows" Label="Workflows" Icon="flow-arrow" />
+                <NavItem Href="/admin/operations" Label="Exploitation" Icon="pulse" />
+                <NavItem Href="/admin/audit" Label="Audit" Icon="scroll" />
+                <NavItem Href="/admin/settings" Label="Réglages" Icon="sliders" />
+            }
+            else
+            {
+                <NavItem Href="/" Label="Today" Icon="house" Match="NavLinkMatch.All" />
+                <NavItem Href="/start" Label="Démarrer" Icon="plus" />
+                <NavItem Href="/inbox" Label="À traiter" Icon="list-checks" CssClass="@(CurrentPath.StartsWith("tasks/", StringComparison.Ordinal) ? "active" : null)" />
+                <NavItem Href="/requests" Label="Mes demandes" Icon="clipboard" />
+            }
         </nav>
     </aside>
     <main class="workspace">
         <div class="grid-reveal" aria-hidden="true"></div>
         <header class="topbar">
-            <div class="breadcrumbs"><a href="/">Home</a><span class="separator">/</span><span>@PageLabel</span></div>
-            <div class="top-profile-wrap">
-                <a class="top-profile-button" href="/admin"><span class="avatar">EW</span><span class="profile-copy"><strong>@_settings.DisplayName</strong><small>Session sécurisée</small></span></a>
-                <form method="post" action="/auth/logout"><AntiforgeryToken /><button class="icon-button" type="submit" aria-label="Se déconnecter">↪</button></form>
+            <div class="topbar-leading">
+                @if (IsAdmin)
+                {
+                    <a class="return-app-button" href="/"><PhosphorIcon Name="arrow-left" Size="16" /> <span>Application</span></a>
+                }
+                <nav class="breadcrumbs" aria-label="Fil d’Ariane">
+                    <a href="@(IsAdmin ? "/admin" : "/")">@(IsAdmin ? "Administration" : "Home")</a>
+                    <span class="separator">/</span>
+                    <span aria-current="page">@PageLabel</span>
+                </nav>
             </div>
+            <details class="top-profile-wrap">
+                <summary class="top-profile-button" aria-label="Ouvrir le menu utilisateur">
+                    <span class="avatar">@Initials</span>
+                    <span class="profile-copy"><strong>@_displayName</strong><small>@(IsAdmin ? "Mode administration" : "Administrateur")</small></span>
+                    <PhosphorIcon Name="caret-down" Size="15" CssClass="profile-caret" />
+                </summary>
+                <div class="top-profile-menu" role="menu">
+                    @if (IsAdmin)
+                    {
+                        <a role="menuitem" href="/"><PhosphorIcon Name="arrow-left" Size="17" /> Retour à l’application</a>
+                    }
+                    else
+                    {
+                        <a role="menuitem" href="/admin"><PhosphorIcon Name="gear" Size="17" /> Administration</a>
+                    }
+                    <form method="post" action="/auth/logout">
+                        <AntiforgeryToken />
+                        <button type="submit" role="menuitem"><PhosphorIcon Name="sign-out" Size="17" /> Se déconnecter</button>
+                    </form>
+                </div>
+            </details>
         </header>
         <div class="page-stage">@Body</div>
     </main>
 </div>
 
 @code {
-    private PresentationSettings _settings = PresentationSettings.Default;
-    protected override async Task OnInitializedAsync() =>
-        _settings = (await SettingsStore.ReadAsync(CancellationToken.None)).Value ?? PresentationSettings.Default;
+    private string _displayName = "Utilisateur";
 
-    private string PageLabel
+    protected override async Task OnInitializedAsync()
     {
-        get
+        var identity = await Identity.GetRequiredAsync();
+        if (string.Equals(identity.ProviderId, SecurityProviderIds.Local, StringComparison.Ordinal))
         {
-            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
-            return path switch
-            {
-                "" => "Today",
-                "start" => "Démarrer",
-                "inbox" => "À traiter",
-                "requests" => "Mes demandes",
-                _ when path.StartsWith("admin", StringComparison.Ordinal) => "Administration",
-                _ => "Enterprise Workflow",
-            };
+            var account = await LocalAccounts.FindByIdentityAsync(identity, CancellationToken.None);
+            if (account.Outcome is ProviderOutcome.Succeeded && account.Value is not null)
+                _displayName = account.Value.UserName;
+        }
+        else if (Directories.TryGetValue(identity.ProviderId, out var directory))
+        {
+            var found = await directory.FindAsync(identity, false, CancellationToken.None);
+            if (found.Outcome is ProviderOutcome.Succeeded && found.Value is not null)
+                _displayName = found.Value.DisplayName;
+        }
+        else
+        {
+            _displayName = identity.SubjectId;
         }
     }
+
+    private string CurrentPath => Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+    private bool IsAdmin => CurrentPath.Equals("admin", StringComparison.Ordinal) || CurrentPath.StartsWith("admin/", StringComparison.Ordinal);
+    private string Initials => string.Concat(_displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    private string PageLabel => CurrentPath switch
+    {
+        "" => "Today",
+        "start" => "Démarrer",
+        "inbox" => "À traiter",
+        "requests" => "Mes demandes",
+        "admin" => "Vue d’ensemble",
+        "admin/access" => "Accès",
+        "admin/workflows" => "Workflows",
+        "admin/operations" => "Exploitation",
+        "admin/audit" => "Audit",
+        "admin/settings" => "Réglages",
+        _ when CurrentPath.StartsWith("tasks/", StringComparison.Ordinal) => "Détail de la demande",
+        _ when CurrentPath.StartsWith("start/", StringComparison.Ordinal) => "Nouvelle demande",
+        _ => "Enterprise Workflow",
+    };
 }

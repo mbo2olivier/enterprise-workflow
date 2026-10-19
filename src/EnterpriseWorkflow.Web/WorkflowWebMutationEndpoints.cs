@@ -174,9 +174,9 @@ internal static class WorkflowWebMutationEndpoints
             var profile = new SecurityProfile(form["profileId"].ToString(), form["displayName"].ToString(), permissions,
                 IsTrue(form["administrative"].ToString()));
             var result = await profiles.UpsertProfileAsync(profile, actor, context.RequestAborted).ConfigureAwait(false);
-            return AdminRedirect("/admin/access", result.Outcome, result.ErrorCode);
+            return AdminRedirect("/admin/access?tab=profiles", result.Outcome, result.ErrorCode);
         }
-        catch (ArgumentException) { return AdminRedirect("/admin/access", ProviderOutcome.Conflict, "invalid"); }
+        catch (ArgumentException) { return AdminRedirect("/admin/access?tab=profiles", ProviderOutcome.Conflict, "invalid"); }
     }
 
     private static Task<IResult> AssignProfileAsync(
@@ -203,9 +203,9 @@ internal static class WorkflowWebMutationEndpoints
             var result = add
                 ? await profiles.AssignIdentityAsync(identity, profileId, actor, context.RequestAborted).ConfigureAwait(false)
                 : await profiles.UnassignIdentityAsync(identity, profileId, actor, context.RequestAborted).ConfigureAwait(false);
-            return AdminRedirect("/admin/access", result.Outcome, result.ErrorCode);
+            return AdminRedirect("/admin/access?tab=identities", result.Outcome, result.ErrorCode);
         }
-        catch (ArgumentException) { return AdminRedirect("/admin/access", ProviderOutcome.Conflict, "invalid"); }
+        catch (ArgumentException) { return AdminRedirect("/admin/access?tab=identities", ProviderOutcome.Conflict, "invalid"); }
     }
 
     private static Task<IResult> MapGroupAsync(
@@ -232,9 +232,9 @@ internal static class WorkflowWebMutationEndpoints
             var result = add
                 ? await profiles.MapGroupAsync(group, profileId, actor, context.RequestAborted).ConfigureAwait(false)
                 : await profiles.UnmapGroupAsync(group, profileId, actor, context.RequestAborted).ConfigureAwait(false);
-            return AdminRedirect("/admin/access", result.Outcome, result.ErrorCode);
+            return AdminRedirect("/admin/access?tab=profiles", result.Outcome, result.ErrorCode);
         }
-        catch (ArgumentException) { return AdminRedirect("/admin/access", ProviderOutcome.Conflict, "invalid"); }
+        catch (ArgumentException) { return AdminRedirect("/admin/access?tab=profiles", ProviderOutcome.Conflict, "invalid"); }
     }
 
     private static async Task<IResult> CreateLocalAccountAsync(
@@ -250,9 +250,9 @@ internal static class WorkflowWebMutationEndpoints
             var form = await context.Request.ReadFormAsync(context.RequestAborted).ConfigureAwait(false);
             var result = await accounts.CreateAsync(form["userName"].ToString(), form["password"].ToString(), actor,
                 context.RequestAborted).ConfigureAwait(false);
-            return AdminRedirect("/admin/access", result.Outcome, result.ErrorCode);
+            return AdminRedirect("/admin/access?tab=identities", result.Outcome, result.ErrorCode);
         }
-        catch (ArgumentException) { return AdminRedirect("/admin/access", ProviderOutcome.Conflict, "invalid"); }
+        catch (ArgumentException) { return AdminRedirect("/admin/access?tab=identities", ProviderOutcome.Conflict, "invalid"); }
     }
 
     private static async Task<IResult> UpdatePresentationSettingsAsync(
@@ -309,8 +309,10 @@ internal static class WorkflowWebMutationEndpoints
 
     private static IResult AdminRedirect(string path, ProviderOutcome outcome, string? errorCode) =>
         outcome is ProviderOutcome.Succeeded
-            ? Results.Redirect($"{path}?saved=1")
-            : Results.Redirect($"{path}?error={Uri.EscapeDataString(errorCode ?? outcome.ToString())}");
+            ? Results.Redirect($"{path}{QuerySeparator(path)}saved=1")
+            : Results.Redirect($"{path}{QuerySeparator(path)}error={Uri.EscapeDataString(errorCode ?? outcome.ToString())}");
+
+    private static char QuerySeparator(string path) => path.Contains('?') ? '&' : '?';
 
     private static bool IsTrue(string value) =>
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || value == "on" || value == "1";

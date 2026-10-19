@@ -3,5 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="../EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj" />
     <PackageReference Include="Oracle.EntityFrameworkCore" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 </Project>

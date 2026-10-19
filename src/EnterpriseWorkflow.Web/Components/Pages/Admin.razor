@@ -1,5 +1,81 @@
 @page "/admin"
 @attribute [Authorize]
+@inject IWorkflowPresentationCatalog Catalog
+@inject WorkflowModuleCatalog Modules
+@inject ISecurityProfileStore Profiles
+@inject IConfiguration Configuration
+@inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
 <PageTitle>Administration · Enterprise Workflow</PageTitle>
-<div class="content content-medium admin-content"><div class="admin-page-intro"><div><p class="eyebrow">Centre de contrôle</p><h1>Administration</h1><p>Les capacités disponibles dépendent des fournisseurs et des droits de votre installation.</p></div><span class="status success">Système prêt</span></div><section class="admin-health-grid"><a class="health-card" href="/admin/access"><span class="health-icon success">◇</span><small>Sécurité</small><strong>Accès</strong><p>Profils, identités et fournisseurs</p><span>→</span></a><a class="health-card" href="/admin/workflows"><span class="health-icon success">⌘</span><small>Workflows</small><strong>Habilitations</strong><p>Versions, nœuds et actions exactes</p><span>→</span></a><a class="health-card" href="/admin/operations"><span class="health-icon success">◌</span><small>Exécution</small><strong>Exploitation</strong><p>Instances, outbox et modules</p><span>→</span></a><a class="health-card" href="/admin/audit"><span class="health-icon success">▤</span><small>Traçabilité</small><strong>Audit</strong><p>Mutations critiques et sécurité</p><span>→</span></a><a class="health-card" href="/admin/settings"><span class="health-icon success">⚙</span><small>Installation</small><strong>Réglages</strong><p>Thème, culture et configuration effective</p><span>→</span></a></section></div>
+<div class="content content-medium admin-content">
+    <div class="admin-page-intro">
+        <div><p class="eyebrow">Centre de contrôle</p><h1>Administration</h1><p>@AttentionSummary</p></div>
+        <span class="status success"><PhosphorIcon Name="check-circle" Size="15" />Système prêt</span>
+    </div>
+    <section class="admin-health-grid">
+        <a class="health-card" href="/admin/access"><span class="health-icon success"><PhosphorIcon Name="shield-check" Size="22" /></span><small>Sécurité</small><strong>@SecurityValue</strong><p>@SecurityCopy</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/workflows"><span class="health-icon @(_workflowCount == 0 ? "warning" : "success")"><PhosphorIcon Name="flow-arrow" Size="22" /></span><small>Workflows</small><strong>@_workflowCount publié@(_workflowCount > 1 ? "s" : null)</strong><p>Catalogue de présentation chargé</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/operations"><span class="health-icon success"><PhosphorIcon Name="pulse" Size="22" /></span><small>Exécution</small><strong>Stable</strong><p>Kernel actif · @DatabaseProvider</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/operations"><span class="health-icon success"><PhosphorIcon Name="plugs" Size="22" /></span><small>Intégrations</small><strong>@Modules.Modules.Length module@(Modules.Modules.Length > 1 ? "s" : null)</strong><p>Extensions chargées au démarrage</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+    </section>
+    <div class="admin-dashboard-grid">
+        <section class="panel">
+            <div class="section-heading"><div><p class="eyebrow">À vérifier</p><h2>Requiert votre attention</h2></div></div>
+            <div class="attention-list">
+                @if (_attention.Count == 0)
+                {
+                    <div class="admin-empty-row"><span class="attention-mark success"><PhosphorIcon Name="check-circle" Size="19" /></span><span><strong>Aucun point d’attention détecté</strong><small>Les contrôles disponibles ne signalent aucune action immédiate.</small></span></div>
+                }
+                @foreach (var item in _attention)
+                {
+                    <a href="@item.Href"><span class="attention-mark warning"><PhosphorIcon Name="warning-diamond" Size="19" /></span><span><strong>@item.Title</strong><small>@item.Copy</small></span><PhosphorIcon Name="arrow-right" Size="16" /></a>
+                }
+            </div>
+        </section>
+        <section class="panel">
+            <div class="section-heading"><div><p class="eyebrow">Activité</p><h2>Derniers changements</h2></div><a class="text-button" href="/admin/audit">Tout voir <PhosphorIcon Name="arrow-right" Size="15" /></a></div>
+            @if (_audit.Count == 0)
+            {
+                <div class="admin-empty-audit">Aucune activité de sécurité enregistrée.</div>
+            }
+            else
+            {
+                <div class="mini-audit">
+                    @foreach (var entry in _audit.Take(3))
+                    {
+                        <div><span class="audit-dot"></span><p><strong>@entry.Action</strong><small>@entry.Actor.SubjectId · @entry.OccurredAtUtc.ToLocalTime().ToString("g", CultureInfo.GetCultureInfo("fr-FR"))</small></p></div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private int _workflowCount;
+    private int? _administratorCount;
+    private IReadOnlyList<SecurityAuditEntry> _audit = [];
+    private readonly List<AttentionItem> _attention = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _workflowCount = Catalog.Processes.Length;
+        var administrators = await Profiles.CountAdministrativeIdentitiesAsync(CancellationToken.None);
+        if (administrators.Outcome is ProviderOutcome.Succeeded) _administratorCount = administrators.Value;
+        _audit = await Profiles.ReadAuditAsync(3, CancellationToken.None);
+        if (_workflowCount == 0)
+            _attention.Add(new("Aucun workflow n’est publié", "Le catalogue ne contient actuellement aucun processus.", "/admin/workflows"));
+        if (_administratorCount is <= 1)
+            _attention.Add(new("L’accès administratif repose sur une seule identité", "Ajoutez une seconde identité pour éviter un verrouillage opérationnel.", "/admin/access"));
+    }
+
+    private string DatabaseProvider => Configuration["Database:Provider"] ?? "Sqlite";
+    private string SecurityValue => _administratorCount is null ? "Disponible" : $"{_administratorCount} administrateur{(_administratorCount > 1 ? "s" : null)}";
+    private string SecurityCopy => Directories.Count == 0
+        ? "Fournisseur interne disponible"
+        : $"Fournisseur interne et {Directories.Count} annuaire{(Directories.Count > 1 ? "s" : null)} disponible{(Directories.Count > 1 ? "s" : null)}";
+    private string AttentionSummary => _attention.Count == 0
+        ? "L’installation est opérationnelle. Aucun élément ne requiert votre attention."
+        : $"L’installation est opérationnelle. {_attention.Count} élément{(_attention.Count > 1 ? "s" : null)} mérite{(_attention.Count > 1 ? "nt" : null)} votre attention.";
+    private sealed record AttentionItem(string Title, string Copy, string Href);
+}

@@ -5,10 +5,21 @@
 @inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 @inject IAuthorizationProvider Authorization
 @inject WorkflowWebIdentityAccessor Identity
+@inject SecurityPolicyOptions SecurityPolicy
 
 <PageTitle>Accès · Enterprise Workflow</PageTitle>
 <div class="content content-medium admin-content">
-    <div class="page-intro"><p class="eyebrow">Administration</p><h1>Accès</h1><p>Profils internes, identités et capacités effectives des fournisseurs configurés.</p></div>
+    <div class="admin-page-intro">
+        <div><p class="eyebrow">Sécurité</p><h1>Accès</h1><p>Gérez les profils, les identités et les fournisseurs de cette installation.</p></div>
+        @if (_allowed && ActiveTab == "profiles")
+        {
+            <a class="primary-button" href="/admin/access?tab=profiles&newProfile=1"><PhosphorIcon Name="user-plus" Size="17" /> Nouveau profil</a>
+        }
+        else if (_allowed && ActiveTab == "identities")
+        {
+            <a class="primary-button" href="/admin/access?tab=identities&newIdentity=1"><PhosphorIcon Name="user-plus" Size="17" /> Nouvelle identité</a>
+        }
+    </div>
     @if (Saved) { <div class="notice success" role="status">Configuration des accès enregistrée et auditée.</div> }
     @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">La modification a été refusée (@Error).</div> }
     @if (!_allowed)
@@ -17,48 +28,139 @@
     }
     else
     {
-        <section class="metric-grid"><article class="metric-card"><small>Profils</small><strong>@_profiles.Count</strong></article><article class="metric-card"><small>Identités locales</small><strong>@_accounts.Count</strong></article><article class="metric-card"><small>Affectations</small><strong>@_assignments.Count</strong></article><article class="metric-card"><small>Groupes liés</small><strong>@_groups.Count</strong></article></section>
-        <section class="panel data-panel">
-            <div class="section-heading"><div><p class="eyebrow">Profils internes</p><h2>Permissions</h2></div></div>
-            <div class="table-wrap"><table><thead><tr><th>Profil</th><th>Permissions</th><th>Administration</th></tr></thead><tbody>@foreach (var profile in _profiles) { <tr><td><strong>@profile.DisplayName</strong><small>@profile.Id</small></td><td>@string.Join(", ", profile.Permissions.Select(item => item.Value).Order())</td><td>@(profile.GrantsAdministrativeAccess ? "Oui" : "Non")</td></tr> }</tbody></table></div>
-            <form method="post" action="/admin/access/profiles" class="compact-form"><AntiforgeryToken />
-                <label>Identifiant<input name="profileId" required maxlength="160" /></label><label>Nom affiché<input name="displayName" required maxlength="256" /></label>
-                <label class="wide-field">Permissions, séparées par une virgule<input name="permissions" placeholder="workflow.approver.search, security.audit.read" /></label>
-                <label class="checkbox-field"><input type="checkbox" name="administrative" value="true" /> Accès administratif</label><button class="primary-button" type="submit">Créer ou remplacer</button>
-            </form>
-        </section>
-        <section class="panel data-panel">
-            <div class="section-heading"><div><p class="eyebrow">Identités locales</p><h2>Comptes</h2></div></div>
-            <div class="table-wrap"><table><thead><tr><th>Utilisateur</th><th>Identité stable</th><th>État</th></tr></thead><tbody>@foreach (var account in _accounts) { <tr><td>@account.UserName</td><td><code>@account.Identity.SubjectId</code></td><td>@(account.Enabled ? "Actif" : "Désactivé")</td></tr> }</tbody></table></div>
-            <form method="post" action="/admin/access/accounts" class="compact-form"><AntiforgeryToken /><label>Utilisateur<input name="userName" required maxlength="256" autocomplete="off" /></label><label>Mot de passe initial<input type="password" name="password" required maxlength="1024" autocomplete="new-password" /></label><button class="primary-button" type="submit">Créer le compte</button></form>
-        </section>
-        <section class="panel data-panel">
-            <div class="section-heading"><div><p class="eyebrow">Fournisseurs</p><h2>Capacités déclarées</h2></div></div>
-            @if (Directories.Count == 0) { <p class="muted-copy">Aucun annuaire externe n’est configuré ; l’authentification locale reste disponible.</p> }
-            else { <div class="table-wrap"><table><thead><tr><th>Fournisseur</th><th>Recherche</th><th>Groupes</th><th>État du compte</th></tr></thead><tbody>@foreach (var directory in Directories.Values.OrderBy(item => item.ProviderId)) { <tr><td>@directory.ProviderId</td><td>@Capability(directory, DirectoryCapabilities.Search)</td><td>@Capability(directory, DirectoryCapabilities.Groups)</td><td>@Capability(directory, DirectoryCapabilities.AccountStatus)</td></tr> }</tbody></table></div> }
-        </section>
-        <section class="panel data-panel">
-            <div class="section-heading"><div><p class="eyebrow">Affectations directes</p><h2>Identités et profils</h2></div></div>
-            <div class="table-wrap"><table><thead><tr><th>Identité</th><th>Profil</th><th></th></tr></thead><tbody>@foreach (var assignment in _assignments) { <tr><td>@assignment.Identity.ProviderId / @assignment.Identity.SubjectId</td><td>@assignment.ProfileId</td><td><form method="post" action="/admin/access/assignments/remove"><AntiforgeryToken />@IdentityHidden(assignment)<button class="text-button danger-button" type="submit">Retirer</button></form></td></tr> }</tbody></table></div>
-            <form method="post" action="/admin/access/assignments" class="compact-form"><AntiforgeryToken /><label>Fournisseur<input name="providerId" required maxlength="128" /></label><label>Identifiant stable<input name="subjectId" required maxlength="256" /></label><label>Profil<select name="profileId" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label><button class="primary-button" type="submit">Affecter</button></form>
-        </section>
-        <section class="panel data-panel">
-            <div class="section-heading"><div><p class="eyebrow">Groupes externes</p><h2>Mappings vers les profils</h2></div></div>
-            <div class="table-wrap"><table><thead><tr><th>Groupe</th><th>Profil</th><th></th></tr></thead><tbody>@foreach (var mapping in _groups) { <tr><td>@mapping.Group.ProviderId / @mapping.Group.GroupId</td><td>@mapping.ProfileId</td><td><form method="post" action="/admin/access/groups/remove"><AntiforgeryToken />@GroupHidden(mapping)<button class="text-button danger-button" type="submit">Retirer</button></form></td></tr> }</tbody></table></div>
-            <form method="post" action="/admin/access/groups" class="compact-form"><AntiforgeryToken /><label>Fournisseur<input name="providerId" required maxlength="128" /></label><label>Identifiant du groupe<input name="groupId" required maxlength="256" /></label><label>Profil<select name="profileId" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label><button class="primary-button" type="submit">Associer</button></form>
-        </section>
+        <nav class="segmented-control" aria-label="Vues des accès">
+            <a class="@(ActiveTab == "profiles" ? "active" : null)" aria-current="@(ActiveTab == "profiles" ? "page" : null)" href="/admin/access?tab=profiles">Profils</a>
+            <a class="@(ActiveTab == "identities" ? "active" : null)" aria-current="@(ActiveTab == "identities" ? "page" : null)" href="/admin/access?tab=identities">Identités</a>
+            <a class="@(ActiveTab == "providers" ? "active" : null)" aria-current="@(ActiveTab == "providers" ? "page" : null)" href="/admin/access?tab=providers">Fournisseurs</a>
+        </nav>
+
+        @if (ActiveTab == "profiles")
+        {
+            <div class="admin-master-detail">
+                <section class="panel admin-table access-profile-table">
+                    <div class="admin-table-head"><span>Profil</span><span>Membres</span><span>Workflows</span><span></span></div>
+                    @if (_profiles.Count == 0)
+                    {
+                        <div class="admin-table-empty"><strong>Aucun profil interne</strong><small>Créez le premier profil pour regrouper les permissions.</small></div>
+                    }
+                    @foreach (var profile in _profiles)
+                    {
+                        <a class="admin-table-row @(SelectedProfile?.Id == profile.Id ? "selected" : null)" href="/admin/access?tab=profiles&profile=@Uri.EscapeDataString(profile.Id)">
+                            <span class="table-primary"><span class="row-icon"><PhosphorIcon Name="lock-key" Size="20" /></span><span><strong>@profile.DisplayName</strong><small>@ProfileSummary(profile)</small></span></span>
+                            <span>@MemberCount(profile.Id)</span><span>—</span><PhosphorIcon Name="arrow-right" Size="16" />
+                        </a>
+                    }
+                </section>
+            </div>
+        }
+        else if (ActiveTab == "identities")
+        {
+            <form method="get" action="/admin/access" class="toolbar panel"><input type="hidden" name="tab" value="identities" /><label class="search-field"><PhosphorIcon Name="magnifying-glass" Size="19" /><input name="q" value="@Query" placeholder="Rechercher dans les fournisseurs autorisés" /></label><label class="filter-button"><PhosphorIcon Name="funnel" Size="18" /><select name="provider" aria-label="Fournisseur"><option value="">Tous les fournisseurs</option><option value="local" selected="@(Provider == "local")">Local</option>@foreach (var directory in Directories.Values.OrderBy(item => item.ProviderId)) { <option value="@directory.ProviderId" selected="@(Provider == directory.ProviderId)">@directory.ProviderId</option> }</select></label><button class="secondary-button" type="submit">Filtrer</button></form>
+            <section class="panel admin-table identity-table">
+                <div class="admin-table-head"><span>Identité</span><span>Source</span><span>Profil</span><span>État</span></div>
+                @if (VisibleIdentities.Count == 0) { <div class="admin-table-empty"><strong>Aucune identité trouvée</strong><small>Modifiez les critères de recherche ou le fournisseur.</small></div> }
+                @foreach (var item in VisibleIdentities)
+                {
+                    <div class="admin-table-row"><span class="table-primary"><span class="avatar">@Initials(item.Name)</span><span><strong>@item.Name</strong><small>@item.Subject</small></span></span><span><span class="soft-chip">@item.Provider</span></span><span>@item.Profiles</span><span class="status @(item.Enabled ? "success" : "warning")">@(item.Enabled ? "Actif" : "Désactivé")</span></div>
+                }
+            </section>
+        }
+        else
+        {
+            <section class="provider-grid">
+                @foreach (var directory in Directories.Values.OrderBy(item => item.ProviderId))
+                {
+                    <article class="panel provider-card"><div class="provider-card-top"><span class="provider-icon"><PhosphorIcon Name="plugs" Size="24" /></span><span class="status success">Actif</span></div><h2>@directory.ProviderId</h2><p>Annuaire externe connecté en lecture seule par la configuration de l’installation.</p><div class="capability-list">@if (directory.Capabilities.HasFlag(DirectoryCapabilities.Search)) { <span>Recherche</span> } @if (directory.Capabilities.HasFlag(DirectoryCapabilities.Groups)) { <span>Groupes</span> } @if (directory.Capabilities.HasFlag(DirectoryCapabilities.AccountStatus)) { <span>Statut des comptes</span> }</div><dl><div><dt>Identifiant</dt><dd>@directory.ProviderId</dd></div><div><dt>Transport</dt><dd>Configuration exploitant</dd></div><div><dt>Secret</dt><dd>Non affiché</dd></div></dl></article>
+                }
+                <article class="panel provider-card"><div class="provider-card-top"><span class="provider-icon"><PhosphorIcon Name="hard-drives" Size="24" /></span><span class="status success">Actif</span></div><h2>Comptes locaux</h2><p>Fournisseur optionnel pour les comptes administrés dans l’installation.</p><div class="capability-list"><span>Création</span><span>Désactivation</span><span>Verrouillage</span></div><dl><div><dt>Identifiant</dt><dd>local</dd></div><div><dt>Comptes actifs</dt><dd>@_accounts.Count(account => account.Enabled)</dd></div><div><dt>Comptes configurés</dt><dd>@_accounts.Count</dd></div></dl><a class="secondary-button" href="/admin/access?tab=identities&provider=local">Gérer les comptes</a></article>
+            </section>
+        }
+
+        @if (ShowProfileDialog)
+        {
+            var profile = SelectedProfile;
+            <div class="admin-modal-backdrop">
+                <section class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title">
+                    <header class="admin-modal-header">
+                        <span class="inspector-icon"><PhosphorIcon Name="lock-key" Size="23" /></span>
+                        <div><p class="eyebrow">Profil interne</p><h2 id="profile-dialog-title">@(profile?.DisplayName ?? "Nouveau profil")</h2><p>@(profile is null ? "Créez un profil explicite et attribuez-lui uniquement les permissions nécessaires." : ProfileSummary(profile))</p></div>
+                        <a class="close-decision" aria-label="Fermer la fenêtre" href="/admin/access?tab=profiles">×</a>
+                    </header>
+                    @if (profile is not null)
+                    {
+                        <dl class="inspector-stats"><div><dt>Identités</dt><dd>@IdentityCount(profile.Id)</dd></div><div><dt>Groupes</dt><dd>@GroupCount(profile.Id)</dd></div><div><dt>Workflows</dt><dd>—</dd></div></dl>
+                    }
+                    <form method="post" action="/admin/access/profiles" class="profile-editor"><AntiforgeryToken />
+                        <label>Identifiant<input name="profileId" value="@profile?.Id" required maxlength="160" readonly="@(profile is not null)" /></label>
+                        <label>Nom affiché<input name="displayName" value="@profile?.DisplayName" required maxlength="256" /></label>
+                        <div class="inspector-section">
+                            <strong>Permissions générales</strong>
+                            @foreach (var permission in KnownPermissions(profile))
+                            {
+                                <label><input type="checkbox" name="permissions" value="@permission.Value" checked="@HasPermission(profile, permission)" /> @PermissionLabel(permission)</label>
+                            }
+                            <label><input type="checkbox" name="administrative" value="true" checked="@(profile?.GrantsAdministrativeAccess == true)" /> Accès à l’administration</label>
+                        </div>
+                        @if (profile is not null)
+                        {
+                            <div class="inspector-section"><strong>Associations</strong><span class="soft-chip"><PhosphorIcon Name="identification-card" Size="14" /> @IdentityCount(profile.Id) identités directes</span><span class="soft-chip"><PhosphorIcon Name="users" Size="14" /> @GroupCount(profile.Id) groupes externes</span></div>
+                        }
+                        <footer class="admin-modal-actions"><a class="secondary-button" href="/admin/access?tab=profiles">Annuler</a><button type="submit" class="primary-button">@(profile is null ? "Créer le profil" : "Enregistrer le profil")</button></footer>
+                    </form>
+                </section>
+            </div>
+        }
+        else if (ShowIdentityDialog)
+        {
+            <div class="admin-modal-backdrop">
+                <section class="admin-modal admin-modal-compact" role="dialog" aria-modal="true" aria-labelledby="identity-dialog-title">
+                    <header class="admin-modal-header">
+                        <span class="inspector-icon"><PhosphorIcon Name="identification-card" Size="23" /></span>
+                        <div><p class="eyebrow">Compte local</p><h2 id="identity-dialog-title">Nouvelle identité</h2><p>Créez une identité gérée par l’installation. Les identités d’annuaire restent administrées par leur fournisseur.</p></div>
+                        <a class="close-decision" aria-label="Fermer la fenêtre" href="/admin/access?tab=identities">×</a>
+                    </header>
+                    <form method="post" action="/admin/access/accounts" class="profile-editor"><AntiforgeryToken />
+                        <label>Identifiant de connexion<input name="userName" required maxlength="256" autocomplete="username" /></label>
+                        <label>Mot de passe temporaire<input name="password" type="password" required minlength="@SecurityPolicy.PasswordMinimumLength" maxlength="@SecurityPolicy.PasswordMaximumLength" autocomplete="new-password" /></label>
+                        <p class="field-help">Entre @SecurityPolicy.PasswordMinimumLength et @SecurityPolicy.PasswordMaximumLength caractères selon la politique active.</p>
+                        <footer class="admin-modal-actions"><a class="secondary-button" href="/admin/access?tab=identities">Annuler</a><button type="submit" class="primary-button">Créer l’identité</button></footer>
+                    </form>
+                </section>
+            </div>
+        }
     }
 </div>
 
 @code {
     [SupplyParameterFromQuery(Name = "saved")] public string? SavedValue { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
+    [SupplyParameterFromQuery(Name = "profile")] public string? ProfileId { get; set; }
+    [SupplyParameterFromQuery(Name = "newProfile")] public string? NewProfile { get; set; }
+    [SupplyParameterFromQuery(Name = "newIdentity")] public string? NewIdentity { get; set; }
+    [SupplyParameterFromQuery(Name = "q")] public string? Query { get; set; }
+    [SupplyParameterFromQuery(Name = "provider")] public string? Provider { get; set; }
     private bool Saved => SavedValue == "1";
+    private string ActiveTab => Tab is "identities" or "providers" ? Tab : "profiles";
+    private bool ShowProfileDialog => ActiveTab == "profiles" && (NewProfile == "1" || SelectedProfile is not null);
+    private bool ShowIdentityDialog => ActiveTab == "identities" && NewIdentity == "1";
+    private SecurityProfile? SelectedProfile => _profiles.FirstOrDefault(item => string.Equals(item.Id, ProfileId, StringComparison.Ordinal));
     private bool _allowed;
     private IReadOnlyList<SecurityProfile> _profiles = [];
     private IReadOnlyList<LocalAccount> _accounts = [];
     private IReadOnlyList<SecurityIdentityProfileAssignment> _assignments = [];
     private IReadOnlyList<SecurityGroupProfileMapping> _groups = [];
+
+    private IReadOnlyList<IdentityRow> VisibleIdentities => _accounts
+        .Select(account => new IdentityRow(account.UserName, account.Identity.SubjectId, account.Identity.ProviderId,
+            string.Join(", ", _assignments.Where(item => item.Identity == account.Identity).Select(item => ProfileName(item.ProfileId))), account.Enabled))
+        .Concat(_assignments.Where(assignment => _accounts.All(account => account.Identity != assignment.Identity))
+            .GroupBy(assignment => assignment.Identity)
+            .Select(group => new IdentityRow(group.Key.SubjectId, group.Key.SubjectId, group.Key.ProviderId,
+                string.Join(", ", group.Select(item => ProfileName(item.ProfileId))), true)))
+        .Where(item => string.IsNullOrWhiteSpace(Provider) || string.Equals(item.Provider, Provider, StringComparison.Ordinal))
+        .Where(item => string.IsNullOrWhiteSpace(Query) || $"{item.Name} {item.Subject}".Contains(Query, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToArray();
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,17 +173,14 @@
         _groups = (await Profiles.ListGroupMappingsAsync(1000, CancellationToken.None)).Value ?? [];
     }
 
-    private static RenderFragment IdentityHidden(SecurityIdentityProfileAssignment assignment) => builder =>
-    {
-        var sequence = 0; Hidden(builder, ref sequence, "providerId", assignment.Identity.ProviderId); Hidden(builder, ref sequence, "subjectId", assignment.Identity.SubjectId); Hidden(builder, ref sequence, "profileId", assignment.ProfileId);
-    };
-    private static RenderFragment GroupHidden(SecurityGroupProfileMapping mapping) => builder =>
-    {
-        var sequence = 0; Hidden(builder, ref sequence, "providerId", mapping.Group.ProviderId); Hidden(builder, ref sequence, "groupId", mapping.Group.GroupId); Hidden(builder, ref sequence, "profileId", mapping.ProfileId);
-    };
-    private static void Hidden(RenderTreeBuilder builder, ref int sequence, string name, string value)
-    {
-        builder.OpenElement(sequence++, "input"); builder.AddAttribute(sequence++, "type", "hidden"); builder.AddAttribute(sequence++, "name", name); builder.AddAttribute(sequence++, "value", value); builder.CloseElement();
-    }
-    private static string Capability(IIdentityDirectory directory, DirectoryCapabilities capability) => directory.Capabilities.HasFlag(capability) ? "Disponible" : "Non prise en charge";
+    private int IdentityCount(string? profileId) => profileId is null ? 0 : _assignments.Count(item => item.ProfileId == profileId);
+    private int GroupCount(string? profileId) => profileId is null ? 0 : _groups.Count(item => item.ProfileId == profileId);
+    private int MemberCount(string profileId) => IdentityCount(profileId) + GroupCount(profileId);
+    private string ProfileName(string id) => _profiles.FirstOrDefault(item => item.Id == id)?.DisplayName ?? id;
+    private static string ProfileSummary(SecurityProfile profile) => profile.Permissions.Count == 0 ? "Aucune permission générale" : $"{profile.Permissions.Count} permission{(profile.Permissions.Count > 1 ? "s" : string.Empty)} générale{(profile.Permissions.Count > 1 ? "s" : string.Empty)}";
+    private static bool HasPermission(SecurityProfile? profile, PermissionId permission) => profile?.Permissions.Contains(permission) == true;
+    private static IReadOnlyList<PermissionId> KnownPermissions(SecurityProfile? profile) => new[] { WorkflowPermissions.ManageAccess, WorkflowPermissions.ReadAudit, WorkflowPermissions.ReadInstance, WorkflowPermissions.Start, WorkflowPermissions.CancelInstance }.Concat(profile is null ? Enumerable.Empty<PermissionId>() : profile.Permissions).Distinct().OrderBy(item => item.Value, StringComparer.Ordinal).ToArray();
+    private static string PermissionLabel(PermissionId permission) => permission.Value switch { "security.access.manage" => "Gérer les accès", "security.audit.read" => "Consulter l’audit", "workflow.instance.read" => "Lire les instances autorisées", "workflow.instance.start" => "Démarrer des workflows", "workflow.instance.cancel" => "Annuler les instances autorisées", _ => permission.Value };
+    private static string Initials(string value) => string.Concat(value.Split([' ', '.', '-', '_'], StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    private sealed record IdentityRow(string Name, string Subject, string Provider, string Profiles, bool Enabled);
 }

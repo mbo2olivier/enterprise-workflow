@@ -95,11 +95,6 @@
           "System.Configuration.ConfigurationManager": "8.0.0"
         }
       },
-      "System.Security.Cryptography.Pkcs": {
-        "type": "Transitive",
-        "resolved": "8.0.1",
-        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
-      },
       "System.Security.Cryptography.ProtectedData": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -140,7 +135,8 @@
         "type": "Project",
         "dependencies": {
           "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )",
-          "Oracle.EntityFrameworkCore": "[10.23.26301, )"
+          "Oracle.EntityFrameworkCore": "[10.23.26301, )",
+          "System.Security.Cryptography.Pkcs": "[8.0.2, )"
         }
       },
       "enterpriseworkflow.persistence.sqlite": {
@@ -204,7 +200,8 @@
         "type": "Project",
         "dependencies": {
           "EnterpriseWorkflow.Security.Persistence": "[1.0.0, )",
-          "Oracle.EntityFrameworkCore": "[10.23.26301, )"
+          "Oracle.EntityFrameworkCore": "[10.23.26301, )",
+          "System.Security.Cryptography.Pkcs": "[8.0.2, )"
         }
       },
       "enterpriseworkflow.security.persistence.sqlite": {
@@ -267,6 +264,12 @@
         "requested": "[10.0.11, )",
         "resolved": "10.0.11",
         "contentHash": "Q4DEPB0wfAMAM6zjCjioFQoDZGC6uCeAZMU30sdjMgVtKbSuSBjhASVlxVOTYmQKCdUqZInnDwZ3W/ZTWB4m3Q=="
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "CentralTransitive",
+        "requested": "[8.0.2, )",
+        "resolved": "8.0.2",
+        "contentHash": "VWACYq0JGxi9sw3TonSSV4B2MfhYk5nhgOtp9wbrt5NFOtUetFqHkMZylcCwPX+117cBJH5EnIzIy6X4OKn/kA=="
       }
     }
   }

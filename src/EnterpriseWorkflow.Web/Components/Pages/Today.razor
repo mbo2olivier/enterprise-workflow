@@ -2,12 +2,14 @@
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
+@inject ILocalAccountStore LocalAccounts
+@inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
 <PageTitle>Today · Enterprise Workflow</PageTitle>
 <div class="content content-narrow">
-    <div class="page-intro"><p class="eyebrow">@DateTimeOffset.Now.ToString("dddd d MMMM", CultureInfo.GetCultureInfo("fr-FR"))</p><h1>Bonjour</h1><p>Voici ce qui mérite votre attention aujourd’hui.</p></div>
+    <div class="page-intro"><p class="eyebrow">@DateTimeOffset.Now.ToString("dddd d MMMM", CultureInfo.GetCultureInfo("fr-FR"))</p><h1>Hello, @_displayName</h1><p>Voici ce qui mérite votre attention aujourd’hui.</p></div>
     <section class="panel focus-panel">
-        <div class="section-heading"><div><p class="eyebrow">Votre journée</p><h2>À faire maintenant</h2></div><a class="text-button" href="/inbox">Tout voir →</a></div>
+        <div class="section-heading"><div><p class="eyebrow">Votre journée</p><h2>À faire maintenant</h2></div><a class="text-button" href="/inbox">Tout voir <PhosphorIcon Name="arrow-right" Size="16" /></a></div>
         @if (_tasks is null)
         {
             <p class="loading">Chargement…</p>
@@ -18,20 +20,74 @@
         }
         else
         {
-            <div class="stack-list">@foreach (var task in _tasks.Take(2)) { <a class="list-row" href="/tasks/@task.TaskId.Value"><span class="row-icon">✓</span><span class="row-main"><strong>@task.DefinitionId.Value</strong><small>@task.NodeId.Value</small></span><span class="status progress">En attente</span><span>→</span></a> }</div>
+            <div class="stack-list">
+                @foreach (var task in _tasks.Take(2))
+                {
+                    var view = _taskViews.GetValueOrDefault(task.TaskId);
+                    <a class="list-row" href="/tasks/@task.TaskId.Value">
+                        <span class="row-icon"><PhosphorIcon Name="calendar" Size="21" /></span>
+                        <span class="row-main"><strong>@(view?.ProcessTitle ?? task.DefinitionId.Value)</strong><small>@(view?.NodeLabel ?? task.NodeId.Value)</small></span>
+                        <span class="row-meta"><span class="status warning"><PhosphorIcon Name="clock" Size="15" />À traiter</span><small>@task.CreatedAtUtc.ToLocalTime().ToString("g", CultureInfo.GetCultureInfo("fr-FR"))</small></span>
+                        <PhosphorIcon Name="arrow-right" Size="17" />
+                    </a>
+                }
+            </div>
         }
     </section>
-    <section class="panel"><div class="section-heading"><div><p class="eyebrow">Catalogue</p><h2>Processus disponibles</h2></div><a class="text-button" href="/start">Démarrer →</a></div><p>@(_processCount == 0 ? "Aucun processus ne vous est actuellement ouvert." : $"{_processCount} processus sont disponibles.")</p></section>
+    <section class="panel">
+        <div class="section-heading"><div><h2>Mes demandes récentes</h2></div><a class="text-button" href="/requests">Tout afficher <PhosphorIcon Name="arrow-right" Size="16" /></a></div>
+        @if (_requests.Count == 0)
+        {
+            <div class="empty-state compact"><strong>Aucune demande récente</strong><p>Les processus que vous démarrez apparaîtront ici.</p></div>
+        }
+        else
+        {
+            <div class="stack-list compact">
+                @foreach (var request in _requests.Take(2))
+                {
+                    <a class="list-row" href="/requests">
+                        <span class="row-icon"><PhosphorIcon Name="clipboard" Size="20" /></span>
+                        <span class="row-main"><strong>@request.ProcessTitle</strong><small>@request.InstanceId.Value · @request.CreatedAtUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))</small></span>
+                        <span class="status @StatusClass(request.Status)">@StatusLabel(request.Status)</span>
+                        <PhosphorIcon Name="arrow-right" Size="17" />
+                    </a>
+                }
+            </div>
+        }
+    </section>
 </div>
 
 @code {
     private IReadOnlyList<OpenHumanTask>? _tasks;
-    private int _processCount;
+    private readonly Dictionary<HumanTaskId, WorkflowTaskView?> _taskViews = [];
+    private IReadOnlyList<WorkflowRequestView> _requests = [];
+    private string _displayName = "Utilisateur";
 
     protected override async Task OnInitializedAsync()
     {
         var actor = await Identity.GetRequiredAsync();
         _tasks = (await Portal.ReadInboxAsync(actor, null, CancellationToken.None)).Tasks;
-        _processCount = (await Portal.ListStartableProcessesAsync(actor, CancellationToken.None)).Count;
+        foreach (var task in _tasks.Take(2))
+            _taskViews[task.TaskId] = await Portal.ReadTaskAsync(actor, task.TaskId, CancellationToken.None);
+        _requests = await Portal.ListMyRequestsAsync(actor, 2, CancellationToken.None);
+        _displayName = await ResolveDisplayNameAsync(actor);
     }
+
+    private async ValueTask<string> ResolveDisplayNameAsync(IdentityReference identity)
+    {
+        if (string.Equals(identity.ProviderId, SecurityProviderIds.Local, StringComparison.Ordinal))
+        {
+            var account = await LocalAccounts.FindByIdentityAsync(identity, CancellationToken.None);
+            if (account.Outcome is ProviderOutcome.Succeeded && account.Value is not null) return account.Value.UserName;
+        }
+        else if (Directories.TryGetValue(identity.ProviderId, out var directory))
+        {
+            var found = await directory.FindAsync(identity, false, CancellationToken.None);
+            if (found.Outcome is ProviderOutcome.Succeeded && found.Value is not null) return found.Value.DisplayName;
+        }
+        return identity.SubjectId;
+    }
+
+    private static string StatusClass(WorkflowInstanceStatus status) => status is WorkflowInstanceStatus.Completed ? "success" : status is WorkflowInstanceStatus.Failed or WorkflowInstanceStatus.Cancelled ? "warning" : "progress";
+    private static string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Completed => "Terminée", WorkflowInstanceStatus.Cancelled => "Annulée", WorkflowInstanceStatus.Failed => "En erreur", WorkflowInstanceStatus.Waiting => "En attente", _ => "En cours" };
 }
