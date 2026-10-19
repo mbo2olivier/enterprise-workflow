@@ -86,6 +86,7 @@ public sealed class ArchitectureTests
             [
                 (Project: "EnterpriseWorkflow.Extensions.Abstractions", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),
                 (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
+                (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "System.Security.Cryptography.Pkcs"),
                 (Project: "EnterpriseWorkflow.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite"),
                 (Project: "EnterpriseWorkflow.Presentation", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),
                 (Project: "EnterpriseWorkflow.Presentation", Package: "Microsoft.Extensions.Options"),
@@ -96,6 +97,7 @@ public sealed class ArchitectureTests
                 (Project: "EnterpriseWorkflow.Security.Persistence", Package: "Microsoft.EntityFrameworkCore"),
                 (Project: "EnterpriseWorkflow.Security.Persistence", Package: "Microsoft.EntityFrameworkCore.Relational"),
                 (Project: "EnterpriseWorkflow.Security.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
+                (Project: "EnterpriseWorkflow.Security.Persistence.Oracle", Package: "System.Security.Cryptography.Pkcs"),
                 (Project: "EnterpriseWorkflow.Security.Persistence.Sqlite", Package: "Microsoft.EntityFrameworkCore.Sqlite"),
             ],
             packageReferences.Select(item => (item.Project, item.Package)).OrderBy(item => item.Project, StringComparer.Ordinal));
