@@ -43,6 +43,8 @@ Q11 est résolue par l’[ADR 0017](../adr/0017-designation-approbateur.md) : un
 
 `LdapDirectoryProvider` implémente LDAPv3 en lecture seule. `LdapDirectoryOptions` configure filtre utilisateur, attributs, codecs `Utf8String`, `GuidLittleEndian`, `Hexadecimal` ou `Base64`, stratégie de groupes et statut. Les capacités recherche/groupes/statut sont annoncées explicitement. L’identité stable repose par défaut sur `entryUUID` ; aucun DN, login ou email ne sert de repli.
 
+L’énumération paginée expose un curseur opaque durable fondé sur l’offset consommé, et non le cookie RFC 2696 du serveur. Les cookies OpenLDAP sont liés à leur connexion et ne peuvent pas être persistés dans l’outbox entre deux workers. Pour reprendre une page, le provider rejoue donc les contrôles paginés jusqu’à l’offset sur une même connexion, puis lit la page demandée ; les identités sont dédupliquées par les clés d’opération stables du fan-out.
+
 Le transport par défaut est LDAPS. Le mode `PlainText` doit être choisi explicitement ; il n’existe aucun downgrade automatique après erreur TLS. La chaîne système est utilisée par défaut ; sous Linux, `CertificateDirectory` peut désigner explicitement un répertoire de CA PEM indexé par `openssl rehash`, sans désactiver la validation du certificat. Les credentials de service restent fournis par `ILdapServiceCredentialProvider`, les referrals sont désactivés et les recherches, groupes et timeouts sont bornés. StartTLS et groupes imbriqués sont hors L5a. L’ancien connecteur AD est supprimé conformément à R1 ; AD n’est pas revendiqué.
 
 ## Extension locale

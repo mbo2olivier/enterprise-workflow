@@ -36,7 +36,7 @@ Les changements L8b réutilisent les tables et index existants : configuration c
 
 ## 3. LDAP/LDAPS et pagination réelle
 
-La suite d’intégration LDAP contient maintenant une énumération avec pages de taille 1, vérification de fin et conservation des identités stables. Elle doit réussir sur un serveur réel avec contrôles LDAP de pagination.
+La suite d’intégration LDAP contient maintenant une énumération avec pages de taille 1, vérification de fin et conservation des identités stables. Le curseur durable contient un offset opaque : les cookies RFC 2696 restent confinés à la connexion qui les a créés et sont rejoués jusqu’à cet offset à chaque page. Elle doit réussir sur un serveur réel avec contrôles LDAP de pagination.
 
 ```bash
 ./tests/ldap/generate-test-certificate.sh

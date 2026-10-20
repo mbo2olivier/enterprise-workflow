@@ -50,7 +50,10 @@ public sealed class LdapDirectoryIntegrationTests
         var pages = 0;
         do
         {
-            var page = AssertSuccess(await provider.ReadPageAsync(cursor, 1, cancellationToken));
+            var result = await provider.ReadPageAsync(cursor, 1, cancellationToken);
+            Assert.True(result.Outcome is ProviderOutcome.Succeeded,
+                $"LDAP page {pages + 1} failed with {result.Outcome}: {result.ErrorCode}.");
+            var page = result.Value!;
             Assert.InRange(page.Identities.Count, 0, 1);
             foreach (var identity in page.Identities) enumerated.Add(identity.Identity);
             cursor = page.Next;

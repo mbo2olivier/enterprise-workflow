@@ -1,4 +1,5 @@
 using System.DirectoryServices.Protocols;
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -91,26 +92,45 @@ public sealed class LdapDirectoryProvider(
 
     public async ValueTask<ProviderResult<DirectoryIdentityPage>> ReadPageAsync(string? cursor, int pageSize, CancellationToken cancellationToken)
     {
-        if (pageSize is < 1 or > 100 || cursor?.Length > 8192)
+        if (pageSize is < 1 or > 100 || !TryDecodeDirectoryCursor(cursor, out var offset))
             return new(ProviderOutcome.Conflict, ErrorCode: "security.invalid-directory-page");
         options.Validate();
         try
         {
-            var cookie = cursor is null ? [] : Convert.FromBase64String(cursor);
             var credential = await serviceCredentials.GetCredentialAsync(cancellationToken).ConfigureAwait(false);
             return await Task.Run(() =>
             {
                 var endpoint = options.Transport == LdapTransportMode.Ldaps ? new LdapEndpoint(options.Port, true) : new LdapEndpoint(options.PlainTextPort, false);
                 using var connection = CreateConnection(credential, endpoint);
                 connection.Bind();
-                var request = new SearchRequest(options.BaseDn, options.UserObjectFilter, SearchScope.Subtree, UserAttributes(false));
-                request.Controls.Add(new PageResultRequestControl(pageSize) { Cookie = cookie, IsCritical = true });
-                var response = (SearchResponse)connection.SendRequest(request);
-                var control = response.Controls.OfType<PageResultResponseControl>().SingleOrDefault();
-                if (control is null) return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Unavailable, ErrorCode: "security.ldap-paging-unsupported");
+                byte[] cookie = [];
+                var remaining = offset;
+                while (remaining > 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var replay = SendPage(connection, Math.Min(remaining, 100), cookie);
+                    if (replay.Control is null)
+                        return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Unavailable, ErrorCode: "security.ldap-paging-unsupported");
+                    if (replay.Response.Entries.Count == 0)
+                        return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Succeeded, new([], null));
+                    remaining -= replay.Response.Entries.Count;
+                    cookie = replay.Control.Cookie;
+                    if (cookie.Length == 0 && remaining > 0)
+                        return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Succeeded, new([], null));
+                }
+                if (offset > 0 && cookie.Length == 0)
+                    return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Succeeded, new([], null));
+
+                cancellationToken.ThrowIfCancellationRequested();
+                var page = SendPage(connection, pageSize, cookie);
+                if (page.Control is null)
+                    return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Unavailable, ErrorCode: "security.ldap-paging-unsupported");
+                var response = page.Response;
                 var identities = response.Entries.Cast<SearchResultEntry>().Select(entry => ToRecord(connection, endpoint, entry, false).Identity).ToArray();
+                if (identities.Length == 0 && page.Control.Cookie.Length > 0)
+                    return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Unavailable, ErrorCode: "security.ldap-invalid-page");
                 return new ProviderResult<DirectoryIdentityPage>(ProviderOutcome.Succeeded,
-                    new(identities, control.Cookie.Length == 0 ? null : Convert.ToBase64String(control.Cookie)));
+                    new(identities, page.Control.Cookie.Length == 0 ? null : EncodeDirectoryCursor(checked(offset + identities.Length))));
             }, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { throw; }
@@ -118,6 +138,37 @@ public sealed class LdapDirectoryProvider(
         {
             return new(ProviderOutcome.Unavailable, ErrorCode: "security.ldap-enumeration-unavailable");
         }
+    }
+
+    private (SearchResponse Response, PageResultResponseControl? Control) SendPage(
+        LdapConnection connection,
+        int pageSize,
+        byte[] cookie)
+    {
+        var request = new SearchRequest(options.BaseDn, options.UserObjectFilter, SearchScope.Subtree, UserAttributes(false));
+        request.Controls.Add(new PageResultRequestControl(pageSize) { Cookie = cookie, IsCritical = true });
+        var response = (SearchResponse)connection.SendRequest(request);
+        return (response, response.Controls.OfType<PageResultResponseControl>().SingleOrDefault());
+    }
+
+    internal static string EncodeDirectoryCursor(int offset)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(offset, 1);
+        Span<byte> value = stackalloc byte[5];
+        value[0] = 1;
+        BinaryPrimitives.WriteInt32BigEndian(value[1..], offset);
+        return Convert.ToBase64String(value);
+    }
+
+    internal static bool TryDecodeDirectoryCursor(string? cursor, out int offset)
+    {
+        offset = 0;
+        if (cursor is null) return true;
+        Span<byte> value = stackalloc byte[5];
+        if (!Convert.TryFromBase64String(cursor, value, out var written) || written != value.Length || value[0] != 1)
+            return false;
+        offset = BinaryPrimitives.ReadInt32BigEndian(value[1..]);
+        return offset > 0;
     }
 
     private ValueTask<ProviderResult<DirectoryRecord>> SearchOneAsync(string userName, bool includeGroups, CancellationToken cancellationToken) =>

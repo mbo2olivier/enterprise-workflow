@@ -79,6 +79,25 @@ public sealed class SecurityProviderTests
         Assert.Equal("alice\\2a\\28admin\\29", LdapDirectoryProvider.EncodeFilterValue("alice*(admin)", LdapAttributeValueCodec.Utf8String));
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(100)]
+    [InlineData(1_000_000)]
+    public void LdapDirectoryCursorRoundTripsDurableOffsets(int expected)
+    {
+        var cursor = LdapDirectoryProvider.EncodeDirectoryCursor(expected);
+
+        Assert.True(LdapDirectoryProvider.TryDecodeDirectoryCursor(cursor, out var actual));
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-base64")]
+    [InlineData("AQAAAAA=")]
+    public void LdapDirectoryCursorRejectsInvalidValues(string cursor) =>
+        Assert.False(LdapDirectoryProvider.TryDecodeDirectoryCursor(cursor, out _));
+
     [Fact]
     public async Task LocalAuthenticationHashesPasswordsAndEnforcesConfiguredLockout()
     {
