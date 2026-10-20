@@ -149,3 +149,13 @@ Rattacher ces preuves à T14, T16, T12, T18 et T20 de la stratégie de tests. Qu
 - Codes de sortie détaillés, format transportable des archives et éventuelle extension de providers.
 
 Ces points ne remettent pas en attente le périmètre confirmé de `ew dev` ; ils doivent être explicités dans la préparation technique L9 sans prétendre déjà disposer d’un runtime livré.
+
+## Complément de séquencement — qualification intégrée L8b/L9
+
+Le 20 octobre 2026, le porteur fournit la preuve Oracle 19 (13 tests réussis, 0 échec, 0 ignoré) et lève le gate d’entrée L9. Il reporte explicitement le parcours LeaveRequest complet et la qualification SMTP à la sortie L9 pour exercer le SDK et les nouvelles commandes ensemble. Ces preuves restent obligatoires avant clôture L9 ; le lot n’est pas encore implémenté.
+
+Ajouter à la configuration du runtime de développement un bloc SMTP explicite couvrant les options `Notifications:Smtp` existantes (hôte, port, TLS, expéditeur, URL de base, pagination, timeout, adresses et références aux secrets si nécessaires). Le schéma exact sera défini en implémentation ; aucun SMTP activé par défaut et aucun secret dans les packages. Cette capacité complète le schéma initial ; la sélection Oracle/LDAP pour `ew dev` reste différée.
+
+Livrer une stack Docker Compose de capture SMTP et sa procédure : endpoint SMTP réel, consultation des messages, version d’image fixée, disponibilité, ports locaux et nettoyage. Elle reste facultative pour `ew dev` et sert à qualifier notifications, fan-out, retries et panne/reprise durant le parcours navigateur. Aucune livraison Internet ni capacité TLS/authentification de production n’est déduite de cette capture.
+
+Critère supplémentaire de sortie : `ew pack` → `ew verify`, puis parcours LeaveRequest via `ew dev` avec SMTP capturé, scénarios de refus, reprise et anciennes versions ; chargement distinct de l’artefact packagé dans le Kernel. Voir la [procédure intégrée](l8b-validation.md) et le [plan](implementation-plan.md). Les templates et packages ne sont figés qu’après ces preuves.

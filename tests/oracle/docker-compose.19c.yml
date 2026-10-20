@@ -14,7 +14,7 @@ services:
         - CMD-SHELL
         - >-
           printf 'whenever sqlerror exit 1\nselect 1 from dual;\nexit\n' |
-          sqlplus -s system/$${ORACLE_PWD}@//localhost:1521/ORCLPDB1 >/dev/null
+          sqlplus -L -s EWTEST/"$${ORACLE_TEST_PASSWORD}"@//localhost:1521/ORCLPDB1
       interval: 15s
       timeout: 10s
       retries: 60

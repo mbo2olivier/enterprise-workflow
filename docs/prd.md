@@ -108,7 +108,7 @@ Le SDK doit permettre une déclaration fluente lisible en revue : métadonnées 
 
 Le formulaire initial démarre l’instance ; une confirmation ultérieure est une étape métier. Une tâche peut demander la désignation de son destinataire depuis l’activité précédente, parmi ses candidats éligibles, selon la branche choisie. Les pools notifient les personnes éligibles lorsque SMTP est configuré. Les approbations/décisions humaines simples disposent d’un formulaire intégré remplaçable. Aucun `AssignmentMode.None` n’est requis par ces cas.
 
-Implémentation L8b livrée, tests légers locaux réussis ; qualification externe restante. Les décisions de portée des permissions, réutilisation de révision, notification, affectation à l’initiateur et contenu des formulaires standard sont tracées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md). Le lot est détaillé dans le [plan L8b](implementation-plan.md).
+Implémentation L8b livrée, tests légers locaux réussis ; qualification intégrée parcours métier/SMTP restante en sortie L9. Les décisions de portée des permissions, réutilisation de révision, notification, affectation à l’initiateur et contenu des formulaires standard sont tracées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md). Le lot est détaillé dans le [plan L8b](implementation-plan.md).
 
 ## Évolution confirmée le 20 octobre 2026 — runtime de développement L9
 

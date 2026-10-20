@@ -41,7 +41,7 @@ S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le p
 
 Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a et la confirmation de G3-A pour L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
 
-## L8b — implémenté, qualification externe restante
+## L8b — implémenté, qualification intégrée parcours métier/SMTP restante en sortie L9
 
 | Besoin confirmé le 20 octobre 2026 | Décision | Lot | Preuve attendue |
 | --- | --- | --- | --- |

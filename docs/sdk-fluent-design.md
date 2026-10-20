@@ -1,6 +1,6 @@
 # SDK fluent — lot L8b
 
-Date : 20 octobre 2026. Implémentation livrée ; qualification externe restante dans [l8b-validation.md](l8b-validation.md). Les décisions acceptées sont consignées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md).
+Date : 20 octobre 2026. Implémentation livrée ; qualification intégrée parcours métier/SMTP restante en sortie L9 dans [l8b-validation.md](l8b-validation.md). Les décisions acceptées sont consignées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md).
 
 ## Module et processus
 

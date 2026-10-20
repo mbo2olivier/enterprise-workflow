@@ -75,3 +75,7 @@ La [spécification L9](l9-spec.md) détaille les scénarios `ew dev`, CLI, packa
 ## Qualification L10 — packages publics NuGet.org
 
 La publication publique est un livrable obligatoire de L10. Consigner IDs, versions et liens des packages publiés et vérifier leur consommation avec cache isolé et source NuGet.org explicite, sans références projet au dépôt : restauration des bibliothèques, installation des versions publiées de la CLI et des templates, génération/build, `ew dev`, validation/package, chargement Kernel et exemple embedded. Vérifier métadonnées, licence, dépendances et exclusion des secrets/données locales avant publication. Une réussite depuis les seuls `.nupkg` locaux ou une publication partielle ne satisfait pas T14 ni le critère de sortie L10. Ces preuves restent à acquérir.
+
+## Qualification intégrée L8b/L9 — séquencement confirmé
+
+Oracle 19 L8b est acquis sur preuve du porteur (13/13 tests, aucun ignoré). Parcours LeaveRequest complet et SMTP sont réservés à la sortie L9, sans bloquer son entrée. Utiliser les nouvelles commandes de packaging/vérification et le rendu `ew dev`, puis prouver séparément le chargement Kernel. Prévoir une stack Docker Compose avec serveur SMTP de capture réel, interface de consultation, disponibilité et ports locaux ; qualifier destinataires, liens, contenu minimal, pagination, panne/reprise et retries durables. Documenter la portée du serveur de capture : pas de preuve de délivrabilité Internet ni de TLS/authentification de production. Ces scénarios restent à exécuter avant clôture L9.

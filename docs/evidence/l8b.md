@@ -2,7 +2,7 @@
 
 Date : 20 octobre 2026. Hôte local macOS arm64, SDK .NET `10.0.401`.
 
-Statut : implémentation livrée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions, de Playwright Linux et d’OpenLDAP/LDAPS paginé. Aucune exécution Oracle L8b ni SMTP réel n’est revendiquée : le conteneur Oracle n’a pas pu être lancé. Le parcours métier LeaveRequest complet reste également à consigner selon [la procédure](../l8b-validation.md).
+Statut : implémentation livrée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions, de Playwright Linux et d’OpenLDAP/LDAPS paginé. Le porteur fournit ensuite une capture de qualification Oracle 19 réussie : 13 tests, 13 réussis, 0 échec, 0 ignoré. SMTP et parcours métier LeaveRequest complet restent à qualifier conjointement en sortie L9 selon [la procédure](../l8b-validation.md).
 
 ## Vérifications exécutées
 
@@ -34,7 +34,7 @@ Le sample est compilé, packagé avec le manifeste généré et chargé par le v
 
 ## Portée restante
 
-Oracle 19.19, livraison SMTP réelle et parcours complet LeaveRequest restent à exécuter selon la procédure dédiée. LDAPS paginé Linux, Playwright Linux et la matrice CI sont acquis. Le smoke Playwright existant ne couvre pas à lui seul la totalité du nouveau parcours LeaveRequest. Les tests Oracle ont été étendus pour le nouveau contrat ; leur compilation est vérifiée séparément, leur exécution exige le schéma jetable.
+Oracle 19 est acquis sur confirmation du porteur et capture de résultat. La livraison SMTP vers un serveur de capture Docker Compose et le parcours complet LeaveRequest restent à exécuter avec les commandes L9, comme critères de sortie de ce lot. LDAPS paginé Linux, Playwright Linux et la matrice CI sont acquis. Le smoke Playwright existant ne couvre pas à lui seul la totalité du nouveau parcours LeaveRequest. Les tests Oracle ont été étendus pour le nouveau contrat ; leur compilation est vérifiée séparément, leur exécution exige le schéma jetable.
 
 ## Correction de la pagination OpenLDAP durable — 20 octobre 2026
 
@@ -49,3 +49,11 @@ L’échec de `PortalAndAdministrationAreQualifiedOnSqlite` sur `.workspace` a �
 Le test attend maintenant `LoadState.Load` avant de déplacer le pointeur. L’assertion sur `--pointer-x` est conservée ; aucune temporisation arbitraire ni modification des styles par le test n’a été ajoutée. Le diagnostic temporaire a été retiré.
 
 Compilation de la cible Playwright en Release : zéro erreur, zéro avertissement. Exécution avec `PLAYWRIGHT_TEST_ENABLED=1` : **1 réussi, 0 échec, 0 ignoré**. Le smoke couvre aussi l’administration, la création d’une identité, les réglages, le mobile et le focus clavier. Sa réussite Linux/CI est confirmée le 20 octobre 2026 ; elle ne qualifie pas à elle seule le parcours complet du sample LeaveRequest.
+
+## Qualification Oracle 19 — preuve fournie par le porteur
+
+Le 20 octobre 2026, le porteur confirme Oracle 19 et joint une capture montrant la compilation Release réussie de `EnterpriseWorkflow.Persistence.Oracle.Tests`, le conteneur `oracle-oracle-1` Healthy et l’exécution de `./tests/oracle/oracle-test.sh test --no-build --no-restore`. Résultat visible : **13 tests, 13 réussis, 0 échec, 0 ignoré**, durée **8 s 789 ms**, cible `net10.0/arm64` sur le Mac du porteur. Cette preuve lève le blocage de démarrage du conteneur précédemment consigné.
+
+Source : capture jointe à la conversation par le porteur (`codex-clipboard-b6471631-f769-48cd-9ac0-138cd4f22915.png`), non rejouée par l’agent. La capture ne présente pas la version serveur détaillée ni le digest de l’image ; elle ne constitue pas une nouvelle qualification d’autres versions Oracle. Le minimum produit 19.19 conserve ses preuves historiques propres.
+
+Décision associée : démarrage L9 autorisé ; parcours LeaveRequest complet et SMTP reportés à sa qualification intégrée finale, sans les déclarer déjà acquis.

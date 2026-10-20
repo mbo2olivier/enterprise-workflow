@@ -104,3 +104,7 @@ Les ADR 0006 à 0008 sont acceptés. Les autres mécanismes non explicitement va
 ## État
 
 L1 à L8 sont implémentés et qualifiés. L8 fournit l'UI métier et d'administration issue du prototype ; la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions sont confirmés avec succès le 7 octobre 2026. SQLite et Oracle 19.19 qualifient le worker, la sécurité persistée, les tâches humaines, le Kernel modulaire et le parcours L8 ; OpenLDAP/LDAPS est qualifié sur le job Linux.
+
+## Décision de séquencement L9 — 20 octobre 2026
+
+Le porteur fournit une capture de qualification Oracle 19 : compilation réussie, conteneur Healthy, 13 tests réussis, 0 échec, 0 ignoré (8 s 789 ms). Cette preuve actualise S22 : le blocage de démarrage Oracle est résolu. Le parcours métier LeaveRequest complet et SMTP sont reportés à la fin L9 afin de tester le SDK, `ew pack`, `ew verify` et le rendu `ew dev` ensemble. Une infrastructure Docker Compose de capture SMTP fait partie de cette qualification. Le gate d’entrée L9 est levé ; ces résultats intégrés ne sont pas encore acquis et conditionnent sa clôture. La demande présente porte sur la mise à jour du plan avant implémentation.

@@ -66,6 +66,16 @@ compose() {
   docker compose "${compose_files[@]}" "$@"
 }
 
+start_stack() {
+  if compose up -d --wait --wait-timeout 1200; then
+    return
+  fi
+  echo "Oracle n'est pas devenu sain dans le délai imparti. État et derniers logs :" >&2
+  compose ps >&2 || true
+  compose logs --no-color --tail=200 oracle >&2 || true
+  return 1
+}
+
 action="${1:-}"
 [[ -n "${action}" ]] || usage
 shift
@@ -80,16 +90,16 @@ case "${action}" in
     ;;
   up)
     require_environment
-    compose up -d --wait
+    start_stack
     ;;
   reset)
     require_environment
     compose down --volumes --remove-orphans
-    compose up -d --wait
+    start_stack
     ;;
   test)
     require_environment
-    compose up -d --wait
+    start_stack
     connection_string="User Id=EWTEST;Password=${oracle_password};Data Source=localhost:${oracle_port}/ORCLPDB1;Connection Timeout=30"
     cd "${repository_dir}"
     ENTERPRISE_WORKFLOW_ORACLE_CONNECTION_STRING="${connection_string}" \

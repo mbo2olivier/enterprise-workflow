@@ -18,6 +18,10 @@ La même variable `ORACLE_TEST_PASSWORD` alimente le mot de passe système de l'
 
 Il n'est pas nécessaire de recréer l'instance avant chaque test. La collection Oracle interdit la parallélisation et chaque fixture appelle `EnsureDeletedAsync`, recrée ses migrations et travaille uniquement dans `EWTEST`. Le redémarrage coûteux du conteneur est réservé à un changement de credentials ou à une instance incohérente.
 
+Le healthcheck Oracle 19.19 se connecte à `ORCLPDB1` avec le compte jetable `EWTEST`, et non avec `SYSTEM` : il vérifie ainsi le chemin réellement utilisé par la suite sans dépendre de l’état du compte d’administration. SQL*Plus utilise `-L` afin qu’une erreur d’authentification échoue immédiatement. `oracle-test.sh` borne l’attente à 20 minutes — l’initialisation 19c peut être longue — puis affiche automatiquement l’état et les 200 dernières lignes du journal au lieu de rester silencieux.
+
+Si le journal indique que `ORCLPDB1` est ouvert mais que Compose reste en attente, exécuter `./tests/oracle/oracle-test.sh status`. Après une mise à jour du healthcheck, un simple `up` ou `test` recrée le conteneur si nécessaire tout en conservant le volume. Utiliser `reset` uniquement lorsque le mot de passe du volume ne correspond plus à `.env` ou lorsque la base doit réellement être reprovisionnée, car cette commande détruit les données de test.
+
 Commandes de cycle de vie :
 
 ```bash

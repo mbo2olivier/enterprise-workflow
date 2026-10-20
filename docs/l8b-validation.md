@@ -1,8 +1,8 @@
-# Validation restante du lot L8b — Oracle, SMTP et parcours métier
+# Qualification L8b — acquis et validation intégrée en sortie L9
 
 Date : 20 octobre 2026.
 
-Statut : implémentation terminée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions sur les trois OS, du test Playwright Linux et d’OpenLDAP/LDAPS paginé. Restent Oracle Enterprise 19.19, dont le conteneur n’a pas pu être lancé, le SMTP réel et le parcours métier LeaveRequest complet. La [preuve](evidence/l8b.md) distingue les résultats acquis de ces capacités encore à qualifier.
+Statut : implémentation terminée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions sur les trois OS, du test Playwright Linux et d’OpenLDAP/LDAPS paginé. Oracle 19 est ensuite confirmé par une capture du porteur : 13 tests réussis, aucun échec ni ignoré. Le SMTP et le parcours métier LeaveRequest complet sont explicitement reportés à la qualification intégrée de sortie L9 ; ils ne bloquent plus son démarrage. La [preuve](evidence/l8b.md) distingue les résultats acquis de ces capacités encore à qualifier.
 
 ## 1. Compilation et suites complètes en Release — acquises en CI
 
@@ -18,7 +18,9 @@ Résultat acquis le 20 octobre 2026 : matrice GitHub Actions réussie sur Linux,
 
 Les suites légères déjà exécutées en Debug : Core, Extensions, Runtime, Presentation, Persistence.Sqlite, Security.Persistence.Sqlite, Security et Web. Le nouveau test runtime couvre la confirmation de l’initiateur, le claim, la sélection conditionnelle, le commentaire obligatoire, la reprise, l’idempotence incluant le destinataire et la récupération après révocation. Les tests de notification simulent le transport SMTP ; aucun email réel n’a été envoyé.
 
-## 2. Oracle Enterprise 19.19
+## 2. Oracle — qualification acquise sur preuve du porteur
+
+Résultat acquis : compilation Release et suite Oracle réussies, 13/13 tests, 0 ignoré, 8 s 789 ms ; voir la [preuve et sa portée](evidence/l8b.md#qualification-oracle-19--preuve-fournie-par-le-porteur). Les commandes suivantes restent une procédure de reproduction du minimum produit 19.19.
 
 Utiliser le schéma jetable de la stack existante, jamais un schéma contenant des données à conserver. Le script lit les secrets depuis `tests/oracle/.env` ignoré par Git. Pour une stack de test déjà initialisée :
 
@@ -60,7 +62,7 @@ pwsh tests/EnterpriseWorkflow.Web.Playwright.Tests/bin/Release/net10.0/playwrigh
 PLAYWRIGHT_TEST_ENABLED=1 dotnet test tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj --configuration Release --no-build --no-restore
 ```
 
-Ce smoke qualifie le portail et l’administration ; il ne remplace pas le parcours métier suivant. Charger le sample packagé selon le [README du module](../samples/LeaveRequest.Module/README.md), avec manifeste produit par `WorkflowModuleManifestWriter.Create`, puis configurer trois identités distinctes et leurs profils.
+Ce smoke qualifie le portail et l’administration ; il ne remplace pas le parcours métier suivant. En sortie L9, utiliser `ew pack` et `ew verify` sur le sample, puis `ew dev` pour le rendu et l’exécution du parcours. Configurer trois identités distinctes et leurs permissions ; vérifier séparément le chargement du package dans le Kernel. Le manifeste doit être produit par les commandes, sans assemblage manuel.
 
 1. Dans l’administration, vérifier que les quatre permissions du module sont disponibles avec leurs libellés. La page Habilitations présente les exigences métier et renvoie vers les profils ; elle ne propose pas de grants exacts pour ces nouveaux processus. Un POST de grant exact doit être refusé. Attribuer `request` au demandeur, `hr.review` aux RH et `manager.approve` au responsable. Les IDs sont préfixés par `sample.leave-request.`. La lecture d’instance utilise une permission distincte `read`.
 2. Soumettre le formulaire initial : l’instance est créée, aucun manager n’est demandé à ce stade. Le demandeur reçoit la confirmation ; une autre personne ne peut pas la compléter à sa place.
@@ -76,7 +78,9 @@ Le handler standard valide les commentaires sans les fusionner dans l’état m�
 
 ## 5. SMTP réel et fan-out durable
 
-Configurer un SMTP de test et une adresse d’expédition. Les options se trouvent sous `Notifications:Smtp` : `Host`, `Port`, `EnableSsl`, `From`, `BaseUrl`, `PageSize` (1–100), `TimeoutSeconds` (1–20), `UserName`/`Password` si nécessaires. Fournir les secrets par le mécanisme de configuration habituel.
+En sortie L9, fournir une stack Docker Compose dédiée avec un serveur de capture exposant un vrai endpoint SMTP et une consultation des messages. Fixer l’image/version, limiter les ports à la boucle locale, documenter disponibilité, démarrage, arrêt et nettoyage. Le choix du serveur est un détail d’implémentation ; aucune stack n’est encore livrée. Docker reste facultatif pour le développement courant.
+
+Configurer explicitement le runtime `ew dev` pour utiliser ce SMTP de test et une adresse d’expédition. La configuration de développement L9 doit donc prendre en charge les options SMTP nécessaires. Les options se trouvent sous `Notifications:Smtp` : `Host`, `Port`, `EnableSsl`, `From`, `BaseUrl`, `PageSize` (1–100), `TimeoutSeconds` (1–20), `UserName`/`Password` si nécessaires. Fournir les secrets par le mécanisme de configuration habituel.
 
 Pour les comptes locaux, configurer `Addresses` avec une clé produite par `WorkflowNotificationTransport.AddressKey(identity)`, généralement `local|<subjectId>`. Pour les annuaires, l’email du candidat est utilisé, sauf correspondance explicite. L’énumération des identités directes et des annuaires est paginée ; chaque email a sa propre opération durable.
 
@@ -95,12 +99,12 @@ SMTP peut délivrer deux fois après un crash entre envoi et acquittement. L’e
 
 ## 6. Matrice acquise et retour restant
 
-GitHub Actions est confirmé sur Linux, macOS et Windows ; le job Linux a inclus LDAP et navigateur activés. Il reste à vérifier Oracle 19.19, SMTP réel, coexistence d’artefacts, ressources UI, parcours LeaveRequest complet et réutilisation explicite d’une ancienne révision sans substitution de handler.
+GitHub Actions est confirmé sur Linux, macOS et Windows ; le job Linux a inclus LDAP et navigateur activés. Oracle 19 est également acquis sur la preuve fournie. Il reste à vérifier en sortie L9 le transport SMTP réel vers la capture Docker Compose, la coexistence d’artefacts, les ressources UI, le parcours LeaveRequest complet et la réutilisation explicite d’une ancienne révision sans substitution de handler. Le serveur de capture ne prouve ni la délivrabilité Internet ni TLS/authentification de production.
 
 Retour de succès attendu :
 
 ```text
-OK L8b / Release / Oracle 19.19 / LDAP paginé / navigateur LeaveRequest / SMTP / CI
+OK qualification intégrée L8b-L9 / pack-verify-dev / navigateur LeaveRequest / SMTP Docker Compose / reprise / versions
 ```
 
 En cas d’échec, transmettre la commande ou l’étape et le journal depuis la première erreur, sans secrets. Les étapes réussies peuvent être résumées.
