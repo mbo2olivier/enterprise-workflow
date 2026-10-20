@@ -129,3 +129,11 @@ Un stage correspond au nœud (S13), sans entité de graphe supplémentaire. L5b 
 Le reçu `(TaskId, IdempotencyKey)` lie acteur, action et hash de la soumission sans stocker la soumission. Un rejeu identique et authentifié retourne le résultat connu même si les grants ont changé ; une autre identité ou un autre contenu produit un conflit. L'inbox scanne un curseur stable dans une limite configurée et filtre chaque ligne avec L5b, sans snapshot de droits.
 
 L'échéance d'un timer fixe est calculée par l'horloge du store au commit de l'activation. Un poller dédié reprend les timers après redémarrage ; le verrouillage provider garantit un seul réveil. L'annulation gagnante annule tâches et timers ouverts et invalide toute progression concurrente par la révision d'instance.
+
+## Évolution L8b — politiques et notifications
+
+Le contrat versionné `$workflow` dans la configuration canonique décrit permissions, actions, commentaire requis et affectation. L’absence de cette propriété conserve le mode historique. Le compilateur vérifie les relations source/action/cible ; le runtime revalide les identités et les permissions. L’affectation à l’initiateur est résolue à l’activation ; un destinataire préparé devenu inéligible laisse une attente explicite.
+
+Les sélections sont transportées dans une enveloppe réservée incluse dans l’idempotence, puis retirées avant l’appel du handler métier. Le handler standard ne remplace pas les données métier. La complétion et les affectations préparées restent atomiques sur les stores.
+
+Une activation de pool peut produire une intention de notification. Son traitement crée, avec l’acquittement du parent, des emails individuels et une page suivante. Le fan-out est borné à 100 destinataires par page et les retries sont indépendants. Les tables et contraintes d’unicité existantes sont réutilisées ; SQLite est vérifié localement, Oracle reste à qualifier selon [l8b-validation.md](../l8b-validation.md).

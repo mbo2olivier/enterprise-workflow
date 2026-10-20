@@ -78,6 +78,7 @@
         "dependencies": {
           "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0, )",
           "EnterpriseWorkflow.Runtime": "[1.0.0, )",
+          "EnterpriseWorkflow.Sdk": "[1.0.0, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )"
         }
       },
@@ -111,6 +112,15 @@
           "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
           "EnterpriseWorkflow.Core": "[1.0.0, )",
           "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )"
+        }
+      },
+      "enterpriseworkflow.sdk": {
+        "type": "Project",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Core": "[1.0.0, )",
+          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Runtime": "[1.0.0, )"
         }
       },
       "enterpriseworkflow.security.abstractions": {

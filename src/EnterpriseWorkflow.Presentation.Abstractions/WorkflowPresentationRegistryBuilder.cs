@@ -8,6 +8,30 @@ public sealed class WorkflowPresentationRegistryBuilder
     private readonly Dictionary<(string Id, int Version), WorkflowFormDefinition> _forms = [];
     private readonly Dictionary<(string Id, int Version), WorkflowProcessDeclaration> _processes = [];
 
+    private readonly HashSet<WorkflowFormReference> _referencedForms = [];
+    public Dictionary<WorkflowFormReference, WorkflowArtifactReference> ReferencedFormOwners { get; } = [];
+    public Dictionary<WorkflowHandlerReference, WorkflowArtifactReference> ReferencedHandlerOwners { get; } = [];
+    public WorkflowPresentationRegistryBuilder ReferenceHandler(WorkflowHandlerReference reference, WorkflowArtifactReference owner)
+    {
+        ReferencedHandlerOwners.Add(reference, owner);
+        return this;
+    }
+    private readonly Dictionary<(string Id, int Version), WorkflowArtifactReference> _referencedProcesses = [];
+    public bool IsReferencedProcess(string id, int version) => _referencedProcesses.ContainsKey((id, version));
+    public WorkflowArtifactReference? ReferencedProcessOwner(string id, int version) => _referencedProcesses.GetValueOrDefault((id, version));
+    public WorkflowPresentationRegistryBuilder ReferenceForm(WorkflowFormReference reference, WorkflowArtifactReference? owner = null)
+    {
+        _referencedForms.Add(reference);
+        if (owner is not null) ReferencedFormOwners.Add(reference, owner);
+        return this;
+    }
+    public WorkflowPresentationRegistryBuilder ReferenceProcess(WorkflowProcessDeclaration process, WorkflowArtifactReference owner)
+    {
+        _referencedProcesses.Add((process.Id.Value, process.Version), owner);
+        ReferenceForm(process.StartForm);
+        return AddProcess(process);
+    }
+
     public IReadOnlyCollection<WorkflowFormDefinition> Forms => _forms.Values;
     public IReadOnlyCollection<WorkflowProcessDeclaration> Processes => _processes.Values;
 
@@ -29,7 +53,7 @@ public sealed class WorkflowPresentationRegistryBuilder
         if (process.InitialStateSchemaVersion <= 0)
             throw new ArgumentOutOfRangeException(nameof(process), "An initial state schema version must be positive.");
         ArgumentNullException.ThrowIfNull(process.DefinitionFactory);
-        if (!_forms.ContainsKey((process.StartForm.Id.Value, process.StartForm.Version)))
+        if (!_forms.ContainsKey((process.StartForm.Id.Value, process.StartForm.Version)) && !_referencedForms.Contains(process.StartForm))
             throw new InvalidOperationException($"Start form '{process.StartForm.Id.Value}' version {process.StartForm.Version} must be declared before process '{process.Id.Value}'.");
         var assignments = process.DesignatedAssignmentNodes.IsDefault
             ? []

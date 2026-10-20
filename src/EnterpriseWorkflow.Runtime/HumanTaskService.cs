@@ -59,6 +59,8 @@ internal sealed class HumanTaskService(
         var snapshot = loaded.Snapshot;
         if (!await IsAllowedAsync(actor, snapshot, WorkflowActions.AssignTask, cancellationToken).ConfigureAwait(false))
             return Denied("security.task-assign-denied");
+        if (WorkflowStagePolicy.Read(snapshot.Definition.Nodes.Single(node => node.Id == snapshot.NodeId).Configuration)?.AssignedToInitiator == true && ToActor(assignee) != snapshot.Initiator)
+            return Denied("runtime.initiator-assignment-required");
         if (!await HasAnyTaskActionAsync(assignee, snapshot, cancellationToken).ConfigureAwait(false))
             return Denied("security.task-assignee-ineligible");
         var result = await store.AssignHumanTaskAsync(new AssignHumanTaskCommand(
@@ -119,20 +121,59 @@ internal sealed class HumanTaskService(
             history.NodeId == constraint.NodeId && history.ActionId == constraint.ActionId && IsSame(history.Actor, actorValue))))
             return Denied("runtime.human-task-separation-violated");
 
+        var policy = WorkflowStagePolicy.Read(node.Configuration);
+        CanonicalJson businessSubmission;
+        IReadOnlyList<DesignatedTaskAssignment> submittedAssignments;
+        try
+        {
+            (businessSubmission, submittedAssignments) = HumanTaskSubmission.Read(submission);
+        }
+        catch (Exception exception) when (exception is FormatException or ArgumentException or System.Text.Json.JsonException or InvalidOperationException)
+        {
+            return Denied("runtime.invalid-assignment-submission");
+        }
+        WorkflowActionPolicy? actionPolicy = null;
+        if (policy is not null)
+        {
+            if (!policy.Actions.TryGetValue(actionId.Value, out actionPolicy)) return Denied("runtime.action-policy-missing");
+            if (businessSubmission.ToJsonElement().TryGetProperty("comment", out var commentValue) &&
+                commentValue.ValueKind != System.Text.Json.JsonValueKind.Null &&
+                (commentValue.ValueKind != System.Text.Json.JsonValueKind.String || commentValue.GetString()!.Length > 4000))
+                return Denied("runtime.comment-invalid");
+            var expected = actionPolicy.AssigneeTarget;
+            if (expected is null ? submittedAssignments.Count != 0 :
+                submittedAssignments.Count != 1 || submittedAssignments[0].NodeId.Value != expected)
+                return Denied("runtime.required-assignment-mismatch");
+            if (actionPolicy.RequireComment &&
+                (!businessSubmission.ToJsonElement().TryGetProperty("comment", out var comment) ||
+                 comment.ValueKind != System.Text.Json.JsonValueKind.String || string.IsNullOrWhiteSpace(comment.GetString())))
+                return Denied("runtime.comment-required");
+        }
+        else if (submittedAssignments.Count != 0) return Denied("runtime.undeclared-assignment");
+
         await using var scope = resolver.ResolveHumanTask(contract.CompletionHandler);
         var handlerResult = await scope.Handler.CompleteAsync(new HumanTaskCompletionContext(
             taskId, snapshot.InstanceId, snapshot.ActivationId, snapshot.NodeId, actorValue,
-            actionId, submission, snapshot.State, node.Configuration), cancellationToken).ConfigureAwait(false);
+            actionId, businessSubmission, snapshot.State, node.Configuration), cancellationToken).ConfigureAwait(false);
         if (!handlerResult.Succeeded)
             return Denied(handlerResult.ErrorCode?.Value ?? "runtime.human-task-submission-rejected");
         if (handlerResult.Outcome != declaredAction.Outcome)
             return Denied("runtime.human-task-handler-outcome-mismatch");
-        foreach (var assignment in handlerResult.DesignatedAssignments)
+        var assignments = policy is null ? handlerResult.DesignatedAssignments.ToArray() : submittedAssignments.ToArray();
+        if (policy is not null && handlerResult.DesignatedAssignments.Any(assignment => !assignments.Contains(assignment)))
+            return Denied("runtime.handler-assignment-mismatch");
+        foreach (var assignment in assignments)
         {
             var target = snapshot.Definition.Nodes.SingleOrDefault(candidate => candidate.Id == assignment.NodeId);
-            if (target?.HumanTask is not { AssignmentMode: HumanTaskAssignmentMode.DesignatedIdentity })
+            if (target?.HumanTask is not { AssignmentMode: HumanTaskAssignmentMode.DesignatedIdentity } ||
+                (policy is not null && (assignment.NodeId.Value != actionPolicy?.AssigneeTarget ||
+                    !snapshot.Definition.Transitions.Any(edge => edge.SourceId == node.Id && edge.Outcome == handlerResult.Outcome && edge.TargetId == assignment.NodeId))))
                 return Denied("runtime.designated-assignment-node-invalid");
-            if (!await HasAnyTaskActionAsync(ToIdentity(assignment.Assignee), snapshot.Definition, target, cancellationToken)
+            if ((!target.HumanTask.AllowInitiator && assignment.Assignee == snapshot.Initiator) ||
+                target.HumanTask.DistinctFrom.Any(constraint =>
+                    (constraint.NodeId == node.Id && constraint.ActionId == actionId && assignment.Assignee == actorValue) ||
+                    snapshot.CompletionHistory.Any(history => history.NodeId == constraint.NodeId && history.ActionId == constraint.ActionId && history.Actor == assignment.Assignee)) ||
+                !await HasAnyTaskActionAsync(ToIdentity(assignment.Assignee), snapshot.Definition, target, cancellationToken)
                     .ConfigureAwait(false))
                 return Denied("security.task-assignee-ineligible");
         }
@@ -148,7 +189,7 @@ internal sealed class HumanTaskService(
         var completed = await store.CompleteHumanTaskAsync(new CompleteHumanTaskCommand(
             taskId, expectedRevision, snapshot.InstanceRevision, actorValue, actionId, idempotencyKey, requestHash,
             replacement, new NextWork(transition.TargetId, MillisecondUtcNow()), outbox,
-            handlerResult.DesignatedAssignments), cancellationToken).ConfigureAwait(false);
+            assignments), cancellationToken).ConfigureAwait(false);
         return completed.Outcome switch
         {
             StoreOutcome.Succeeded => new(true, false, HumanTaskStatus.Completed,
@@ -220,6 +261,9 @@ internal sealed class HumanTaskService(
         IdentityReference identity, HumanTaskSnapshot snapshot, CancellationToken cancellationToken)
     {
         var node = snapshot.Definition.Nodes.Single(item => item.Id == snapshot.NodeId);
+        var actor = ToActor(identity);
+        if ((!node.HumanTask!.AllowInitiator && snapshot.Initiator == actor) ||
+            node.HumanTask.DistinctFrom.Any(constraint => snapshot.CompletionHistory.Any(history => history.NodeId == constraint.NodeId && history.ActionId == constraint.ActionId && history.Actor == actor))) return false;
         return await HasAnyTaskActionAsync(identity, snapshot.Definition, node, cancellationToken).ConfigureAwait(false);
     }
 

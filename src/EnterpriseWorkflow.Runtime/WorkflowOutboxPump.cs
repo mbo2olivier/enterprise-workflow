@@ -46,7 +46,7 @@ internal sealed class WorkflowOutboxPump(
         {
             commit = new CommitOutboxCommand(
                 claim.Value.MessageId, claim.Value.Token, claim.Value.Generation,
-                OutboxCommitKind.Delivered, null, null);
+                OutboxCommitKind.Delivered, null, null, delivery.FollowUps);
         }
         else if (delivery.Disposition is ExternalEffectDeliveryDisposition.PermanentFailure ||
                  claim.Value.Attempt >= _options.OutboxMaximumAttempts)

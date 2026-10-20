@@ -2,6 +2,7 @@ using System.Text.Json;
 using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Persistence;
+using EnterpriseWorkflow.Security;
 using Microsoft.Extensions.Options;
 
 namespace EnterpriseWorkflow.Runtime;
@@ -21,13 +22,15 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
     private readonly WorkflowRuntimeOptions _options;
     private readonly IWorkflowRetryDelayStrategy _retry;
     private readonly TimeProvider _timeProvider;
+    private readonly IWorkflowAuthorizationService? _authorization;
 
     public WorkflowExecutionPump(
         IWorkflowStore store,
         IScopedWorkflowHandlerResolver resolver,
         IOptions<WorkflowRuntimeOptions> options,
         IWorkflowRetryDelayStrategy retry,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IWorkflowAuthorizationService? authorization = null)
     {
         _store = store;
         _resolver = resolver;
@@ -35,6 +38,7 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
         _options.Validate();
         _retry = retry;
         _timeProvider = timeProvider;
+        _authorization = authorization;
     }
 
     public async ValueTask<bool> ExecuteNextAsync(TechnicalId ownerId, CancellationToken cancellationToken)
@@ -147,9 +151,33 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
     private static NodeExecutionContext CreateContext(ClaimedWork claimed, WorkflowNode node) => new(
         claimed.Lease.InstanceId, claimed.Lease.ActivationId, node.Id, claimed.Attempt, claimed.State, node.Configuration);
 
-    private Task CommitHumanWaitAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token) =>
-        CommitAsync(claimed, NodeCommitKind.WaitHumanTask, null, null, null, [], token,
-            new HumanTaskWait(node.HumanTask!.AssignmentMode));
+    private async Task CommitHumanWaitAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token)
+    {
+        var policy = WorkflowStagePolicy.Read(node.Configuration);
+        var contract = node.HumanTask!;
+        ActorIdentity? assignee = policy?.AssignedToInitiator == true ? claimed.Initiator : claimed.PreparedAssignee;
+        if (policy is not null && assignee is not null)
+        {
+            var eligible = false;
+            if ((contract.AllowInitiator || assignee != claimed.Initiator) && _authorization is not null)
+            {
+                foreach (var action in contract.Actions)
+                {
+                    var decision = await _authorization.AuthorizeAsync(new(new(assignee.ProviderId.Value, assignee.SubjectId),
+                        new(claimed.Definition.Id.Value, claimed.Definition.Version, node.Id.Value, new(action.ActionId.Value))), token).ConfigureAwait(false);
+                    if (decision.Allowed) { eligible = true; break; }
+                }
+            }
+            if (!eligible) assignee = null;
+        }
+        IReadOnlyList<OutboxWrite> messages = [];
+        if (_options.NotifyHumanTaskPools && policy is not null && contract.AssignmentMode == HumanTaskAssignmentMode.EligiblePool)
+            messages = [new(new("pool-notification"), new("workflow.pool-notification"), "application/json", "{}")];
+        await CommitAsync(claimed, NodeCommitKind.WaitHumanTask, null, null,
+            policy is not null && contract.AssignmentMode == HumanTaskAssignmentMode.DesignatedIdentity && assignee is null
+                ? "runtime.task-awaiting-eligible-assignment" : null,
+            messages, token, new HumanTaskWait(contract.AssignmentMode, policy is not null, assignee)).ConfigureAwait(false);
+    }
 
     private Task CommitTimerWaitAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token)
     {

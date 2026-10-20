@@ -15,7 +15,7 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Abstractions"] = [],
             ["EnterpriseWorkflow.Core"] = ["EnterpriseWorkflow.Abstractions"],
             ["EnterpriseWorkflow.Extensions.Abstractions"] =
-                ["EnterpriseWorkflow.Presentation.Abstractions", "EnterpriseWorkflow.Runtime"],
+                ["EnterpriseWorkflow.Presentation.Abstractions", "EnterpriseWorkflow.Runtime", "EnterpriseWorkflow.Sdk"],
             ["EnterpriseWorkflow.Extensions"] =
                 ["EnterpriseWorkflow.Extensions.Abstractions", "EnterpriseWorkflow.Persistence.Abstractions", "EnterpriseWorkflow.Runtime"],
             ["EnterpriseWorkflow.Persistence.Abstractions"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
@@ -33,7 +33,7 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Security.Persistence"] = ["EnterpriseWorkflow.Security.Abstractions"],
             ["EnterpriseWorkflow.Security.Persistence.Oracle"] = ["EnterpriseWorkflow.Security.Persistence"],
             ["EnterpriseWorkflow.Security.Persistence.Sqlite"] = ["EnterpriseWorkflow.Security.Persistence"],
-            ["EnterpriseWorkflow.Sdk"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core"],
+            ["EnterpriseWorkflow.Sdk"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core", "EnterpriseWorkflow.Presentation.Abstractions", "EnterpriseWorkflow.Runtime"],
             ["EnterpriseWorkflow.Web"] = ["EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Security"],
             ["EnterpriseWorkflow.Kernel"] =
                 ["EnterpriseWorkflow.Extensions", "EnterpriseWorkflow.Persistence.Oracle", "EnterpriseWorkflow.Persistence.Sqlite", "EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Security.Persistence.Oracle", "EnterpriseWorkflow.Security.Persistence.Sqlite", "EnterpriseWorkflow.Web"],

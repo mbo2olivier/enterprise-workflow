@@ -177,6 +177,12 @@
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )"
         }
       },
+      "enterpriseworkflow.presentation.abstractions": {
+        "type": "Project",
+        "dependencies": {
+          "EnterpriseWorkflow.Core": "[1.0.0, )"
+        }
+      },
       "enterpriseworkflow.runtime": {
         "type": "Project",
         "dependencies": {
@@ -200,7 +206,9 @@
         "type": "Project",
         "dependencies": {
           "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Core": "[1.0.0, )"
+          "EnterpriseWorkflow.Core": "[1.0.0, )",
+          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Runtime": "[1.0.0, )"
         }
       },
       "enterpriseworkflow.security.abstractions": {

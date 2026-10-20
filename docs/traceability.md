@@ -41,7 +41,7 @@ S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le p
 
 Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a et la confirmation de G3-A pour L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
 
-## Cible L8b — à implémenter et qualifier
+## L8b — implémenté, qualification externe restante
 
 | Besoin confirmé le 20 octobre 2026 | Décision | Lot | Preuve attendue |
 | --- | --- | --- | --- |
@@ -50,4 +50,4 @@ Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a e
 | Désignation sur l’activité précédente et confirmation du demandeur | ADR 0024 A6 ; O4 | L8b-3/5 | Branches conditionnelles, candidats, idempotence incluant destinataire, reprise et refus des identités arbitraires |
 | Formulaires standard et notification SMTP des pools | ADR 0024 A6–A7 ; P3/O3/O5 | L8b-4/5 | Rendu standard/personnalisé, projections autorisées, distribution bornée, panne SMTP et claim concurrent |
 
-Aucune preuve L8b n’est acquise par cette mise à jour documentaire.
+La [preuve locale L8b](evidence/l8b.md) consigne 116 tests légers réussis. La [validation restante](l8b-validation.md) conserve explicitement les qualifications externes non acquises.

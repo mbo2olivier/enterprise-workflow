@@ -11,7 +11,8 @@ public enum ExternalEffectDeliveryDisposition
 
 public sealed record ExternalEffectDeliveryResult(
     ExternalEffectDeliveryDisposition Disposition,
-    string? ErrorCode = null)
+    string? ErrorCode = null,
+    IReadOnlyList<OutboxWrite>? FollowUps = null)
 {
     public static ExternalEffectDeliveryResult Success() => new(ExternalEffectDeliveryDisposition.Delivered);
     public static ExternalEffectDeliveryResult Retryable(string errorCode) =>

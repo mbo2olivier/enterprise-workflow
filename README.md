@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : lots L1 à L8 terminés et qualifiés ; L8 est confirmé sur la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : L8b implémenté, 116 tests légers locaux réussis ; qualification externe L8b restante. Les lots L1 à L8 sont terminés et qualifiés ; L8 est confirmé sur la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -43,6 +43,9 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 18. [Preuve du lot L7b](docs/evidence/l7b.md)
 19. [Tester l’interface du Kernel](docs/ui-testing.md)
 20. [Preuve du lot L8](docs/evidence/l8.md)
+21. [Guide du SDK fluent L8b](docs/sdk-fluent-design.md)
+22. [Preuve locale L8b](docs/evidence/l8b.md)
+23. [Validation restante L8b](docs/l8b-validation.md)
 
 ## Documents de référence
 

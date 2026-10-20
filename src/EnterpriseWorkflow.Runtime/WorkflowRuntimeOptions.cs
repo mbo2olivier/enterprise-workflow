@@ -3,6 +3,8 @@ namespace EnterpriseWorkflow.Runtime;
 /// <summary>Enterprise-configurable worker, lease, polling, timeout and retry policy.</summary>
 public sealed class WorkflowRuntimeOptions
 {
+    public bool NotifyHumanTaskPools { get; set; }
+
     public int WorkerConcurrency { get; set; } = 1;
     public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromSeconds(30);
     public TimeSpan LeaseRenewalInterval { get; set; } = TimeSpan.FromSeconds(10);

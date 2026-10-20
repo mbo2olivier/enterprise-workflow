@@ -266,7 +266,10 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             var definition = PublishedWorkflowDefinitionReader.Read(
                 definitionRow.CanonicalJson, definitionRow.DefinitionId, definitionRow.Version, definitionRow.Sha256);
             var state = WorkflowState.Create(instance.StateJson, instance.StateSchemaVersion);
-            return StoreResults.Succeeded(new ClaimedWork(ToLease(item, instance.Revision, now), definition, state, activation.Attempt));
+            var prepared = await context.DesignatedAssignments.FindAsync([instance.Id, item.NodeId], cancellationToken).ConfigureAwait(false);
+            return StoreResults.Succeeded(new ClaimedWork(ToLease(item, instance.Revision, now), definition, state, activation.Attempt,
+                new ActorIdentity(new TechnicalId(instance.InitiatorProviderId), instance.InitiatorSubjectId),
+                prepared is null ? null : new ActorIdentity(new TechnicalId(prepared.AssigneeProviderId), prepared.AssigneeSubjectId)));
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -506,7 +509,11 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
     {
         ArgumentNullException.ThrowIfNull(command);
         if ((command.Kind is OutboxCommitKind.Retry && (command.RetryAtUtc is null || !IsUtcMillisecond(command.RetryAtUtc.Value))) ||
-            (command.Kind is not OutboxCommitKind.Retry && command.RetryAtUtc is not null))
+            (command.Kind is not OutboxCommitKind.Retry && command.RetryAtUtc is not null) ||
+            (command.FollowUps is { Count: > 101 }) ||
+            (command.FollowUps?.Any(write => !StoreContractRules.IsValidOutboxWrite(write)) ?? false) ||
+            (command.Kind is not OutboxCommitKind.Delivered && command.FollowUps is { Count: > 0 }) ||
+            (command.FollowUps?.GroupBy(write => write.OperationId).Any(group => group.Count() > 1) ?? false))
         {
             return StoreResults.Conflict<CommitOutboxResult>("EW3022_INVALID_OUTBOX_COMMIT");
         }
@@ -544,6 +551,20 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             {
                 row.Status = (int)OutboxMessageStatus.Failed;
                 row.LastErrorCode = StoreContractRules.NormalizeOptionalText(command.ErrorCode);
+            }
+
+            foreach (var write in command.FollowUps ?? [])
+            {
+                if (await context.Outbox.AnyAsync(existing => existing.ActivationId == row!.ActivationId && existing.OperationId == write.OperationId.Value, cancellationToken).ConfigureAwait(false)) continue;
+                context.Outbox.Add(new OutboxRow
+                {
+                    Id = FormatGuid(Guid.NewGuid()), InstanceId = row!.InstanceId, ActivationId = row.ActivationId,
+                    OperationId = write.OperationId.Value, Destination = write.Destination.Value,
+                    ContentType = write.ContentType, PayloadJson = write.PayloadJson,
+                    IdempotencyKey = ComputeOutboxIdempotencyKey(row.InstanceId, row.ActivationId, write.OperationId.Value),
+                    Status = (int)OutboxMessageStatus.Ready, Attempt = 0, Generation = 0,
+                    DueAtUnixMilliseconds = now, CreatedAtUnixMilliseconds = now,
+                });
             }
 
             ClearOutboxLease(row);
@@ -595,13 +616,16 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
                 instance.Status = (int)WorkflowInstanceStatus.Failed;
                 break;
             case NodeCommitKind.WaitHumanTask:
+                activation.ErrorCode = StoreContractRules.NormalizeOptionalText(command.ErrorCode);
                 item.Status = (int)WorkItemStatus.Done;
                 ClearLease(item);
                 activation.Status = (int)NodeExecutionStatus.Waiting;
                 instance.Status = (int)WorkflowInstanceStatus.Waiting;
                 var createdTaskId = Guid.NewGuid();
                 taskId = new HumanTaskId(createdTaskId);
-                var assigned = designated is not null;
+                var resolvedAssignee = command.HumanTask!.ResolveAssignment ? command.HumanTask.Assignee :
+                    designated is null ? null : new ActorIdentity(new TechnicalId(designated.AssigneeProviderId), designated.AssigneeSubjectId);
+                var assigned = resolvedAssignee is not null;
                 context.HumanTasks.Add(new HumanTaskRow
                 {
                     Id = FormatGuid(createdTaskId),
@@ -612,8 +636,8 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
                         ? HumanTaskStatus.Available
                         : assigned ? HumanTaskStatus.Assigned : HumanTaskStatus.AwaitingAssignment),
                     AssignmentMode = (int)command.HumanTask.AssignmentMode,
-                    AssigneeProviderId = designated?.AssigneeProviderId,
-                    AssigneeSubjectId = designated?.AssigneeSubjectId,
+                    AssigneeProviderId = resolvedAssignee?.ProviderId.Value,
+                    AssigneeSubjectId = resolvedAssignee?.SubjectId,
                     Revision = 0,
                     CreatedAtUnixMilliseconds = now,
                 });

@@ -41,6 +41,10 @@ internal sealed class WorkflowStartService(
         if (!await IsAllowedAsync(initiator, definition, null, WorkflowActions.Start, cancellationToken).ConfigureAwait(false))
             return Denied("security.workflow-start-denied");
 
+        var startNode = definition.Nodes.Single(node => node.Role == WorkflowNodeRole.Start);
+        if (WorkflowStagePolicy.Read(startNode.Configuration) is not null && command.DesignatedAssignments is { Count: > 0 })
+            return Denied("runtime.start-assignment-not-declared");
+
         foreach (var assignment in command.DesignatedAssignments ?? [])
         {
             var node = definition.Nodes.SingleOrDefault(candidate => candidate.Id == assignment.NodeId);

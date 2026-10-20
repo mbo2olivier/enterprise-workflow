@@ -1,4 +1,5 @@
 using EnterpriseWorkflow.Extensions;
+using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Persistence.Oracle;
 using EnterpriseWorkflow.Persistence.Sqlite;
@@ -107,11 +108,14 @@ builder.Services.AddSingleton<SecuritySessionManager>();
 builder.Services.AddSingleton<IAuthorizationProvider>(services =>
     new InternalProfileAuthorizationProvider(services.GetRequiredService<ISecurityProfileStore>(), directories));
 builder.Services.AddSingleton<IWorkflowAuthorizationService>(services =>
-    new InternalWorkflowAuthorizationService(services.GetRequiredService<IWorkflowAccessStore>(), directories));
+    new ModulePermissionAuthorizationService(services.GetRequiredService<IWorkflowPresentationCatalog>(),
+        services.GetRequiredService<IAuthorizationProvider>(),
+        new InternalWorkflowAuthorizationService(services.GetRequiredService<IWorkflowAccessStore>(), directories)));
 builder.Services.AddSingleton<IWorkflowActionCatalog>(services =>
 {
     var presentation = services.GetRequiredService<IWorkflowPresentationCatalog>();
-    var descriptors = presentation.Processes.SelectMany(process =>
+    var descriptors = presentation.Processes.Where(process => WorkflowStagePolicy.Read(
+        process.Definition.Nodes.Single(node => node.Role == EnterpriseWorkflow.Core.Model.WorkflowNodeRole.Start).Configuration) is null).SelectMany(process =>
     {
         var global = new[]
         {
@@ -134,7 +138,14 @@ builder.Services.AddSingleton<WorkflowAccessAdministration>();
 builder.Services.AddSingleton<LocalAccountAdministration>();
 
 builder.Services.AddEnterpriseWorkflowModules(moduleCatalog);
-builder.Services.AddEnterpriseWorkflowRuntime<KernelExternalEffectTransport>();
+var smtp = builder.Configuration.GetSection("Notifications:Smtp").Get<WorkflowSmtpOptions>() ?? new();
+smtp.Validate();
+builder.Services.AddSingleton(smtp);
+builder.Services.AddSingleton<IExternalEffectTransport>(services => new WorkflowNotificationTransport(
+    services.GetRequiredService<IWorkflowStore>(), services.GetRequiredService<IWorkflowAuthorizationService>(),
+    services.GetRequiredService<ISecurityProfileStore>(), services.GetRequiredService<ILocalAccountStore>(),
+    directories, smtp, new SmtpWorkflowMailSender(smtp), new KernelExternalEffectTransport()));
+builder.Services.AddEnterpriseWorkflowRuntime<KernelExternalEffectTransport>(options => options.NotifyHumanTaskPools = smtp.Enabled);
 builder.Services.AddEnterpriseWorkflowPresentation(options =>
     options.InstallationId = builder.Configuration["Installation:Id"] ?? "enterprise-workflow");
 builder.Services.AddEnterpriseWorkflowWeb();

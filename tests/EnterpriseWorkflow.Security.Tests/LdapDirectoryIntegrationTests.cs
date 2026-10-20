@@ -44,6 +44,22 @@ public sealed class LdapDirectoryIntegrationTests
         Assert.Equal(2, withGroups.GroupIds.Count);
         Assert.DoesNotContain(withGroups.GroupIds, string.IsNullOrWhiteSpace);
 
+        // L8b notification fan-out requires bounded enumeration, not a truncated name search.
+        var enumerated = new HashSet<IdentityReference>();
+        string? cursor = null;
+        var pages = 0;
+        do
+        {
+            var page = AssertSuccess(await provider.ReadPageAsync(cursor, 1, cancellationToken));
+            Assert.InRange(page.Identities.Count, 0, 1);
+            foreach (var identity in page.Identities) enumerated.Add(identity.Identity);
+            cursor = page.Next;
+            Assert.True(++pages < 100, "LDAP paging must terminate.");
+        } while (cursor is not null);
+        Assert.Contains(employee.Identity, enumerated);
+        Assert.True(pages > 1);
+
+
         var disabled = await provider.AuthenticateAsync(new("guest1", "changeit"), cancellationToken);
         Assert.Equal(AuthenticationStatus.Rejected, disabled.Status);
         Assert.Equal("security.account-disabled", disabled.ErrorCode);

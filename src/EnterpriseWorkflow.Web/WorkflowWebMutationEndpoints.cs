@@ -20,6 +20,7 @@ internal static class WorkflowWebMutationEndpoints
         endpoints.MapPost("/workflow/tasks/{taskId:guid}/action", CompleteTaskAsync).RequireAuthorization();
         endpoints.MapPost("/workflow/tasks/{taskId:guid}/claim", ClaimTaskAsync).RequireAuthorization();
         endpoints.MapPost("/workflow/tasks/{taskId:guid}/release", ReleaseTaskAsync).RequireAuthorization();
+        endpoints.MapPost("/workflow/tasks/{taskId:guid}/assign", AssignTaskAsync).RequireAuthorization();
         endpoints.MapPost("/admin/workflows/grants", GrantWorkflowAccessAsync).RequireAuthorization();
         endpoints.MapPost("/admin/workflows/grants/revoke", RevokeWorkflowAccessAsync).RequireAuthorization();
         endpoints.MapPost("/admin/access/profiles", UpsertProfileAsync).RequireAuthorization();
@@ -95,7 +96,8 @@ internal static class WorkflowWebMutationEndpoints
                 revision,
                 new(form["action"].ToString()),
                 new(form["idempotencyKey"].ToString()),
-                Serialize(task.Form, form));
+                Serialize(task.Form, form),
+                ReadTaskAssignments(task, form));
             var result = await portal.CompleteTaskAsync(actor, request, context.RequestAborted).ConfigureAwait(false);
             return result.Succeeded
                 ? Results.Redirect($"/tasks/{taskId:D}?completed=1")
@@ -105,6 +107,34 @@ internal static class WorkflowWebMutationEndpoints
         {
             return Results.Redirect($"/tasks/{taskId:D}?error=invalid");
         }
+    }
+
+    private static Dictionary<TechnicalId, IdentityReference> ReadTaskAssignments(WorkflowTaskView task, IFormCollection form)
+    {
+        var result = new Dictionary<TechnicalId, IdentityReference>();
+        if (task.Policy is null || !task.Policy.Actions.TryGetValue(form["action"].ToString(), out var action) || action.AssigneeTarget is null) return result;
+        var encoded = form[$"assignment.{action.AssigneeTarget}.identity"].ToString();
+        var separator = encoded.IndexOf('|');
+        if (separator <= 0 || separator == encoded.Length - 1) throw new ArgumentException("A selected candidate is required.");
+        result.Add(new(action.AssigneeTarget), new(Uri.UnescapeDataString(encoded[..separator]), Uri.UnescapeDataString(encoded[(separator + 1)..])));
+        return result;
+    }
+
+    private static async Task<IResult> AssignTaskAsync(HttpContext context, Guid taskId, IAntiforgery antiforgery, IWorkflowPortalService portal)
+    {
+        await antiforgery.ValidateRequestAsync(context).ConfigureAwait(false);
+        var form = await context.Request.ReadFormAsync(context.RequestAborted).ConfigureAwait(false);
+        try
+        {
+            if (!long.TryParse(form["revision"], NumberStyles.None, CultureInfo.InvariantCulture, out var revision)) throw new ArgumentException("Invalid revision.");
+            var encoded = form["assignee"].ToString();
+            var separator = encoded.IndexOf('|');
+            if (separator <= 0 || separator == encoded.Length - 1) throw new ArgumentException("A selected identity is required.");
+            var result = await portal.AssignTaskAsync(RequiredIdentity(context), new(taskId), revision,
+                new(Uri.UnescapeDataString(encoded[..separator]), Uri.UnescapeDataString(encoded[(separator + 1)..])), context.RequestAborted).ConfigureAwait(false);
+            return Results.Redirect($"/tasks/{taskId:D}?{(result.Succeeded ? "assigned=1" : "error=assignment")}");
+        }
+        catch (ArgumentException) { return Results.Redirect($"/tasks/{taskId:D}?error=assignment"); }
     }
 
     private static Task<IResult> ClaimTaskAsync(

@@ -6,6 +6,17 @@ namespace EnterpriseWorkflow.Security.Persistence;
 
 public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore, IWorkflowAccessStore, IPresentationSettingsStore
 {
+    public async ValueTask<ProviderResult<IReadOnlyList<IdentityReference>>> ListKnownIdentitiesAsync(int offset, int maximumResults, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        await using var db = createContext();
+        var rows = await db.IdentityProfiles.Select(row => new { row.ProviderId, row.SubjectId })
+            .Union(db.LocalAccounts.Select(row => new { ProviderId = "local", row.SubjectId }))
+            .OrderBy(row => row.ProviderId).ThenBy(row => row.SubjectId)
+            .Skip(offset).Take(Math.Clamp(maximumResults, 1, 100)).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new(ProviderOutcome.Succeeded, rows.Select(row => new IdentityReference(row.ProviderId, row.SubjectId)).ToArray());
+    }
+
     public async ValueTask<ProviderResult<IReadOnlyList<SecurityProfile>>> ListProfilesAsync(int maximumResults, CancellationToken cancellationToken)
     {
         await using var db = createContext();

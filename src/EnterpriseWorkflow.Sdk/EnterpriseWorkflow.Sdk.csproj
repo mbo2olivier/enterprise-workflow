@@ -6,6 +6,8 @@
   <ItemGroup>
     <ProjectReference Include="../EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
     <ProjectReference Include="../EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Presentation.Abstractions/EnterpriseWorkflow.Presentation.Abstractions.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
   </ItemGroup>
 </Project>
 

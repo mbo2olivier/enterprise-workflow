@@ -1,5 +1,6 @@
 @page "/admin/access"
 @attribute [Authorize]
+@inject IWorkflowPresentationCatalog WorkflowCatalog
 @inject ISecurityProfileStore Profiles
 @inject ILocalAccountStore Accounts
 @inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
@@ -94,7 +95,7 @@
                         <label>Identifiant<input name="profileId" value="@profile?.Id" required maxlength="160" readonly="@(profile is not null)" /></label>
                         <label>Nom affiché<input name="displayName" value="@profile?.DisplayName" required maxlength="256" /></label>
                         <div class="inspector-section">
-                            <strong>Permissions générales</strong>
+                            <strong>Permissions du profil</strong>
                             @foreach (var permission in KnownPermissions(profile))
                             {
                                 <label><input type="checkbox" name="permissions" value="@permission.Value" checked="@HasPermission(profile, permission)" /> @PermissionLabel(permission)</label>
@@ -177,10 +178,10 @@
     private int GroupCount(string? profileId) => profileId is null ? 0 : _groups.Count(item => item.ProfileId == profileId);
     private int MemberCount(string profileId) => IdentityCount(profileId) + GroupCount(profileId);
     private string ProfileName(string id) => _profiles.FirstOrDefault(item => item.Id == id)?.DisplayName ?? id;
-    private static string ProfileSummary(SecurityProfile profile) => profile.Permissions.Count == 0 ? "Aucune permission générale" : $"{profile.Permissions.Count} permission{(profile.Permissions.Count > 1 ? "s" : string.Empty)} générale{(profile.Permissions.Count > 1 ? "s" : string.Empty)}";
+    private static string ProfileSummary(SecurityProfile profile) => profile.Permissions.Count == 0 ? "Aucune permission" : $"{profile.Permissions.Count} permission{(profile.Permissions.Count > 1 ? "s" : string.Empty)}";
     private static bool HasPermission(SecurityProfile? profile, PermissionId permission) => profile?.Permissions.Contains(permission) == true;
-    private static IReadOnlyList<PermissionId> KnownPermissions(SecurityProfile? profile) => new[] { WorkflowPermissions.ManageAccess, WorkflowPermissions.ReadAudit, WorkflowPermissions.ReadInstance, WorkflowPermissions.Start, WorkflowPermissions.CancelInstance }.Concat(profile is null ? Enumerable.Empty<PermissionId>() : profile.Permissions).Distinct().OrderBy(item => item.Value, StringComparer.Ordinal).ToArray();
-    private static string PermissionLabel(PermissionId permission) => permission.Value switch { "security.access.manage" => "Gérer les accès", "security.audit.read" => "Consulter l’audit", "workflow.instance.read" => "Lire les instances autorisées", "workflow.instance.start" => "Démarrer des workflows", "workflow.instance.cancel" => "Annuler les instances autorisées", _ => permission.Value };
+    private IReadOnlyList<PermissionId> KnownPermissions(SecurityProfile? profile) => new[] { WorkflowPermissions.ManageAccess, WorkflowPermissions.ReadAudit, WorkflowPermissions.ReadInstance, WorkflowPermissions.Start, WorkflowPermissions.CancelInstance }.Concat(WorkflowCatalog.Permissions.Select(permission => new PermissionId(permission.Id.Value))).Concat(profile is null ? Enumerable.Empty<PermissionId>() : profile.Permissions).Distinct().OrderBy(item => item.Value, StringComparer.Ordinal).ToArray();
+    private string PermissionLabel(PermissionId permission) => WorkflowCatalog.Permissions.FirstOrDefault(item => item.Id.Value == permission.Value)?.Label ?? permission.Value switch { "security.access.manage" => "Gérer les accès", "security.audit.read" => "Consulter l’audit", "workflow.instance.read" => "Lire les instances autorisées", "workflow.instance.start" => "Démarrer des workflows", "workflow.instance.cancel" => "Annuler les instances autorisées", _ => permission.Value };
     private static string Initials(string value) => string.Concat(value.Split([' ', '.', '-', '_'], StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
     private sealed record IdentityRow(string Name, string Subject, string Provider, string Profiles, bool Enabled);
 }

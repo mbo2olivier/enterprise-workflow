@@ -20,6 +20,8 @@ public sealed class OracleSecurityStoreTests
         var profile = new SecurityProfile("administrators", "Administrateurs", new HashSet<PermissionId> { WorkflowPermissions.ManageAccess }, true);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.UpsertProfileAsync(profile, actor, TestContext.Current.CancellationToken)).Outcome);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.AssignIdentityAsync(actor, profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(actor, Assert.Single((await store.ListKnownIdentitiesAsync(0, 1, TestContext.Current.CancellationToken)).Value!));
+        Assert.Empty((await store.ListKnownIdentitiesAsync(1, 1, TestContext.Current.CancellationToken)).Value!);
         Assert.Contains(WorkflowPermissions.ManageAccess, (await store.ResolvePermissionsAsync(actor, null, TestContext.Current.CancellationToken)).Value!);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.MapGroupAsync(new("ad", "oracle-group"), profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
         Assert.Contains(WorkflowPermissions.ManageAccess, (await store.ResolvePermissionsAsync(new("ad", "member"), new HashSet<string> { "oracle-group" }, TestContext.Current.CancellationToken)).Value!);

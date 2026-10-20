@@ -56,6 +56,9 @@ public sealed class PortalBrowserTests
             Assert.Equal(4, await page.Locator(".sidebar .nav-item svg").CountAsync());
             Assert.Equal(0, await page.Locator(".topbar > form[action='/auth/logout']").CountAsync());
 
+            // The login POST creates a new document. SSR content can be visible before
+            // its scripts attach event listeners, so wait before sending the pointer event.
+            await page.WaitForLoadStateAsync(LoadState.Load);
             await page.Mouse.MoveAsync(600, 300);
             await Expect(page.Locator(".workspace")).ToHaveAttributeAsync("style", new Regex("--pointer-x:"));
 

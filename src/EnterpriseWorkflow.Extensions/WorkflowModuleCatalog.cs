@@ -66,6 +66,8 @@ public sealed class WorkflowModuleCatalog
                     return new WorkflowModuleComponent(component.Id, component.TypeName, type);
                 }).ToImmutableArray();
                 var entryPoint = (IWorkflowModule)Activator.CreateInstance(entryType)!;
+                if (entryPoint.Info is { } info && (info.Id != artifact.Manifest.Id || info.ReleaseVersion != artifact.Manifest.Version))
+                    throw new WorkflowModuleLoadException("EW7031_MODULE_METADATA_MISMATCH", "Module authoring metadata does not match its artifact manifest.");
                 var module = new LoadedWorkflowModule(artifact.RootPath, artifact.Manifest, artifact.ArtifactSha256,
                     assembly, entryPoint, components);
                 loaded.Add(module);
@@ -117,6 +119,7 @@ public sealed class WorkflowModuleCatalog
         _ = typeof(global::EnterpriseWorkflow.Abstractions.TechnicalId);
         _ = typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection);
         _ = typeof(IComponent);
+        _ = typeof(EnterpriseWorkflow.Sdk.WorkflowModuleInfo);
         return AssemblyLoadContext.Default.Assemblies
             .Where(assembly => assembly.GetName().Name is { } name &&
                 (name.StartsWith("EnterpriseWorkflow.", StringComparison.Ordinal) ||

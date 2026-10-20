@@ -8,7 +8,7 @@
 
 <PageTitle>Habilitations · Enterprise Workflow</PageTitle>
 <div class="content content-medium admin-content">
-    <div class="page-intro"><p class="eyebrow">Administration</p><h1>Habilitations workflow</h1><p>Les grants ciblent une version, un nœud et une action exacts. La sémantique publiée reste immuable.</p></div>
+    <div class="page-intro"><p class="eyebrow">Administration</p><h1>Habilitations workflow</h1><p>Les permissions métier sont attribuées aux profils. Les processus historiques conservent leurs habilitations exactes.</p></div>
     @if (Saved) { <div class="notice success" role="status">Politique d’accès enregistrée.</div> }
     @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">La politique n’a pas été modifiée (@Error).</div> }
     @if (!_allowed)
@@ -23,6 +23,22 @@
     {
         @foreach (var row in _rows)
         {
+            @if (UsesBusinessPermissions(row.Process))
+            {
+                <section class="panel data-panel">
+                    <div class="section-heading"><h2>@row.Process.Title</h2><span class="status progress">Permissions métier</span></div>
+                    <p>Les exigences sont définies par le module. Attribuez les permissions depuis les profils de votre installation.</p>
+                    <div class="table-wrap"><table><thead><tr><th>Étape</th><th>Action</th><th>Permissions requises</th></tr></thead><tbody>
+                        @foreach (var requirement in PermissionRows(row.Process))
+                        {
+                            <tr><td>@requirement.Stage</td><td>@requirement.Action</td><td>@requirement.Requirements</td></tr>
+                        }
+                    </tbody></table></div>
+                    <a class="secondary-button" href="/admin/access">Gérer les profils</a>
+                </section>
+            }
+            else
+            {
             <section class="panel data-panel">
                 <div class="section-heading"><div><p class="eyebrow">@row.Process.Definition.Id.Value · v@row.Process.Definition.Version</p><h2>@row.Process.Title</h2></div><span class="status progress">@row.Grants.Count grant(s)</span></div>
                 <div class="readonly-note"><span><strong>Définition publiée</strong><small>Modes d’affectation et séparation des acteurs en lecture seule. Seuls les grants exacts ci-dessous sont modifiables.</small></span></div>
@@ -49,6 +65,7 @@
                     </form>
                 </div>
             </section>
+            }
         }
     }
 </div>
@@ -73,6 +90,34 @@
             _rows.Add(new(process, grants.Value ?? []));
         }
     }
+
+    private static bool UsesBusinessPermissions(WorkflowProcessDescriptor process) =>
+        WorkflowStagePolicy.Read(process.Definition.Nodes.Single(node => node.Role == WorkflowNodeRole.Start).Configuration) is not null;
+
+    private IEnumerable<PermissionRow> PermissionRows(WorkflowProcessDescriptor process)
+    {
+        foreach (var node in process.Definition.Nodes)
+        {
+            var policy = WorkflowStagePolicy.Read(node.Configuration);
+            if (policy is null) continue;
+            if (node.Role == WorkflowNodeRole.Start)
+            {
+                yield return new("Processus", "Démarrer", PermissionGroups(policy.Permissions));
+                yield return new("Processus", "Lire une instance", PermissionGroups(policy.ReadPermissions));
+                yield return new("Processus", "Annuler une instance", PermissionGroups(policy.CancelPermissions));
+            }
+            foreach (var action in policy.Actions.Values)
+                yield return new(node.DisplayLabel ?? node.Id.Value, action.Label, PermissionGroups(policy.Permissions.Concat(action.Permissions)));
+        }
+    }
+
+    private string PermissionGroups(IEnumerable<string[]> groups)
+    {
+        var labels = groups.Select(group => string.Join(" OU ", group.Select(permission =>
+            Catalog.Permissions.FirstOrDefault(item => item.Id.Value == permission)?.Label ?? permission))).ToArray();
+        return labels.Length == 0 ? "Non autorisé" : string.Join(" ET ", labels.Select(label => $"({label})"));
+    }
+    private sealed record PermissionRow(string Stage, string Action, string Requirements);
 
     private static IEnumerable<ScopeOption> Scopes(WorkflowProcessDescriptor process)
     {

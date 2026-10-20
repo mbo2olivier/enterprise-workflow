@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using EnterpriseWorkflow.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -25,24 +23,10 @@ public sealed class LeaveRequestModuleTests
                 BuildConfiguration(), "net10.0", "EnterpriseWorkflow.Sdk.dll");
             var sdk = Path.Combine(root, "dependencies", "EnterpriseWorkflow.Sdk.dll");
             File.Copy(sdkSource, sdk);
-            var manifest = new
-            {
-                schemaVersion = 1,
-                id = "sample.leave-request",
-                version = "1.0.0",
-                contractVersion = 1,
-                entryAssembly = Path.GetFileName(assembly),
-                entryType = "EnterpriseWorkflow.LeaveRequest.LeaveRequestModule",
-                entryAssemblySha256 = Hash(assembly),
-                dependencies = new[] { new { path = "dependencies/EnterpriseWorkflow.Sdk.dll", sha256 = Hash(sdk) } },
-                resources = Array.Empty<object>(),
-                components = new[]
-                {
-                    new { id = "leave-request.summary", type = "EnterpriseWorkflow.LeaveRequest.LeaveRequestSummary" },
-                },
-            };
-            await File.WriteAllTextAsync(Path.Combine(root, "module.json"), JsonSerializer.Serialize(manifest),
-                TestContext.Current.CancellationToken);
+            var moduleType = System.Reflection.Assembly.LoadFrom(source).GetType("EnterpriseWorkflow.LeaveRequest.LeaveRequestModule", throwOnError: true)!;
+            var authoringModule = (WorkflowModule)Activator.CreateInstance(moduleType)!;
+            var manifest = WorkflowModuleManifestWriter.Create(authoringModule, assembly, [sdk]);
+            await File.WriteAllTextAsync(Path.Combine(root, "module.json"), manifest, TestContext.Current.CancellationToken);
 
             var moduleCatalog = WorkflowModuleCatalog.Load([root]);
             var services = new ServiceCollection();
@@ -51,8 +35,10 @@ public sealed class LeaveRequestModuleTests
             var catalog = provider.GetRequiredService<IWorkflowPresentationCatalog>();
 
             var process = Assert.Single(catalog.Processes);
-            Assert.Equal("leave-request", process.Definition.Id.Value);
-            Assert.Equal("manager-approval", Assert.Single(process.DesignatedAssignmentNodes).Value);
+            Assert.Equal("sample.leave-request.leave-request", process.Definition.Id.Value);
+            Assert.Empty(process.DesignatedAssignmentNodes);
+            Assert.Equal(4, catalog.Permissions.Length);
+            Assert.Contains(process.Definition.Nodes, node => node.Id.Value == "validation-manager");
             Assert.True(catalog.TryResolveForm(process.Definition, process.StartForm, out var form));
             Assert.NotNull(form!.CustomComponentType);
             Assert.Equal("LeaveRequestSummary", form.CustomComponentType.Name);
@@ -63,12 +49,6 @@ public sealed class LeaveRequestModuleTests
             catch (IOException) when (OperatingSystem.IsWindows()) { }
             catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows()) { }
         }
-    }
-
-    private static string Hash(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     private static string BuildConfiguration() =>

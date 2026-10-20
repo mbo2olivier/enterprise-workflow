@@ -39,6 +39,8 @@ public interface IWorkflowAccessStore
 
 public interface ISecurityProfileStore
 {
+    ValueTask<ProviderResult<IReadOnlyList<IdentityReference>>> ListKnownIdentitiesAsync(int offset, int maximumResults, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new ProviderResult<IReadOnlyList<IdentityReference>>(ProviderOutcome.Unavailable, ErrorCode: "security.identity-enumeration-unsupported"));
     ValueTask<ProviderResult<IReadOnlyList<SecurityProfile>>> ListProfilesAsync(int maximumResults, CancellationToken cancellationToken);
     ValueTask<ProviderResult<IReadOnlyList<SecurityIdentityProfileAssignment>>> ListIdentityAssignmentsAsync(int maximumResults, CancellationToken cancellationToken);
     ValueTask<ProviderResult<IReadOnlyList<SecurityGroupProfileMapping>>> ListGroupMappingsAsync(int maximumResults, CancellationToken cancellationToken);
@@ -96,3 +98,10 @@ public sealed record LocalAccount(
     int FailedAccessCount,
     DateTimeOffset? LockoutEndUtc,
     long Revision);
+
+/// <summary>Optional bounded directory enumeration used by durable notification fan-out.</summary>
+public interface IPagedIdentityDirectory : IIdentityDirectory
+{
+    ValueTask<ProviderResult<DirectoryIdentityPage>> ReadPageAsync(string? cursor, int pageSize, CancellationToken cancellationToken);
+}
+public sealed record DirectoryIdentityPage(IReadOnlyList<DirectoryIdentity> Identities, string? Next);

@@ -156,7 +156,9 @@ public sealed record ClaimedWork(
     WorkLease Lease,
     WorkflowDefinition Definition,
     WorkflowState State,
-    int Attempt);
+    int Attempt,
+    ActorIdentity? Initiator = null,
+    ActorIdentity? PreparedAssignee = null);
 
 /// <summary>Description of a next logical work item created by a node commit.</summary>
 public sealed record NextWork(TechnicalId NodeId, DateTimeOffset DueAtUtc);
@@ -206,7 +208,8 @@ public enum WorkflowTimerStatus
 public sealed record DesignatedTaskAssignment(TechnicalId NodeId, ActorIdentity Assignee);
 
 /// <summary>Creates a human wait from the currently leased activation.</summary>
-public sealed record HumanTaskWait(HumanTaskAssignmentMode AssignmentMode);
+public sealed record HumanTaskWait(HumanTaskAssignmentMode AssignmentMode,
+    bool ResolveAssignment = false, ActorIdentity? Assignee = null);
 
 /// <summary>Creates a fixed-delay timer from the currently leased activation.</summary>
 public sealed record TimerWait(TimeSpan Delay, TechnicalId NextNodeId);
@@ -433,7 +436,8 @@ public sealed record CommitOutboxCommand(
     long Generation,
     OutboxCommitKind Kind,
     DateTimeOffset? RetryAtUtc,
-    string? ErrorCode);
+    string? ErrorCode,
+    IReadOnlyList<OutboxWrite>? FollowUps = null);
 
 /// <summary>Result of an outbox delivery commit.</summary>
 public sealed record CommitOutboxResult(OutboxMessageStatus Status, int Attempt);

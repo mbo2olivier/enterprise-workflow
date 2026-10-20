@@ -1,74 +1,68 @@
-# Conception du SDK fluent — cible L8b
+# SDK fluent — lot L8b
 
-Date : 20 octobre 2026. **Document de conception, API indicative non implémentée.** Les principes acceptés et les points ouverts sont distingués dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md). Le séquencement figure dans le [plan L8b](implementation-plan.md).
+Date : 20 octobre 2026. Implémentation livrée ; qualification externe restante dans [l8b-validation.md](l8b-validation.md). Les décisions acceptées sont consignées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md).
 
-## Exemple de permissions et d’une tâche
+## Module et processus
+
+Le [sample LeaveRequest](../samples/LeaveRequest.Module/LeaveRequestModule.cs) est la référence complète. Un module dérive de `WorkflowModule`, déclare `Info`, ses permissions dans `ConfigurePermissions`, puis ses handlers, formulaires et classes de processus dans `Configure(WorkflowModuleBuilder builder)`. Les méthodes vides du contrat de démarrage n’ont plus à être recopiées.
 
 ```csharp
-// Point de déclaration proposé dans IWorkflowModule.
-public void ConfigurePermissions(WorkflowPermissionRegistryBuilder permissions)
-{
-    permissions.Add("hr.review", "Examiner les demandes de congé");
-    permissions.Add("hr.override", "Autoriser une dérogation RH");
-    permissions.Add("manager.approve", "Statuer comme responsable");
-}
+public override WorkflowModuleInfo Info { get; } =
+    new WorkflowModuleInfo("sample.leave-request", "1.0.0", 1)
+        .WithName("Gestion des congés");
+```
 
-// Syntaxe proposée ; la conjonction stage/action reste à confirmer (P2).
+La release textuelle identifie l’artefact ; la révision entière est héritée des contrats nouvellement déclarés. `WithStateSchemaVersion(...)` reste obligatoire dans chaque processus. Les identifiants de processus, formulaires, handlers et permissions sont qualifiés par le module ; ceux des nœuds, champs et actions restent locaux. Le nœud d’entrée généré utilise l’ID réservé `start`.
+
+Les déclarations sont collectées avant résolution. Un formulaire peut donc précéder son handler dans le code. Le formulaire métier porte toujours `.HandledBy<THandler>()` ; la tâche peut remplacer explicitement ce défaut. Les formulaires humains standard utilisent un handler du framework enregistré sous une clé qualifiée du module et la révision courante.
+
+## Permissions et affectation
+
+```csharp
 process.Approval("validation-rh", "Validation RH", stage => stage
     .RequiresPermission("hr.review")
+    .RequiresAnyPermission("hr.senior", "hr.deputy")
     .ClaimedByEligibleParticipant()
+    .ShowFields("startDate", "endDate", "reason")
     .Actions(actions =>
     {
         actions.Add("validate", "Valider", action => action
             .SelectAssigneeFor("validation-manager")
             .Then("validation-manager"));
-
         actions.Add("decline", "Refuser", action => action
+            .RequireComment()
             .Then("rejected"));
-
-        actions.Add("override", "Dérogation", action => action
-            .RequiresPermission("hr.override")
-            .SelectAssigneeFor("validation-manager")
-            .Then("validation-manager"));
     }));
-
-process.Approval("validation-manager", "Validation manager", stage => stage
-    .RequiresPermission("manager.approve")
-    .AssignedFromPreviousTask()
-    .Actions(actions =>
-    {
-        actions.Add("validate", "Valider", action => action.Then("close-request"));
-        actions.Add("decline", "Refuser", action => action.Then("rejected"));
-    }));
-
-process.Service<CloseRequestHandler>("close-request").Then("completed");
-process.End("completed");
-process.End("rejected");
 ```
 
-L’extrait montre une partie d’un processus, pas un graphe complet compilable. `AssignedFromPreviousTask` et `SelectAssigneeFor` sont des noms proposés : la première méthode décrit la politique cible, la seconde l’interaction exigée sur la source. Le sélecteur n’est obligatoire que pour l’action qui rejoint cette cible. Le compilateur doit vérifier la correspondance et refuser une désignation manquante sur un chemin concerné.
+Chaque appel ajoute une exigence cumulative. Ici il faut `hr.review` ET (`hr.senior` OU `hr.deputy`). Les exigences de l’action s’ajoutent à celles du stage. L’administration attribue les permissions aux profils/identités ; une attribution vaut pour les futures versions exigeant la même permission. Les anciennes définitions sans politique fluent conservent leurs grants exacts ; aucun grant historique n’est converti automatiquement. Le Kernel compose `ModulePermissionAuthorizationService` avec le fournisseur historique. Un hôte embarqué doit composer la même frontière.
 
-Une branche peut traverser des étapes techniques avant la cible : soit le SDK limite explicitement cette première version à une destination humaine directe, soit il valide le chemin concerné. Il ne doit pas accepter une cible arbitraire au seul motif que son identifiant existe. Aucun retour au stage courant n’est généré ; le graphe reste acyclique.
+Le processus déclare sa permission de démarrage avec `RequiresPermission`. La lecture complète d’instance et l’annulation ont leurs déclarations distinctes `ReadableByPermission` et `CancellableByPermission`. La lecture des champs reste bornée par `ReadableBy` ; `ShowFields` refuse les champs inconnus ou non lisibles par un participant. Le statut d’administrateur ne donne aucun droit métier implicite.
 
-## Formulaires métier et formulaires intégrés
+Une tâche humaine déclare exactement une politique : `ClaimedByEligibleParticipant`, `AssignedFromPreviousTask` ou `AssignedToInitiator`. La dernière concerne une saisie/confirmation, pas une approbation. Une personne habilitée à au moins une action peut prendre une tâche de pool ; les autres actions restent masquées et refusées côté serveur. Elle peut libérer son claim. `AllowInitiator` et `DistinctFrom` permettent de déclarer explicitement les contraintes d’acteurs supplémentaires.
 
-Un formulaire métier est déclaré indépendamment du registre des handlers mais porte toujours `.HandledBy<THandler>()`. Le handler doit être enregistré et résolu sans ambiguïté. Une surcharge par tâche est proposée en P1 ; elle n’est pas supposée acquise.
+La sélection du destinataire n’est requise que pour l’action qui rejoint directement la tâche cible. Le sélecteur utilise cette action source et les permissions de la cible ; il ne nécessite pas un profil connu du module. Les contrôles sont répétés côté serveur. L’enveloppe réservée `$assignments` participe au hash d’idempotence et est retirée avant d’appeler le handler métier. Une sélection différente sous la même clé est un conflit.
 
-Dans l’extrait, les approbations sans `UsesForm` utilisent un formulaire et un handler intégrés versionnés. Un remplacement explicite peut être fourni avec `.UsesForm("manager-review")`. Le comportement du commentaire, du motif obligatoire et du résumé est ouvert en O5. La sélection d’un destinataire est une capacité du contrat de tâche, rendue par le formulaire intégré ou l’adaptateur du composant personnalisé ; elle n’est pas un champ libre d’identité.
+Si le candidat perd ses droits avant activation, la tâche reste `AwaitingAssignment`. Aucune personne n’est substituée. La commande `AssignAsync` et le formulaire de récupération permettent une affectation explicite, soumise au droit d’administration des accès et à l’éligibilité du candidat. L’accès à la page et aux données demeure soumis aux droits métier de lecture ; un administrateur sans ces droits n’obtient pas les données du dossier.
 
-Un nœud de décision automatique n’utilise pas ce formulaire humain : son évaluateur reste enregistré comme handler de décision. Le SDK ne doit pas confondre ces deux sens du mot décision.
+## Formulaires et résultats
 
-## Lecture des conventions
+Les champs utilisent `Text`, `LongText`, `Date`, `Choice`, `Number`, `Boolean`, puis `Required`, `Length`, `Options`, `Help` et `ReadableBy`. Le défaut de visibilité est limité à l’initiateur ; un formulaire peut déclarer un défaut explicite pour ses champs avant `Fields(...)`.
 
-- Le module porte sa release et sa `ContractRevision` ; les contrats héritent de cette révision sauf référence explicite. La version du schéma initial est obligatoire. Les noms exacts des méthodes de déclaration restent à stabiliser.
-- Les chaînes locales sont qualifiées selon leur catégorie. Le nom de classe n’est jamais une identité durable implicite.
-- `RequiresPermission` décrit une exigence métier, pas une attribution aux personnes. L’administration conserve la maîtrise des profils et identités ; le modèle d’évaluation entre permissions et grants exacts reste ouvert en O2.
-- Le claim réserve atomiquement une tâche à un candidat habilité. La notification SMTP ne réserve rien et ne donne aucun droit.
-- Une tâche n’ayant aucun destinataire à choisir pour la suite conserve néanmoins sa propre politique d’affectation.
-- `AssignedToInitiator()` est proposé pour la confirmation de la demande : cette tâche est une saisie/confirmation, pas une approbation contournant l’interdiction d’auto-approbation. Arbitrage O4.
+Sans `UsesForm`, une tâche humaine reçoit un formulaire standard avec commentaire facultatif et actions déclarées. `RequireComment` impose un commentaire non blanc pour l’action concernée, y compris en appel runtime direct. `ShowFields` décrit le résumé autorisé séparé de la soumission. Un formulaire métier ou un handler de complétion peut être substitué. Le handler standard ne remplace pas l’état métier et ne déclenche aucun effet externe ; un traitement qui doit conserver un commentaire dans les données métier utilise un handler explicite.
 
-## Revue et validation
+La soumission du formulaire initial est validée côté serveur puis crée l’instance. Le handler par défaut d’un formulaire est le handler de complétion des tâches qui l’utilisent ; il n’est pas invoqué artificiellement comme une tâche humaine lors du démarrage. Une étape ultérieure nommée `draft` est une confirmation métier ordinaire.
 
-L’aperçu compilé doit montrer les IDs qualifiés, révisions et artefacts exacts, le formulaire/handler effectif, les permissions, les politiques d’affectation et toutes les transitions. Les valeurs héritées doivent y être visibles. Cet aperçu permet de relire les conventions sans multiplier les paramètres dans le code source.
+Les transitions ciblent des étapes. Une opération automatique est un `Service<THandler>(id).Then(destination)` ; une fin est déclarée avec `End`. Le SDK historique reste disponible pour les contrats avancés, notamment décisions automatiques et timers. Les erreurs techniques ne deviennent pas des refus métier. Le graphe reste acyclique, séquentiel et à branches exclusives.
 
-Les erreurs doivent mentionner processus, stage, action et référence locale concernés. Collecter les déclarations avant validation évite de rendre leur ordre significatif. Vérifier références absentes, permissions inconnues, ambiguïtés de handler, étapes inaccessibles, cycles et branches sans destination. Une erreur technique d’exécution n’est jamais transformée en refus métier par `Otherwise`.
+## Réutilisation et manifeste
+
+`UseHandler<THandler>(reference, owner)` et `UseForm(localId, definition, handler, owner)` importent un contrat depuis un artefact exact, sans le réenregistrer comme nouveau propriétaire. Le loader vérifie le propriétaire annoncé. `UseProcess(descriptor)` réexpose la définition immuable du descripteur, sans la reconstruire avec l’artefact courant. Tous les artefacts référencés doivent rester disponibles ; aucun fallback de version n’est effectué.
+
+`WorkflowModuleManifestWriter.Create(module, assemblyPath, dependencyPaths, resources)` produit identité, release, composants et hashes depuis la déclaration auteur. Il ne copie pas les fichiers ni ne remplace la future CLI L9. Le loader vérifie également la cohérence entre `Info` et le manifeste. `WithComponent<TComponent>()` peut générer un ID de composant ; un ID explicite est également accepté.
+
+## Format durable et revue
+
+Les politiques fluent sont conservées dans la propriété réservée `$workflow` de la configuration canonique des nœuds, avec une version de contrat propre. Le compilateur contrôle leur forme, la cohérence des actions et des affectations ainsi que les désignations sur chaque chemin entrant. Une définition ne peut pas utiliser des tâches à permissions tout en conservant un démarrage implicitement historique.
+
+Ce format ne modifie pas les octets ou hashes des anciennes définitions. Le JSON canonique de la définition constitue l’aperçu déterministe : références qualifiées, révisions, artefacts, permissions, affectations, actions et transitions. Aucun type CLR ou callback d’auteur n’est sérialisé comme comportement exécutable.

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using EnterpriseWorkflow.Abstractions;
@@ -40,7 +41,8 @@ public sealed record WorkflowTaskActionRequest(
     long ExpectedRevision,
     WorkflowActionId Action,
     TechnicalId IdempotencyKey,
-    string SubmissionJson);
+    string SubmissionJson,
+    IReadOnlyDictionary<TechnicalId, IdentityReference>? DesignatedAssignments = null);
 
 public sealed record WorkflowPortalTaskActionResult(
     bool Succeeded,
@@ -60,7 +62,14 @@ public sealed record WorkflowTaskView(
     Type? CustomComponentType,
     CanonicalJson VisibleData,
     IReadOnlyList<HumanTaskAction> Actions,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    WorkflowStagePolicy? Policy = null,
+    CanonicalJson? Summary = null,
+    string? ProcessId = null,
+    int ProcessVersion = 0,
+    bool CanAssign = false,
+    IReadOnlyDictionary<string, string>? SummaryLabels = null,
+    IReadOnlyDictionary<string, string>? AssignmentLabels = null);
 
 public sealed record WorkflowRequestView(
     WorkflowInstanceId InstanceId,
@@ -91,8 +100,16 @@ public interface IWorkflowPortalService
     ValueTask<IReadOnlyList<WorkflowCandidate>> SearchAssignmentCandidatesAsync(
         IdentityReference actor, string processId, int processVersion, TechnicalId nodeId,
         string query, int maximumResults, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<WorkflowCandidate>> SearchTaskAssignmentCandidatesAsync(
+        IdentityReference actor, HumanTaskId taskId, WorkflowActionId action, string query, int maximumResults, CancellationToken cancellationToken) =>
+        ValueTask.FromResult<IReadOnlyList<WorkflowCandidate>>([]);
     ValueTask<WorkflowTaskView?> ReadTaskAsync(
         IdentityReference actor, HumanTaskId taskId, CancellationToken cancellationToken);
+    ValueTask<WorkflowPortalTaskActionResult> AssignTaskAsync(IdentityReference actor, HumanTaskId taskId, long expectedRevision,
+        IdentityReference assignee, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new WorkflowPortalTaskActionResult(false, false, [], "presentation.assignment-not-supported"));
+    ValueTask<IReadOnlyList<WorkflowCandidate>> SearchRecoveryCandidatesAsync(IdentityReference actor, HumanTaskId taskId, string query,
+        int maximumResults, CancellationToken cancellationToken) => ValueTask.FromResult<IReadOnlyList<WorkflowCandidate>>([]);
     ValueTask<WorkflowPortalTaskActionResult> ClaimTaskAsync(
         IdentityReference actor, HumanTaskId taskId, long expectedRevision, CancellationToken cancellationToken);
     ValueTask<WorkflowPortalTaskActionResult> ReleaseTaskAsync(
@@ -210,13 +227,42 @@ public sealed class WorkflowPortalService(
         return accepted;
     }
 
-    public async ValueTask<IReadOnlyList<WorkflowCandidate>> SearchAssignmentCandidatesAsync(
+    public ValueTask<IReadOnlyList<WorkflowCandidate>> SearchAssignmentCandidatesAsync(
+        IdentityReference actor, string processId, int processVersion, TechnicalId nodeId,
+        string query, int maximumResults, CancellationToken cancellationToken) =>
+        SearchCandidatesAsync(actor, processId, processVersion, nodeId, query, maximumResults, false, cancellationToken);
+
+    public async ValueTask<IReadOnlyList<WorkflowCandidate>> SearchTaskAssignmentCandidatesAsync(
+        IdentityReference actor, HumanTaskId taskId, WorkflowActionId action, string query, int maximumResults, CancellationToken cancellationToken)
+    {
+        var loaded = await humanTasks.ReadAsync(taskId, actor, cancellationToken).ConfigureAwait(false);
+        if (loaded.Snapshot is not { } snapshot || !loaded.Succeeded || snapshot.Status is not (HumanTaskStatus.Assigned or HumanTaskStatus.Claimed)) return [];
+        var source = snapshot.Definition.Nodes.Single(node => node.Id == snapshot.NodeId);
+        var policy = WorkflowStagePolicy.Read(source.Configuration);
+        if (policy is null || !policy.Actions.TryGetValue(action.Value, out var actionPolicy) || actionPolicy.AssigneeTarget is null) return [];
+        var allowed = await authorization.AuthorizeAsync(new(actor, new(snapshot.Definition.Id.Value, snapshot.Definition.Version, source.Id.Value, action)), cancellationToken).ConfigureAwait(false);
+        if (!allowed.Allowed || snapshot.Assignee != new ActorIdentity(new(actor.ProviderId), actor.SubjectId)) return [];
+        var candidates = await SearchCandidatesAsync(actor, snapshot.Definition.Id.Value, snapshot.Definition.Version,
+            new(actionPolicy.AssigneeTarget), query, maximumResults, true, cancellationToken).ConfigureAwait(false);
+        var target = snapshot.Definition.Nodes.Single(node => node.Id.Value == actionPolicy.AssigneeTarget).HumanTask!;
+        return candidates.Where(candidate =>
+        {
+            var identity = new ActorIdentity(new(candidate.Identity.ProviderId), candidate.Identity.SubjectId);
+            return (target.AllowInitiator || identity != snapshot.Initiator) &&
+                !target.DistinctFrom.Any(constraint =>
+                    (constraint.NodeId == source.Id && constraint.ActionId.Value == action.Value && identity == snapshot.Assignee) ||
+                    snapshot.CompletionHistory.Any(history => history.NodeId == constraint.NodeId && history.ActionId == constraint.ActionId && history.Actor == identity));
+        }).ToArray();
+    }
+
+    private async ValueTask<IReadOnlyList<WorkflowCandidate>> SearchCandidatesAsync(
         IdentityReference actor,
         string processId,
         int processVersion,
         TechnicalId nodeId,
         string query,
         int maximumResults,
+        bool trustedSource,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < 2 || query.Length > 256 ||
@@ -227,7 +273,7 @@ public sealed class WorkflowPortalService(
             return [];
         var searchDecision = await generalAuthorization.AuthorizeAsync(
             new(actor, WorkflowPermissions.SearchApprovalCandidates), cancellationToken).ConfigureAwait(false);
-        if (!searchDecision.Allowed) return [];
+        if (!trustedSource && !searchDecision.Allowed) return [];
 
         var take = Math.Clamp(maximumResults, 1, 50);
         var candidates = new Dictionary<IdentityReference, DirectoryIdentity>();
@@ -282,11 +328,55 @@ public sealed class WorkflowPortalService(
         if (!catalog.TryResolveForm(snapshot.Definition, contract.Form, out var registration) || registration is null)
             return null;
         var data = forms.Project(registration.Form, snapshot.State.Value, WorkflowFieldAudience.TaskParticipant);
+        var policy = WorkflowStagePolicy.Read(node.Configuration);
+        var actions = new List<HumanTaskAction>();
+        foreach (var action in contract.Actions)
+        {
+            var allowed = await authorization.AuthorizeAsync(new(actor, new(snapshot.Definition.Id.Value, snapshot.Definition.Version, node.Id.Value, new(action.ActionId.Value))), cancellationToken).ConfigureAwait(false);
+            if (allowed.Allowed) actions.Add(action);
+        }
+        CanonicalJson? summary = null;
+        IReadOnlyDictionary<string, string>? summaryLabels = null;
+        if (policy is not null && catalog.TryGetProcess(snapshot.Definition.Id.Value, snapshot.Definition.Version, out var process) && process is not null &&
+            catalog.TryResolveForm(snapshot.Definition, process.StartForm, out var startRegistration) && startRegistration is not null)
+        {
+            var summaryForm = startRegistration.Form with { Fields = startRegistration.Form.Fields.Where(field => policy.SummaryFields.Contains(field.Id.Value, StringComparer.Ordinal)).ToImmutableArray() };
+            summary = forms.Project(summaryForm, snapshot.State.Value, WorkflowFieldAudience.TaskParticipant);
+            summaryLabels = summaryForm.Fields.ToDictionary(field => field.Id.Value, field => field.Label, StringComparer.Ordinal);
+        }
+        var canAssign = snapshot.Status == HumanTaskStatus.AwaitingAssignment &&
+            (await authorization.AuthorizeAsync(new(actor, new(snapshot.Definition.Id.Value, snapshot.Definition.Version, node.Id.Value, WorkflowActions.AssignTask)), cancellationToken).ConfigureAwait(false)).Allowed;
         return new(snapshot.TaskId, snapshot.InstanceId,
             snapshot.Definition.DisplayLabel ?? snapshot.Definition.Id.Value,
             node.DisplayLabel ?? node.Id.Value, snapshot.Status, snapshot.AssignmentMode,
             snapshot.Revision, registration.Form, registration.CustomComponentType, data,
-            contract.Actions, snapshot.CreatedAtUtc);
+            actions, snapshot.CreatedAtUtc, policy, summary, snapshot.Definition.Id.Value, snapshot.Definition.Version, canAssign, summaryLabels,
+            snapshot.Definition.Nodes.Where(candidate => candidate.HumanTask is not null).ToDictionary(candidate => candidate.Id.Value,
+                candidate => candidate.DisplayLabel ?? candidate.Id.Value, StringComparer.Ordinal));
+    }
+
+    public async ValueTask<WorkflowPortalTaskActionResult> AssignTaskAsync(IdentityReference actor, HumanTaskId taskId, long expectedRevision,
+        IdentityReference assignee, CancellationToken cancellationToken) =>
+        ToPortalResult(await humanTasks.AssignAsync(taskId, expectedRevision, actor, assignee, cancellationToken).ConfigureAwait(false));
+
+    public async ValueTask<IReadOnlyList<WorkflowCandidate>> SearchRecoveryCandidatesAsync(IdentityReference actor, HumanTaskId taskId,
+        string query, int maximumResults, CancellationToken cancellationToken)
+    {
+        var loaded = await humanTasks.ReadAsync(taskId, actor, cancellationToken).ConfigureAwait(false);
+        if (loaded.Snapshot is not { Status: HumanTaskStatus.AwaitingAssignment } snapshot || !loaded.Succeeded) return [];
+        var allowed = await authorization.AuthorizeAsync(new(actor, new(snapshot.Definition.Id.Value, snapshot.Definition.Version, snapshot.NodeId.Value, WorkflowActions.AssignTask)), cancellationToken).ConfigureAwait(false);
+        if (!allowed.Allowed) return [];
+        var candidates = await SearchCandidatesAsync(actor, snapshot.Definition.Id.Value, snapshot.Definition.Version, snapshot.NodeId,
+            query, maximumResults, true, cancellationToken).ConfigureAwait(false);
+        var node = snapshot.Definition.Nodes.Single(node => node.Id == snapshot.NodeId);
+        var policy = WorkflowStagePolicy.Read(node.Configuration);
+        return candidates.Where(candidate =>
+        {
+            var identity = new ActorIdentity(new(candidate.Identity.ProviderId), candidate.Identity.SubjectId);
+            return (policy?.AssignedToInitiator != true || identity == snapshot.Initiator) &&
+                (node.HumanTask!.AllowInitiator || identity != snapshot.Initiator) &&
+                !node.HumanTask.DistinctFrom.Any(constraint => snapshot.CompletionHistory.Any(history => history.NodeId == constraint.NodeId && history.ActionId == constraint.ActionId && history.Actor == identity));
+        }).ToArray();
     }
 
     public async ValueTask<WorkflowPortalTaskActionResult> ClaimTaskAsync(
@@ -324,7 +414,8 @@ public sealed class WorkflowPortalService(
             actor,
             request.Action,
             request.IdempotencyKey,
-            validation.Submission!,
+            HumanTaskSubmission.WithAssignments(validation.Submission!, (request.DesignatedAssignments ?? new Dictionary<TechnicalId, IdentityReference>())
+                .Select(item => new DesignatedTaskAssignment(item.Key, new(new(item.Value.ProviderId), item.Value.SubjectId)))),
             cancellationToken).ConfigureAwait(false));
     }
 

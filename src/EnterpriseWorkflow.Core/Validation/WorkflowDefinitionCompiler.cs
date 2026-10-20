@@ -52,6 +52,7 @@ public static class WorkflowDefinitionCompiler
         var transitions = ValidateTransitions(draft.Transitions, diagnostics);
 
         ValidateGraph(nodes, transitions, diagnostics);
+        ValidateStagePolicies(nodes, transitions, diagnostics);
 
         if (HasErrors(diagnostics) || !definitionIdIsValid)
         {
@@ -104,6 +105,52 @@ public static class WorkflowDefinitionCompiler
             hash);
 
         return new WorkflowCompilationResult(definition, diagnostics);
+    }
+
+    private static void ValidateStagePolicies(ImmutableArray<WorkflowNode> nodes,
+        ImmutableArray<WorkflowTransition> transitions, List<WorkflowDiagnostic> diagnostics)
+    {
+        var policies = nodes.ToDictionary(node => node.Id, node => WorkflowStagePolicy.Read(node.Configuration));
+        if (!policies.Values.Any(policy => policy is not null)) return;
+        var start = nodes.FirstOrDefault(node => node.Role == WorkflowNodeRole.Start);
+        if (start is null || policies[start.Id] is null)
+        {
+            AddError(diagnostics, "EW1121", "definition.nodes", "Workflow policies require an explicit start policy; mixed legacy authorization is not allowed.");
+            return;
+        }
+        foreach (var node in nodes.Where(node => node.HumanTask is not null))
+        {
+            var location = $"node[{node.Id.Value}].configuration.$workflow";
+            var policy = policies[node.Id];
+            if (policy is null)
+            {
+                AddError(diagnostics, "EW1121", location, "Every human task in a permission-based workflow requires a policy.");
+                continue;
+            }
+            var contract = node.HumanTask!;
+            if (policy.Permissions.Length == 0 && policy.Actions.Values.Any(action => action.Permissions.Length == 0))
+                AddError(diagnostics, "EW1122", location, "Every human action requires declared permissions.");
+            if (contract.AssignmentMode == HumanTaskAssignmentMode.DesignatedIdentity && !policy.AssignedToInitiator && !policy.AssignedFromPreviousTask ||
+                contract.AssignmentMode != HumanTaskAssignmentMode.DesignatedIdentity && (policy.AssignedToInitiator || policy.AssignedFromPreviousTask) ||
+                policy.AssignedToInitiator && contract.Kind == HumanTaskKind.Approval)
+                AddError(diagnostics, "EW1123", location, "Assignment policy contradicts the human-task contract.");
+            foreach (var (actionId, action) in policy.Actions)
+            {
+                if (action.AssigneeTarget is null) continue;
+                var target = nodes.FirstOrDefault(candidate => candidate.Id.Value == action.AssigneeTarget);
+                if (target?.HumanTask is null || policies[target.Id]?.AssignedFromPreviousTask != true ||
+                    !transitions.Any(edge => edge.SourceId == node.Id && edge.Outcome?.Value == contract.Actions.Single(item => item.ActionId.Value == actionId).Outcome.Value && edge.TargetId == target.Id))
+                    AddError(diagnostics, "EW1124", location, $"Action '{actionId}' must select the directly reached designated human task.");
+            }
+            if (!policy.AssignedFromPreviousTask) continue;
+            foreach (var edge in transitions.Where(edge => edge.TargetId == node.Id))
+            {
+                var source = nodes.FirstOrDefault(candidate => candidate.Id == edge.SourceId);
+                if (source?.HumanTask is null || policies[source.Id] is not { } sourcePolicy ||
+                    !source.HumanTask.Actions.Any(action => action.Outcome == edge.Outcome && sourcePolicy.Actions[action.ActionId.Value].AssigneeTarget == node.Id.Value))
+                    AddError(diagnostics, "EW1125", location, "Every incoming action must select this task's assignee.");
+            }
+        }
     }
 
     private static ImmutableArray<WorkflowArtifactReference> ValidateArtifacts(
@@ -241,6 +288,19 @@ public static class WorkflowDefinitionCompiler
 
             if (!nodeIsValid || configuration is null)
             {
+                continue;
+            }
+
+            try
+            {
+                var policy = WorkflowStagePolicy.Read(configuration);
+                if (policy is not null && draft.Role is WorkflowNodeRole.HumanTask &&
+                    !policy.Actions.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(draft.HumanTask!.Actions.Select(action => action.ActionId)))
+                    throw new FormatException("Workflow policy actions must match the human-task contract.");
+            }
+            catch (Exception exception) when (exception is FormatException or System.Text.Json.JsonException)
+            {
+                AddError(diagnostics, "EW1120", $"{location}.configuration.$workflow", exception.Message);
                 continue;
             }
 

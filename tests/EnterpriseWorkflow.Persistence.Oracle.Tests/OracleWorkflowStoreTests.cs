@@ -330,6 +330,41 @@ public sealed class OracleWorkflowStoreTests
         Assert.Equal(StoreOutcome.NotFound, none.Outcome);
     }
 
+    [Fact]
+    public async Task L8bResolvedAssignmentActivationLookupAndNotificationFanOutAreDurable()
+    {
+        var fixture = await ResetDatabaseAsync();
+        var token = TestContext.Current.CancellationToken;
+        var definition = WorkflowBuilder.Create("oracle.l8b", 1).Start("start")
+            .HumanTask("confirmation", HumanTaskKind.Input, HumanTaskAssignmentMode.DesignatedIdentity, "form", 1, "handler", [new("submit", "submitted")])
+            .End("end").Then("start", "confirmation").On("confirmation", "submitted", "end").Validate().Definition!;
+        await fixture.Store.PublishDefinitionAsync(new(definition), token);
+        var command = CreateStartCommand(definition, "l8b-request");
+        await fixture.Store.StartInstanceAsync(command, token);
+        var start = (await fixture.Store.ClaimDueWorkAsync(new(new("worker"), TimeSpan.FromSeconds(30)), token)).Value!;
+        Assert.Equal(command.Scope.Actor, start.Initiator);
+        await fixture.Store.CommitNodeResultAsync(new(start.Lease.WorkItemId, start.Lease.Token, start.Lease.Generation,
+            start.Lease.InstanceRevision, NodeCommitKind.Continue, null, new(new("confirmation"), start.Lease.StoreUtcNow), null), token);
+        var wait = (await fixture.Store.ClaimDueWorkAsync(new(new("worker"), TimeSpan.FromSeconds(30)), token)).Value!;
+        var committed = await fixture.Store.CommitNodeResultAsync(new(wait.Lease.WorkItemId, wait.Lease.Token, wait.Lease.Generation,
+            wait.Lease.InstanceRevision, NodeCommitKind.WaitHumanTask, null, null, null,
+            [new(new("pool-notification"), new("workflow.pool-notification"), "application/json", "{}")],
+            HumanTask: new(HumanTaskAssignmentMode.DesignatedIdentity, true, command.Scope.Actor)), token);
+        Assert.Equal(StoreOutcome.Succeeded, committed.Outcome);
+        var reopened = CreateStore(fixture.ConnectionString);
+        var task = (await reopened.GetHumanTaskByActivationAsync(wait.Lease.ActivationId, token)).Value!;
+        Assert.Equal(command.Scope.Actor, task.Assignee);
+        Assert.Equal(HumanTaskStatus.Assigned, task.Status);
+        var parent = (await reopened.ClaimDueOutboxAsync(new(new("mailer"), TimeSpan.FromSeconds(30)), token)).Value!;
+        var fanOut = new CommitOutboxCommand(parent.MessageId, parent.Token, parent.Generation, OutboxCommitKind.Delivered, null, null,
+            [new(new("recipient-1"), new("workflow.pool-mail"), "application/json", "{}")]);
+        Assert.Equal(StoreOutcome.Succeeded, (await reopened.CommitOutboxAsync(fanOut, token)).Outcome);
+        Assert.Equal(StoreOutcome.Conflict, (await reopened.CommitOutboxAsync(fanOut, token)).Outcome);
+        var child = (await reopened.ClaimDueOutboxAsync(new(new("mailer"), TimeSpan.FromSeconds(30)), token)).Value!;
+        Assert.Equal(parent.ActivationId, child.ActivationId);
+        Assert.Equal("recipient-1", child.OperationId.Value);
+    }
+
     private static async Task<Fixture> CreateStartedStoreAsync()
     {
         var fixture = await ResetDatabaseAsync();

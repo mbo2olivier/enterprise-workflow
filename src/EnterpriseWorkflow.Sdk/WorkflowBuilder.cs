@@ -26,6 +26,14 @@ public sealed class WorkflowBuilder
     public static WorkflowBuilder Create(string definitionId, int definitionVersion) =>
         new(definitionId, definitionVersion);
 
+    /// <summary>Begins a module-owned draft with a qualified ID and the release's default contract revision.</summary>
+    /// <remarks>The caller must still bind the exact artifact before publication.</remarks>
+    public static WorkflowBuilder Create(WorkflowModuleInfo module, string localDefinitionId)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        return new WorkflowBuilder(module.Qualify(localDefinitionId).Value, module.ContractRevision);
+    }
+
     /// <summary>Sets a display-only label.</summary>
     public WorkflowBuilder WithDisplayLabel(string? displayLabel)
     {

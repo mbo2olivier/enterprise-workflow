@@ -14,6 +14,8 @@ public sealed class SqliteSecurityStoreTests
         var profile = new SecurityProfile("administrators", "Administrateurs", new HashSet<PermissionId> { WorkflowPermissions.ManageAccess }, true);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.UpsertProfileAsync(profile, actor, TestContext.Current.CancellationToken)).Outcome);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.AssignIdentityAsync(actor, profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(actor, Assert.Single((await store.ListKnownIdentitiesAsync(0, 1, TestContext.Current.CancellationToken)).Value!));
+        Assert.Empty((await store.ListKnownIdentitiesAsync(1, 1, TestContext.Current.CancellationToken)).Value!);
         var permissions = await store.ResolvePermissionsAsync(actor, null, TestContext.Current.CancellationToken);
         Assert.Contains(WorkflowPermissions.ManageAccess, permissions.Value!);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.MapGroupAsync(new("ad", "group-1"), profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);

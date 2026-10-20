@@ -7,6 +7,18 @@ namespace EnterpriseWorkflow.Persistence.Sqlite;
 
 public sealed partial class SqliteWorkflowStore
 {
+    public async ValueTask<StoreResult<HumanTaskSnapshot>> GetHumanTaskByActivationAsync(NodeActivationId activationId, CancellationToken cancellationToken)
+    {
+        var found = await ExecuteAsync(async context =>
+        {
+            var row = await context.HumanTasks.SingleOrDefaultAsync(task => task.ActivationId == FormatGuid(activationId.Value), cancellationToken).ConfigureAwait(false);
+            return row is null ? StoreResults.NotFound<HumanTaskId>("task.not-found") : StoreResults.Succeeded(new HumanTaskId(Guid.Parse(row.Id)));
+        }, cancellationToken).ConfigureAwait(false);
+        return found.Outcome == StoreOutcome.Succeeded
+            ? await GetHumanTaskAsync(found.Value, cancellationToken).ConfigureAwait(false)
+            : new(found.Outcome, null, found.ErrorCode);
+    }
+
     /// <inheritdoc />
     public async ValueTask<StoreResult<HumanTaskSnapshot>> GetHumanTaskAsync(
         HumanTaskId taskId,

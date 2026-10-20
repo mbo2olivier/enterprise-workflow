@@ -42,6 +42,10 @@ public interface IWorkflowStore
         HumanTaskId taskId,
         CancellationToken cancellationToken);
 
+    /// <summary>Resolves an activation notification to its durable task.</summary>
+    ValueTask<StoreResult<HumanTaskSnapshot>> GetHumanTaskByActivationAsync(NodeActivationId activationId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<HumanTaskSnapshot>("store.activation-lookup-not-supported"));
+
     /// <summary>Assigns one awaiting designated task atomically.</summary>
     ValueTask<StoreResult<HumanTaskMutationResult>> AssignHumanTaskAsync(
         AssignHumanTaskCommand command,

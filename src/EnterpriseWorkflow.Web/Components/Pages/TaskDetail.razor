@@ -18,6 +18,41 @@
         {
             <div class="panel custom-form-summary"><DynamicComponent Type="_task.CustomComponentType" Parameters="@CustomParameters(_task)" /></div>
         }
+        @if (_task.Summary is not null)
+        {
+            <dl class="panel">
+                @foreach (var field in _task.Summary.ToJsonElement().EnumerateObject())
+                {
+                    <dt>@(_task.SummaryLabels?.GetValueOrDefault(field.Name) ?? field.Name)</dt><dd>@field.Value.ToString()</dd>
+                }
+            </dl>
+        }
+        @if (_task.CanAssign || _task.Policy?.Actions.Values.Any(action => action.AssigneeTarget is not null) == true)
+        {
+            <form method="get" class="panel candidate-search" role="search">
+                <label for="candidate-query">Rechercher un destinataire éligible</label>
+                <input id="candidate-query" name="candidate" value="@CandidateQuery" minlength="2" maxlength="256" required />
+                <button class="secondary-button" type="submit">Rechercher</button>
+            </form>
+        }
+        @if (_task.CanAssign)
+        {
+            <form method="post" action="/workflow/tasks/@_task.TaskId.Value/assign" class="panel workflow-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="revision" value="@_task.Revision" />
+                <p>La tâche attend un destinataire éligible. Aucune personne n’a été substituée automatiquement.</p>
+                <label>Destinataire
+                    <select name="assignee" required>
+                        <option value="">Sélectionner…</option>
+                        @foreach (var candidate in _recoveryCandidates)
+                        {
+                            <option value="@CandidateValue(candidate.Identity)">@candidate.DisplayName · @candidate.Identity.SubjectId</option>
+                        }
+                    </select>
+                </label>
+                <button class="primary-button" type="submit">Affecter</button>
+            </form>
+        }
         @if (_task.Status is HumanTaskStatus.Available)
         {
             <form method="post" action="/workflow/tasks/@_task.TaskId.Value/claim" class="panel ownership-action"><AntiforgeryToken /><input type="hidden" name="revision" value="@_task.Revision" /><p>Cette tâche appartient à un pool habilité. Réservez-la avant de la traiter.</p><button class="primary-button" type="submit">Prendre en charge</button></form>
@@ -29,6 +64,18 @@
                 <input type="hidden" name="revision" value="@_task.Revision" />
                 <input type="hidden" name="idempotencyKey" value="@_idempotencyKey" />
                 <WorkflowFormFields Form="_task.Form" Values="_task.VisibleData" />
+                @foreach (var selection in _candidates)
+                {
+                    <label>Destinataire · @(_task.AssignmentLabels?.GetValueOrDefault(selection.Key) ?? "Étape suivante")
+                        <select name="@($"assignment.{selection.Key}.identity")">
+                            <option value="">Sélectionner pour poursuivre vers cette étape…</option>
+                            @foreach (var candidate in selection.Value)
+                            {
+                                <option value="@CandidateValue(candidate.Identity)">@candidate.DisplayName · @candidate.Identity.ProviderId · @candidate.Identity.SubjectId</option>
+                            }
+                        </select>
+                    </label>
+                }
                 <div class="action-dock">
                     @if (_task.Status is HumanTaskStatus.Claimed)
                     {
@@ -37,12 +84,12 @@
                     @foreach (var action in _task.Actions)
                     {
                         <button class="@(action.ActionId.Value.Contains("reject", StringComparison.Ordinal) ? "secondary-button" : "primary-button")"
-                                type="submit" name="action" value="@action.ActionId.Value">@ActionLabel(action.ActionId.Value)</button>
+                                type="submit" name="action" value="@action.ActionId.Value">@(_task.Policy?.Actions.GetValueOrDefault(action.ActionId.Value)?.Label ?? ActionLabel(action.ActionId.Value))</button>
                     }
                 </div>
             </form>
         }
-        else
+        else if (!_task.CanAssign)
         {
             <section class="panel empty-state compact"><strong>Aucune action disponible</strong><p>La tâche attend une affectation ou a déjà été clôturée.</p></section>
         }
@@ -53,11 +100,31 @@
     [Parameter] public Guid TaskId { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
     [SupplyParameterFromQuery(Name = "completed")] public string? Completed { get; set; }
+    [SupplyParameterFromQuery(Name = "candidate")] public string? CandidateQuery { get; set; }
+    private readonly Dictionary<string, IReadOnlyList<WorkflowCandidate>> _candidates = new(StringComparer.Ordinal);
+    private IReadOnlyList<WorkflowCandidate> _recoveryCandidates = [];
     private WorkflowTaskView? _task;
     private readonly string _idempotencyKey = $"web-{Guid.NewGuid():N}";
 
-    protected override async Task OnParametersSetAsync() =>
-        _task = await Portal.ReadTaskAsync(await Identity.GetRequiredAsync(), new(TaskId), CancellationToken.None);
+    protected override async Task OnParametersSetAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _task = await Portal.ReadTaskAsync(actor, new(TaskId), CancellationToken.None);
+        _candidates.Clear();
+        _recoveryCandidates = _task?.CanAssign == true && !string.IsNullOrWhiteSpace(CandidateQuery) ?
+            await Portal.SearchRecoveryCandidatesAsync(actor, new(TaskId), CandidateQuery, 20, CancellationToken.None) : [];
+        if (_task?.Policy is null) return;
+        foreach (var action in _task.Actions)
+        {
+            var target = _task.Policy.Actions.GetValueOrDefault(action.ActionId.Value)?.AssigneeTarget;
+            if (target is null) continue;
+            _candidates[target] = string.IsNullOrWhiteSpace(CandidateQuery) ? [] :
+                await Portal.SearchTaskAssignmentCandidatesAsync(actor, new(TaskId), new(action.ActionId.Value), CandidateQuery, 20, CancellationToken.None);
+        }
+    }
+
+    private static string CandidateValue(IdentityReference identity) =>
+        $"{Uri.EscapeDataString(identity.ProviderId)}|{Uri.EscapeDataString(identity.SubjectId)}";
 
     private static string ActionLabel(string action) => action switch
     {

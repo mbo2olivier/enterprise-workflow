@@ -1,4 +1,5 @@
 using EnterpriseWorkflow.Runtime;
+using EnterpriseWorkflow.Sdk;
 using EnterpriseWorkflow.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,6 +11,10 @@ namespace EnterpriseWorkflow.Extensions;
 /// </summary>
 public interface IWorkflowModule
 {
+    WorkflowModuleInfo? Info => null;
+
+    void ConfigurePermissions(WorkflowPermissionRegistryBuilder permissions) { }
+
     /// <summary>Registers module-owned services before the immutable service provider is built.</summary>
     void ConfigureServices(IServiceCollection services);
 
