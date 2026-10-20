@@ -46,6 +46,7 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 21. [Guide du SDK fluent L8b](docs/sdk-fluent-design.md)
 22. [Preuve locale L8b](docs/evidence/l8b.md)
 23. [Validation restante L8b](docs/l8b-validation.md)
+24. [Spécification L9 : CLI, templates et `ew dev`](docs/l9-spec.md)
 
 ## Documents de référence
 

@@ -1,6 +1,6 @@
 # Registre des ADR
 
-Les ADR 0001 à 0009 et 0011 à 0024 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. L'ADR 0010 n'est pas acceptée implicitement par sa rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
+Les ADR 0001 à 0009 et 0011 à 0025 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. L'ADR 0010 n'est pas acceptée implicitement par sa rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
 
 Une modification significative donnera lieu à un nouvel ADR qui remplace le précédent ; conserver l’historique et le motif. « Acceptée » signifie décision prise, pas fonctionnalité implémentée ou testée.
 
@@ -15,7 +15,7 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0007](0007-modele-canonique.md) | Modèle canonique et graphe MVP borné | Acceptée |
 | [0008](0008-durabilite.md) | Transitions atomiques et exécution au moins une fois | Acceptée |
 | [0009](0009-modules-et-versions.md) | Artefacts immuables et protection des anciennes instances | Acceptée — G3-A, coexistence nominale |
-| [0010](0010-distribution.md) | Distribution par RID et qualification explicite | Proposée pour le packaging ; périmètre plateformes accepté |
+| [0010](0010-distribution.md) | Distribution par RID et qualification explicite | Proposée pour les modalités de packaging ; plateformes et publication NuGet.org en L10 acceptées |
 | [0011](0011-auto-approbation.md) | Auto-approbation configurable, interdite par défaut | Acceptée |
 | [0012](0012-ui-razor-blazor.md) | UI Razor/Blazor et formulaires extensibles | Acceptée |
 | [0013](0013-contrats-l2.md) | Conventions et contrats du lot L2 | Acceptée |
@@ -30,3 +30,4 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0022](0022-loader-definitif-et-migrations-etat-l7b.md) | Loader définitif, rétention des artefacts et migrations d’état | G3-A, M1-A et M2-A acceptées ; L7b terminé localement |
 | [0023](0023-host-formulaires-et-administration-l8.md) | Host Blazor, formulaires, projections, administration et qualification navigateur | L8-D1-A à L8-D8-A acceptées ; implémentation L8 en cours |
 | [0024](0024-sdk-fluent-permissions-affectation.md) | SDK fluent, révisions héritées, permissions métier, affectation amont et formulaires standard | Principes et D1–D9 acceptés le 20 octobre 2026 ; L8b implémenté, 116 tests légers réussis ; qualification externe restante |
+| [0025](0025-runtime-developpement-l9.md) | `ew dev`, SQLite local, configuration JSON, identités de test et reconstruction contrôlée | Périmètre et orientations acceptés le 20 octobre 2026 ; non implémenté |

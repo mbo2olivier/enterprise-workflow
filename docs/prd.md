@@ -14,7 +14,7 @@ La distribution visée est open source. Le MVP ne revendique ni équivalence ave
 
 | Utilisateur | Besoin | Parcours MVP |
 | --- | --- | --- |
-| Auteur de workflow | Décrire un processus sans modifier le moteur | C#, validation, package |
+| Auteur de workflow | Décrire et tester un processus sans modifier le moteur | C#, `ew dev`, navigateur, validation, package |
 | Auteur de nœud | Réutiliser une intégration métier | Contrat, DI, résultat explicite |
 | Demandeur | Démarrer et suivre un processus autorisé | Accueil, formulaire, suivi |
 | Approbateur | Trouver et réaliser une tâche | Inbox, formulaire, décision |
@@ -45,7 +45,7 @@ Le Studio appartient au produit et à la livraison suivante, sans conditionner l
 | EF-09 | Permissions par ressource ; auto-approbation configurable par workflow, interdite par défaut | Source / auto-approbation confirmée | Refus serveur, y compris auto-approbation sans exception explicite ; exception soumise aux autres droits |
 | EF-10 | Une installation par organisation | Confirmé | Même module dans deux installations sans partage implicite de données ou d’accès |
 | EF-11 | Accueil, inbox, formulaires, suivi et thème ; UI métier/administration Razor/Blazor | Source / MVP et technologie confirmés | Formulaires déclaratifs et composants Razor personnalisés ; parcours complet ; logo, titre et couleurs configurables |
-| EF-12 | CLI et scaffolding | Source / MVP confirmé | Projet généré, compilé, validé, packagé et chargé depuis un répertoire propre |
+| EF-12 | CLI, scaffolding et runtime de développement `ew dev` | MVP confirmé ; extension du 20 octobre 2026, ADR 0025 | Depuis un répertoire propre : génération, rendu et parcours navigateur sans projet Kernel à écrire, SQLite par défaut, configuration locale, identités de test, reprise, reconstruction contrôlée, validation, packaging et chargement |
 | EF-13 | Préservation des versions d’instances et de modules | Proposé | Coexistence prouvée ou remplacement incompatible bloqué |
 | EF-14 | Audit et diagnostic | Proposé | Acteur, action et corrélation disponibles sans secret |
 | EF-16 | Stages administratifs : habilitations par workflow, nœud et action ; stage = nœud | Confirmé S12/S13 ; mécanismes ADR 0019 proposés | Parcours clientèle → superviseur → back-office maker → validateur ; refus serveur des actions hors nœud ou non habilitées ; reprise et concurrence sur les deux bases |
@@ -97,6 +97,7 @@ Cycles et parallélisme/jointures sont exclus du MVP par l’ADR 0007 accepté. 
 - Connecteurs de sécurité retenus éprouvés sur leurs systèmes réels et par tests de contrat.
 - Module réutilisable dans deux installations indépendantes, sans secrets embarqués.
 - Versions protégées, restauration exécutée et distributions annoncées testées.
+- Packages publics publiés sur NuGet.org en L10 (bibliothèques/adaptateurs retenus, CLI et templates), avec installation et consommation des versions publiées vérifiées depuis un environnement propre.
 - Décisions bloquant la livraison résolues ; licence choisie avant publication.
 
 Après le MVP : Studio avec palette, graphe, propriétés, diagnostics, sauvegarde et export. Les autres extensions du moteur seront priorisées sur besoins identifiés.
@@ -108,3 +109,7 @@ Le SDK doit permettre une déclaration fluente lisible en revue : métadonnées 
 Le formulaire initial démarre l’instance ; une confirmation ultérieure est une étape métier. Une tâche peut demander la désignation de son destinataire depuis l’activité précédente, parmi ses candidats éligibles, selon la branche choisie. Les pools notifient les personnes éligibles lorsque SMTP est configuré. Les approbations/décisions humaines simples disposent d’un formulaire intégré remplaçable. Aucun `AssignmentMode.None` n’est requis par ces cas.
 
 Implémentation L8b livrée, tests légers locaux réussis ; qualification externe restante. Les décisions de portée des permissions, réutilisation de révision, notification, affectation à l’initiateur et contenu des formulaires standard sont tracées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md). Le lot est détaillé dans le [plan L8b](implementation-plan.md).
+
+## Évolution confirmée le 20 octobre 2026 — runtime de développement L9
+
+`ew dev` permet à l’auteur d’exécuter son module et d’explorer son rendu dans un navigateur avant packaging, sans écrire de Kernel ou d’intégration embedded. L’hôte de développement réutilise le runtime et l’UI, avec SQLite persistant, configuration JSON facultative, identités de test et surveillance par reconstruction/redémarrage. Il conserve autorisation, durabilité et artefacts immuables ; les fonctionnalités de test restent propres au développement. Voir la [spécification L9](l9-spec.md) et l’[ADR 0025](adr/0025-runtime-developpement-l9.md). Cette extension est spécifiée, non implémentée.

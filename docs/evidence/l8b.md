@@ -2,7 +2,7 @@
 
 Date : 20 octobre 2026. Hôte local macOS arm64, SDK .NET `10.0.401`.
 
-Statut : implémentation et vérifications légères locales livrées ; qualification externe restante dans [l8b-validation.md](../l8b-validation.md). Aucune exécution Oracle, LDAPS ou SMTP réel n’est revendiquée ici. Le smoke navigateur Chromium et la pagination OpenLDAP réelle en mode clair explicitement activé ont ensuite été exécutés sur macOS, comme détaillé ci-dessous.
+Statut : implémentation livrée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions, de Playwright Linux et d’OpenLDAP/LDAPS paginé. Aucune exécution Oracle L8b ni SMTP réel n’est revendiquée : le conteneur Oracle n’a pas pu être lancé. Le parcours métier LeaveRequest complet reste également à consigner selon [la procédure](../l8b-validation.md).
 
 ## Vérifications exécutées
 
@@ -34,13 +34,13 @@ Le sample est compilé, packagé avec le manifeste généré et chargé par le v
 
 ## Portée restante
 
-Oracle 19.19, LDAPS paginé Linux, livraison SMTP, parcours complet navigateur et matrice CI restent à exécuter selon la procédure dédiée. Le smoke Playwright existant ne couvre pas à lui seul la totalité du nouveau parcours LeaveRequest. Les tests Oracle ont été étendus pour le nouveau contrat ; leur compilation est vérifiée séparément, leur exécution exige le schéma jetable.
+Oracle 19.19, livraison SMTP réelle et parcours complet LeaveRequest restent à exécuter selon la procédure dédiée. LDAPS paginé Linux, Playwright Linux et la matrice CI sont acquis. Le smoke Playwright existant ne couvre pas à lui seul la totalité du nouveau parcours LeaveRequest. Les tests Oracle ont été étendus pour le nouveau contrat ; leur compilation est vérifiée séparément, leur exécution exige le schéma jetable.
 
 ## Correction de la pagination OpenLDAP durable — 20 octobre 2026
 
 Le premier essai Linux L8b échouait à la deuxième page : le cookie RFC 2696 avait été placé directement dans le message outbox, puis réutilisé sur une nouvelle connexion. OpenLDAP lie ce cookie à la connexion d’origine. Le provider expose désormais un offset opaque et durable ; pour chaque appel, il rejoue les contrôles paginés sur une seule connexion jusqu’à l’offset, puis lit la page demandée. Un arrêt ou un changement de worker ne rend donc plus le curseur inutilisable.
 
-La cible Security compile en Release sans avertissement. Les **17 tests Security** passent hors LDAP, puis passent également contre la stack OpenLDAP 2.6 réelle en mode clair explicitement activé, avec pages de taille 1 sur plusieurs connexions. La stack et ses volumes jetables ont été supprimés après le test. Cette preuve qualifie le correctif de pagination protocolaire ; la chaîne LDAPS Linux et son certificat restent à confirmer par GitHub Actions.
+La cible Security compile en Release sans avertissement. Les **17 tests Security** passent hors LDAP, puis passent également contre la stack OpenLDAP 2.6 réelle en mode clair explicitement activé, avec pages de taille 1 sur plusieurs connexions. La stack et ses volumes jetables ont été supprimés après le test. La chaîne LDAPS Linux, son certificat et la pagination ont ensuite été confirmés par GitHub Actions le 20 octobre 2026.
 
 ## Correction et exécution du smoke navigateur — 20 octobre 2026
 
@@ -48,4 +48,4 @@ L’échec de `PortalAndAdministrationAreQualifiedOnSqlite` sur `.workspace` a �
 
 Le test attend maintenant `LoadState.Load` avant de déplacer le pointeur. L’assertion sur `--pointer-x` est conservée ; aucune temporisation arbitraire ni modification des styles par le test n’a été ajoutée. Le diagnostic temporaire a été retiré.
 
-Compilation de la cible Playwright en Release : zéro erreur, zéro avertissement. Exécution avec `PLAYWRIGHT_TEST_ENABLED=1` : **1 réussi, 0 échec, 0 ignoré**. Le smoke complet couvre aussi l’administration, la création d’une identité, les réglages, le mobile et le focus clavier. Cette réussite locale sur macOS ne qualifie ni Linux/CI ni le parcours complet du sample LeaveRequest.
+Compilation de la cible Playwright en Release : zéro erreur, zéro avertissement. Exécution avec `PLAYWRIGHT_TEST_ENABLED=1` : **1 réussi, 0 échec, 0 ignoré**. Le smoke couvre aussi l’administration, la création d’une identité, les réglages, le mobile et le focus clavier. Sa réussite Linux/CI est confirmée le 20 octobre 2026 ; elle ne qualifie pas à elle seule le parcours complet du sample LeaveRequest.

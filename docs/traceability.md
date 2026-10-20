@@ -16,7 +16,7 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 | EF-16 Stages = nœuds et actions habilitées | 0019 ; recadrage | L5b, L6, L8 | T23, T24 |
 | EF-10 Installations indépendantes | 0005 | L7b, L10 | T17 |
 | EF-11 UI/thèmes | 0004, 0012 ; extensions | L8 | T10, T20 |
-| EF-12 CLI/templates | 0010 ; extensions | L9 | T14 |
+| EF-12 CLI/templates et `ew dev` | 0010, 0025 ; [spécification L9](l9-spec.md) | L9 | T14, T16, T12, T18, T20 |
 | EF-13 Versions | 0009, 0022 | L7a/b | T12, T13 |
 | EF-14 Audit/diagnostic | 0008 ; exploitation | L3 à L10 | T06, T10, T13, T21 |
 | EF-15 Studio différé | 0004, 0007 | L11 | T15, T16 |

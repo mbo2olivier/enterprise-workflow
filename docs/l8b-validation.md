@@ -1,10 +1,10 @@
-# Validation restante du lot L8b
+# Validation restante du lot L8b — Oracle, SMTP et parcours métier
 
 Date : 20 octobre 2026.
 
-Statut : implémentation et tests légers locaux terminés ; smoke Chromium macOS réussi après correction de synchronisation le 20 octobre 2026. La qualification externe ci-dessous reste à exécuter par le porteur. La [preuve locale](evidence/l8b.md) distingue les résultats acquis des capacités non encore qualifiées sur environnement réel.
+Statut : implémentation terminée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions sur les trois OS, du test Playwright Linux et d’OpenLDAP/LDAPS paginé. Restent Oracle Enterprise 19.19, dont le conteneur n’a pas pu être lancé, le SMTP réel et le parcours métier LeaveRequest complet. La [preuve](evidence/l8b.md) distingue les résultats acquis de ces capacités encore à qualifier.
 
-## 1. Compilation et suites complètes en Release
+## 1. Compilation et suites complètes en Release — acquises en CI
 
 Depuis la racine :
 
@@ -14,7 +14,7 @@ dotnet build EnterpriseWorkflow.slnx --configuration Release --no-restore --disa
 dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
 ```
 
-Attendu : aucune erreur ni avertissement. Le test navigateur est ignoré tant que `PLAYWRIGHT_TEST_ENABLED` est absent ; le test LDAP retourne sans connexion lorsque `LDAP_TEST_ENABLED` est absent. Aucun de ces deux comportements ne constitue une qualification réelle.
+Résultat acquis le 20 octobre 2026 : matrice GitHub Actions réussie sur Linux, macOS et Windows. Les commandes restent ci-dessus pour reproduction locale.
 
 Les suites légères déjà exécutées en Debug : Core, Extensions, Runtime, Presentation, Persistence.Sqlite, Security.Persistence.Sqlite, Security et Web. Le nouveau test runtime couvre la confirmation de l’initiateur, le claim, la sélection conditionnelle, le commentaire obligatoire, la reprise, l’idempotence incluant le destinataire et la récupération après révocation. Les tests de notification simulent le transport SMTP ; aucun email réel n’a été envoyé.
 
@@ -34,7 +34,7 @@ Attendu : les tests historiques et `L8bResolvedAssignmentActivationLookupAndNoti
 
 Les changements L8b réutilisent les tables et index existants : configuration canonique des nœuds, affectations et outbox. Aucune nouvelle migration SQL n’est attendue ; les migrations existantes restent à appliquer/valider normalement.
 
-## 3. LDAP/LDAPS et pagination réelle
+## 3. LDAP/LDAPS et pagination réelle — acquise sur Linux CI
 
 La suite d’intégration LDAP contient maintenant une énumération avec pages de taille 1, vérification de fin et conservation des identités stables. Le curseur durable contient un offset opaque : les cookies RFC 2696 restent confinés à la connexion qui les a créés et sont rejoués jusqu’à cet offset à chaque page. Elle doit réussir sur un serveur réel avec contrôles LDAP de pagination.
 
@@ -48,11 +48,11 @@ LDAP_TEST_ENABLED=1 LDAP_TEST_LDAPS=1 LDAP_TEST_CA_FILE="$PWD/tests/ldap/certs/c
 docker compose -f tests/ldap/docker-compose.yml down --volumes
 ```
 
-Attendu : bind, groupes, identité après renommage, rejet du mauvais certificat et pagination réussissent. Un annuaire sans pagination doit produire un diagnostic explicite pour les notifications ; une recherche nominale tronquée ne doit pas être présentée comme une énumération complète.
+Résultat acquis le 20 octobre 2026 : bind, groupes, identité après renommage, rejet du mauvais certificat et pagination réussissent dans le job Linux. Un annuaire sans pagination doit toujours produire un diagnostic explicite pour les notifications ; une recherche nominale tronquée ne doit pas être présentée comme une énumération complète.
 
-## 4. Navigateur Linux et parcours LeaveRequest
+## 4. Navigateur Linux acquis ; parcours LeaveRequest complet restant
 
-Le smoke a été reproduit puis corrigé sur macOS : après la connexion, le test attend le chargement du nouveau document avant d’envoyer le déplacement du pointeur. Après récupération du correctif, reconstruire la cible Release avant d’utiliser `--no-build`. Le rejeu Linux/CI reste demandé :
+Le smoke a été reproduit puis corrigé sur macOS, puis confirmé sur Linux CI le 20 octobre 2026. Les commandes restent disponibles pour reproduction :
 
 ```bash
 dotnet build tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj --configuration Release --no-restore --disable-build-servers -p:UseSharedCompilation=false -m:1
@@ -93,9 +93,9 @@ Vérifier :
 
 SMTP peut délivrer deux fois après un crash entre envoi et acquittement. L’en-tête `X-Workflow-Idempotency-Key` reste stable ; il ne garantit pas une déduplication par le serveur de messagerie.
 
-## 6. Matrice et retour
+## 6. Matrice acquise et retour restant
 
-Rejouer GitHub Actions sur Linux, macOS et Windows ; le job Linux doit inclure les qualifications LDAP et navigateur activées. Vérifier coexistence d’artefacts, ressources UI et réutilisation explicite d’une ancienne révision sans substitution de handler. Les anciennes preuves L8 ne qualifient pas automatiquement L8b.
+GitHub Actions est confirmé sur Linux, macOS et Windows ; le job Linux a inclus LDAP et navigateur activés. Il reste à vérifier Oracle 19.19, SMTP réel, coexistence d’artefacts, ressources UI, parcours LeaveRequest complet et réutilisation explicite d’une ancienne révision sans substitution de handler.
 
 Retour de succès attendu :
 

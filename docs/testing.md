@@ -21,7 +21,7 @@ Tests purs pour graphe, DSL, transitions et décisions de retry ; tests de contr
 | T11 | Local/LDAP/API et erreur fournisseur | Identité stable, capacités respectées, panne sans autorisation implicite | Contrats + LDAP non AD réel pour L5a ; AD si revendiqué |
 | T12 | Modules A/B, dépendances privées, version/hash changés | Anciennes instances inchangées ou déploiement bloqué ; assets disponibles | Loader + UI |
 | T13 | Création/migration/restauration | Instances, tâches, artefacts et audits cohérents après restauration | Chaque base |
-| T14 | Templates, CLI et archive RID | Build propre, validation, chargement et exécution du module | Runners cibles |
+| T14 | Templates, CLI, `ew dev` et archive RID | Copie propre → génération → runtime SQLite/UI multi-acteurs → reprise/reconstruction contrôlée → validation/package/vérification → chargement Kernel ; archives RID en L10 | Runners cibles ; critères [L9](l9-spec.md) |
 | T15 | Export Studio | C# compilable, modèle équivalent, échappement, pas d’écrasement implicite | Après MVP |
 | T16 | Absence du Studio et simulateur de sécurité en production | Routes non exposées ; mauvaise configuration refusée | Host production |
 | T17 | Réutilisation inter-organisations | Même artefact, données/identités/configurations indépendantes | Deux installations |
@@ -67,3 +67,11 @@ Avant release : Oracle 19c et autres versions revendiquées, LDAP non AD réel (
 Mesurer latence des commandes et timers, débit de travaux, contention, retries, mémoire et croissance du stockage. Rapporter OS/CPU, version de base/provider, nombre de workers, taille d’état et durée des essais. Seuils à convenir via Q06 ; sans eux, rapport descriptif seulement.
 
 Chaque preuve de lot comprend commandes, commit, environnement, résultat, limites et tests non exécutés. La couverture de code ne remplace pas les scénarios d’incident.
+
+## Qualification L9 — à exécuter
+
+La [spécification L9](l9-spec.md) détaille les scénarios `ew dev`, CLI, packaging et embedded. Couvrir SQLite réel, navigateur LeaveRequest multi-acteurs, refus serveur, reprise, seed idempotent conservant les révocations, configuration invalide, surveillance sans boucle, hash modifié sous même release et coexistence A/B. T16 doit prouver l’absence du sélecteur et du bootstrap de développement dans le Kernel de production ; vérifier aussi leur absence des packages métier avec les bases, seeds et secrets locaux. Exécuter la CLI et les reconstructions sur les trois OS cibles, notamment la libération des DLL Windows. Aucun de ces tests n’est acquis par les preuves L8/L8b.
+
+## Qualification L10 — packages publics NuGet.org
+
+La publication publique est un livrable obligatoire de L10. Consigner IDs, versions et liens des packages publiés et vérifier leur consommation avec cache isolé et source NuGet.org explicite, sans références projet au dépôt : restauration des bibliothèques, installation des versions publiées de la CLI et des templates, génération/build, `ew dev`, validation/package, chargement Kernel et exemple embedded. Vérifier métadonnées, licence, dépendances et exclusion des secrets/données locales avant publication. Une réussite depuis les seuls `.nupkg` locaux ou une publication partielle ne satisfait pas T14 ni le critère de sortie L10. Ces preuves restent à acquérir.

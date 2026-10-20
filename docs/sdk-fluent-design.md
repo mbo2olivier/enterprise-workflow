@@ -66,3 +66,7 @@ Les transitions ciblent des étapes. Une opération automatique est un `Service<
 Les politiques fluent sont conservées dans la propriété réservée `$workflow` de la configuration canonique des nœuds, avec une version de contrat propre. Le compilateur contrôle leur forme, la cohérence des actions et des affectations ainsi que les désignations sur chaque chemin entrant. Une définition ne peut pas utiliser des tâches à permissions tout en conservant un démarrage implicitement historique.
 
 Ce format ne modifie pas les octets ou hashes des anciennes définitions. Le JSON canonique de la définition constitue l’aperçu déterministe : références qualifiées, révisions, artefacts, permissions, affectations, actions et transitions. Aucun type CLR ou callback d’auteur n’est sérialisé comme comportement exécutable.
+
+## Boucle de développement prévue en L9
+
+`ew dev` compilera le module et préparera un artefact local pour un hôte de développement avec SQLite et UI, sans projet Kernel à écrire. Il réutilisera les règles de manifeste et de validation de `ew pack`, préservera les artefacts exacts et permettra de tester les identités et parcours L8b. Configuration, surveillance et critères sont décrits dans la [spécification L9](l9-spec.md). Ces commandes ne sont pas encore implémentées.
