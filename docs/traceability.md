@@ -40,3 +40,14 @@ S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le p
 ## Préconditions encore ouvertes
 
 Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a et la confirmation de G3-A pour L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
+
+## Cible L8b — à implémenter et qualifier
+
+| Besoin confirmé le 20 octobre 2026 | Décision | Lot | Preuve attendue |
+| --- | --- | --- | --- |
+| SDK lisible, release/révisions héritées, schéma explicite et IDs locaux | ADR 0024 A1–A4 ; O1 | L8b-0/1/5 | Déclaration LeaveRequest et aperçu déterministe ; anciennes références exactes préservées |
+| Permissions métier déclarées par module, exigences stage/action | ADR 0024 A5 ; P2/O2 | L8b-2/5 | Attribution administrative, contexte exact, révocation et appels directs ; migrations SQLite/Oracle |
+| Désignation sur l’activité précédente et confirmation du demandeur | ADR 0024 A6 ; O4 | L8b-3/5 | Branches conditionnelles, candidats, idempotence incluant destinataire, reprise et refus des identités arbitraires |
+| Formulaires standard et notification SMTP des pools | ADR 0024 A6–A7 ; P3/O3/O5 | L8b-4/5 | Rendu standard/personnalisé, projections autorisées, distribution bornée, panne SMTP et claim concurrent |
+
+Aucune preuve L8b n’est acquise par cette mise à jour documentaire.

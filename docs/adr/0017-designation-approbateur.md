@@ -29,3 +29,7 @@ Identité AD habilitée par profil direct sans groupe AD ; recherche limitée au
 ## Recadrage du 3 octobre 2026
 
 L’[ADR 0018](0018-ldap-generique.md) remplace l’obligation AD par une extension LDAP indépendante ; les autres décisions sont conservées. L’[ADR 0019](0019-workflow-stages.md) précise l’habilitation par workflow/nœud/action (stage = nœud). Les personnes explicitement désignées sont sélectionnées dans ce contexte ; le mode pool reste proposé, pas accepté implicitement. Les preuves antérieures restent historiques.
+
+## Évolution décidée le 20 octobre 2026
+
+Le parcours cible déclare la désignation sur l’activité précédente, selon sa branche, plutôt que systématiquement au démarrage. Le formulaire initial peut être cette activité source. La désignation reste validée et persistée par identité stable ; elle ne crée pas une faculté de réaffectation libre. Voir l’[ADR 0024](0024-sdk-fluent-permissions-affectation.md), qui distingue principes acceptés, options ouvertes et état non implémenté. Les décisions et preuves historiques ci-dessus sont conservées.

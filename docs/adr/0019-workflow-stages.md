@@ -39,3 +39,7 @@ Les policies d’affectation et les formulaires gardent leurs versions propres. 
 Clientèle (`soumettre`) → superviseur (`approuver`/`refuser`) → back-office maker (`saisir`/`soumettre`) → back-office validateur (`valider`/`refuser`) → notification technique. Les participants d’un poste ne peuvent pas agir sur un autre poste, même dans la même instance. Le parcours est séquentiel ; une notification ne vaut pas attente d’une réponse distante.
 
 T23/T24 doivent couvrir les droits croisés stage/nœud/action/version, appel API direct avec faux contexte, retrait des droits, profil administratif sans droit métier, visibilité, deux claims concurrents, double complétion, reprise et conservation des versions sur SQLite et Oracle. Une éventuelle séparation maker/checker entre stages est R4 ; l’interdiction actuelle d’auto-approbation ne prouve pas à elle seule cette séparation.
+
+## Évolution décidée le 20 octobre 2026
+
+Le module cible déclare des permissions métier ID/libellé et les exigences des stages/actions sans connaître les profils locaux. L’articulation avec les grants exacts L5b et la portée des permissions entre versions restent ouvertes (O2) ; aucune équivalence automatique avec l’implémentation courante n’est affirmée. Voir l’[ADR 0024](0024-sdk-fluent-permissions-affectation.md), qui distingue principes acceptés, options ouvertes et état non implémenté. Les décisions et preuves historiques ci-dessus sont conservées.

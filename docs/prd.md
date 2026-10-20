@@ -100,3 +100,11 @@ Cycles et parallélisme/jointures sont exclus du MVP par l’ADR 0007 accepté. 
 - Décisions bloquant la livraison résolues ; licence choisie avant publication.
 
 Après le MVP : Studio avec palette, graphe, propriétés, diagnostics, sauvegarde et export. Les autres extensions du moteur seront priorisées sur besoins identifiés.
+
+## Évolution confirmée le 20 octobre 2026 — expérience développeur L8b
+
+Le SDK doit permettre une déclaration fluente lisible en revue : métadonnées uniques, révision de contrats héritée avec override explicite, schéma de données obligatoire, processus séparés et identifiants locaux stables. Les formulaires métier déclarent leur handler par défaut, les enregistrements restant indépendants. Le module déclare ses permissions métier et les exigences stage/action sans connaître les profils de l’installation.
+
+Le formulaire initial démarre l’instance ; une confirmation ultérieure est une étape métier. Une tâche peut demander la désignation de son destinataire depuis l’activité précédente, parmi ses candidats éligibles, selon la branche choisie. Les pools notifient les personnes éligibles lorsque SMTP est configuré. Les approbations/décisions humaines simples disposent d’un formulaire intégré remplaçable. Aucun `AssignmentMode.None` n’est requis par ces cas.
+
+Principes acceptés, non encore implémentés. Les contraintes d’immuabilité et les questions de portée des permissions, réutilisation de révision, notification, affectation à l’initiateur et contenu des formulaires standard sont tracées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md). La prochaine itération est détaillée dans le [plan L8b](implementation-plan.md).

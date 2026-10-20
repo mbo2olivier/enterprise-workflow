@@ -47,3 +47,7 @@ L'inbox lit une page stable et bornée de tâches ouvertes. Les tâches affecté
 - G1a reste ouverte : une attente humaine ou temporelle n'est pas présentée comme un protocole requête/callback distant.
 - L8 rendra les formulaires et l'inbox ; L6 livre leurs contrats et services indépendants de l'UI.
 
+
+## Évolution décidée le 20 octobre 2026
+
+Le SDK cible expose la désignation depuis l’activité précédente et absorbe les formulaires triviaux d’approbation/décision humaine via des références standard versionnées. Le pool doit notifier ses candidats lorsque SMTP est configuré. Ces capacités SDK/UI/SMTP restent à implémenter ; le contrat de complétion existant ne suffit pas à en prouver la livraison. Voir l’[ADR 0024](0024-sdk-fluent-permissions-affectation.md), qui distingue principes acceptés, options ouvertes et état non implémenté. Les décisions et preuves historiques ci-dessus sont conservées.

@@ -28,3 +28,7 @@ Une instance ancienne conserve sa définition et son artefact exacts. Les régla
 ## Validation attendue
 
 Parcours `LeaveRequest` complet sur SQLite et Oracle 19.19, formulaires déclaratif et personnalisé, connexion/session révocable, désignation et inbox filtrées, administration capability-driven, thème, accessibilité/responsive, double soumission contrôlée et tests navigateur Linux. La matrice GitHub Actions doit rester verte sur les trois OS.
+
+## Évolution décidée le 20 octobre 2026
+
+L8b ajoute au parcours cible les sélecteurs conditionnels de destinataire depuis une activité précédente, les formulaires humains standard remplaçables et l’administration des permissions métier. Les projections autorisées et la validation serveur restent obligatoires. Le stage nommé draft est une étape métier après création, sans mécanisme de brouillon du portail. Voir l’[ADR 0024](0024-sdk-fluent-permissions-affectation.md), qui distingue principes acceptés, options ouvertes et état non implémenté. Les décisions et preuves historiques ci-dessus sont conservées.

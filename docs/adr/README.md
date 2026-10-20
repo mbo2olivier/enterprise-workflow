@@ -1,6 +1,6 @@
 # Registre des ADR
 
-Les ADR 0001 à 0009 et 0011 à 0023 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. L'ADR 0010 n'est pas acceptée implicitement par sa rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
+Les ADR 0001 à 0009 et 0011 à 0024 consignent les décisions explicites du porteur ; leurs détails encore proposés sont signalés. L'ADR 0010 n'est pas acceptée implicitement par sa rédaction. Un ADR proposé doit être validé avant le lot qu’il engage.
 
 Une modification significative donnera lieu à un nouvel ADR qui remplace le précédent ; conserver l’historique et le motif. « Acceptée » signifie décision prise, pas fonctionnalité implémentée ou testée.
 
@@ -29,3 +29,4 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0021](0021-prototype-modules-ui-l7a.md) | Modules versionnés, rendu Blazor et ressources UI | D1-A à D4-A et G3-A acceptées |
 | [0022](0022-loader-definitif-et-migrations-etat-l7b.md) | Loader définitif, rétention des artefacts et migrations d’état | G3-A, M1-A et M2-A acceptées ; L7b terminé localement |
 | [0023](0023-host-formulaires-et-administration-l8.md) | Host Blazor, formulaires, projections, administration et qualification navigateur | L8-D1-A à L8-D8-A acceptées ; implémentation L8 en cours |
+| [0024](0024-sdk-fluent-permissions-affectation.md) | SDK fluent, révisions héritées, permissions métier, affectation amont et formulaires standard | Principes acceptés le 20 octobre 2026 ; détails proposés/ouverts ; L8b non implémenté |

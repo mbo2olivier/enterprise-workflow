@@ -23,3 +23,7 @@ Rétention des artefacts, résolution de DI par version et assets UI à tester. 
 ## Validation attendue
 
 Versions A/B avec dépendance privée, ancienne instance en attente, retrait interdit, hash modifié, restauration et ressources Razor. Le prototype L7a a validé la coexistence ; L7b doit maintenant qualifier la rétention et le retrait bloqué.
+
+## Évolution décidée le 20 octobre 2026
+
+Les révisions de contrats peuvent être héritées de la release ou explicitement réutilisées. Cela ne modifie ni la rétention des artefacts ni l’immuabilité ; la résolution d’une ancienne révision est ouverte en O1. Voir l’[ADR 0024](0024-sdk-fluent-permissions-affectation.md), qui distingue principes acceptés, options ouvertes et état non implémenté. Les décisions et preuves historiques ci-dessus sont conservées.

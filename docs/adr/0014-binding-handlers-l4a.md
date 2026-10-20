@@ -26,3 +26,7 @@ Les applications nomment les handlers dans un espace global et doivent construir
 ## Validation
 
 Tests de doublon, ordre ordinal et versions, clé absente, rôle incompatible, définition complètement liée, absence de fallback, création/disposition d’un scope par tentative et invariants des résultats/contextes.
+
+## Évolution décidée le 20 octobre 2026
+
+Le SDK cible qualifie les références locales et sépare enregistrement du handler et liaison au formulaire. La réutilisation d’une clé ancienne doit être résolue explicitement avant implémentation ; le registre courant continue de refuser les doublons. Voir l’[ADR 0024](0024-sdk-fluent-permissions-affectation.md), qui distingue principes acceptés, options ouvertes et état non implémenté. Les décisions et preuves historiques ci-dessus sont conservées.

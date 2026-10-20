@@ -58,3 +58,13 @@ La validation réutilise le Core et renvoie code, sévérité, élément et corr
 Palette, canvas, propriétés, validation, sauvegarde d’un brouillon JSON et export C# stable. Le brouillon est la source visuelle ; après export et modification manuelle, le C# est maintenu séparément. Pas de round-trip automatique du C# arbitraire.
 
 L’export doit compiler et produire un graphe normalisé équivalent, avec échappement correct et ordre déterministe. Pas d’écrasement d’un fichier existant sans option explicite. Studio lancé seulement en développement et absent du Host de production. Bibliothèque de graphe et besoin d’outillage JavaScript à la construction restent à arbitrer.
+
+## Cible L8b : expérience auteur fluente — non implémentée
+
+L’[ADR 0024](../adr/0024-sdk-fluent-permissions-affectation.md) fixe les principes : métadonnées auteur uniques, release textuelle et révision entière héritée des contrats, override explicite d’une ancienne révision et schéma d’état initial obligatoire. Le packaging doit produire/vérifier le manifeste depuis la source retenue. Une révision réutilisée ne peut changer de contenu ou de propriétaire implicitement.
+
+Le module regroupe des processus définis dans des classes séparées et déclare un catalogue de permissions métier. IDs globaux qualifiés par module ; nœuds/champs/actions locaux à leur conteneur. Formulaires et handlers enregistrés séparément, avec `.HandledBy<THandler>()` obligatoire sur les formulaires métier. Les tâches humaines simples peuvent utiliser des formulaires/handlers standard versionnés, remplaçables explicitement. Le Core ne dépend pas des composants Blazor.
+
+Le formulaire initial crée l’instance lors de sa soumission. Un stage ultérieur nommé `draft` est une confirmation métier ordinaire. Le SDK doit déclarer les désignations depuis l’activité précédente, conditionnées à la branche exécutée, et distinguer pool, affectation et permissions. Il ne crée pas de mode `None` parce qu’une étape ne désigne aucun successeur.
+
+Le [guide de conception L8b](../sdk-fluent-design.md) donne une syntaxe indicative et les choix restant à faire. L’API actuelle reste celle du code livré ; ce document ne prétend pas que ces méthodes sont déjà disponibles.
