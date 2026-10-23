@@ -79,3 +79,9 @@ La publication publique est un livrable obligatoire de L10. Consigner IDs, versi
 ## Qualification intégrée L8b/L9 — séquencement confirmé
 
 Oracle 19 L8b est acquis sur preuve du porteur (13/13 tests, aucun ignoré). Parcours LeaveRequest complet et SMTP sont réservés à la sortie L9, sans bloquer son entrée. Utiliser les nouvelles commandes de packaging/vérification et le rendu `ew dev`, puis prouver séparément le chargement Kernel. Prévoir une stack Docker Compose avec serveur SMTP de capture réel, interface de consultation, disponibilité et ports locaux ; qualifier destinataires, liens, contenu minimal, pagination, panne/reprise et retries durables. Documenter la portée du serveur de capture : pas de preuve de délivrabilité Internet ni de TLS/authentification de production. Ces scénarios restent à exécuter avant clôture L9.
+
+## Exécution locale L9 — 20 octobre 2026
+
+Voir la [preuve L9](evidence/l9.md) : build Release sans avertissement, 70 tests ciblés (Core, Extensions, CLI, Web), quatre scénarios Chromium incluant refus/commentaire et annulation, capture SMTP réelle avec panne/reprise, templates et outil installés depuis un flux local, exemple embedded et ancienne instance complétée après redémarrage versionné. Le package LeaveRequest est également vérifié dans le Kernel, avec absence des routes de développement.
+
+La CI exécute `scripts/qualify-l9.sh` sur les trois OS et `scripts/qualify-l9-browser.sh` sur Linux. Le script navigateur consomme un sample isolé à partir des packages locaux, arrête explicitement le runtime via stdin et nettoie la stack SMTP. Ces nouvelles exécutions CI restent à confirmer ; les compléments navigateur et imports historiques sont suivis dans la preuve. Aucun test ignoré ne vaut réussite.

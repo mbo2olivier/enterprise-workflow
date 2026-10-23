@@ -2,7 +2,7 @@
 
 Date : 20 octobre 2026. Hôte local macOS arm64, SDK .NET `10.0.401`.
 
-Statut : implémentation livrée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions, de Playwright Linux et d’OpenLDAP/LDAPS paginé. Le porteur fournit ensuite une capture de qualification Oracle 19 réussie : 13 tests, 13 réussis, 0 échec, 0 ignoré. SMTP et parcours métier LeaveRequest complet restent à qualifier conjointement en sortie L9 selon [la procédure](../l8b-validation.md).
+Statut : implémentation livrée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions, de Playwright Linux et d’OpenLDAP/LDAPS paginé. Le porteur fournit ensuite une capture de qualification Oracle 19 réussie : 13 tests, 13 réussis, 0 échec, 0 ignoré. Les branches métier principales et SMTP sont ensuite qualifiés localement avec les commandes L9 et Chromium ; voir la [preuve L9](l9.md) et les compléments encore prévus par [la procédure](../l8b-validation.md).
 
 ## Vérifications exécutées
 
@@ -34,7 +34,7 @@ Le sample est compilé, packagé avec le manifeste généré et chargé par le v
 
 ## Portée restante
 
-Oracle 19 est acquis sur confirmation du porteur et capture de résultat. La livraison SMTP vers un serveur de capture Docker Compose et le parcours complet LeaveRequest restent à exécuter avec les commandes L9, comme critères de sortie de ce lot. LDAPS paginé Linux, Playwright Linux et la matrice CI sont acquis. Le smoke Playwright existant ne couvre pas à lui seul la totalité du nouveau parcours LeaveRequest. Les tests Oracle ont été étendus pour le nouveau contrat ; leur compilation est vérifiée séparément, leur exécution exige le schéma jetable.
+Oracle 19 est acquis sur confirmation du porteur et capture de résultat. La livraison SMTP vers la capture Docker Compose et les branches principales LeaveRequest sont ensuite acquises localement avec les commandes L9 ; les compléments et la qualification CI restent des critères de sortie de ce lot, suivis dans la [preuve L9](l9.md). LDAPS paginé Linux, Playwright Linux et la matrice CI sont acquis. Le smoke Playwright existant ne couvre pas à lui seul la totalité du nouveau parcours LeaveRequest. Les tests Oracle ont été étendus pour le nouveau contrat ; leur compilation est vérifiée séparément, leur exécution exige le schéma jetable.
 
 ## Correction de la pagination OpenLDAP durable — 20 octobre 2026
 

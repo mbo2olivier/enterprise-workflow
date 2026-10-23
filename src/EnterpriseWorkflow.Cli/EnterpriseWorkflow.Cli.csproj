@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ew</ToolCommandName>
+    <Description>Enterprise Workflow authoring CLI.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EnterpriseWorkflow.Cli.Tests" />
+    <ProjectReference Include="../EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Presentation/EnterpriseWorkflow.Presentation.csproj" />
+    <ProjectReference Include="../EnterpriseWorkflow.Web/EnterpriseWorkflow.Web.csproj" />
+  </ItemGroup>
+</Project>

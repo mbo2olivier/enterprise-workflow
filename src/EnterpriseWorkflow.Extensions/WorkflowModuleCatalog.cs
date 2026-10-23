@@ -112,15 +112,21 @@ public sealed class WorkflowModuleCatalog
 
     private static Assembly[] SharedAssemblies()
     {
-        _ = typeof(IWorkflowModule);
-        _ = typeof(global::EnterpriseWorkflow.Runtime.IWorkflowHandlerRegistry);
-        _ = typeof(global::EnterpriseWorkflow.Runtime.IServiceNodeHandler);
-        _ = typeof(global::EnterpriseWorkflow.Core.Model.WorkflowDefinition);
-        _ = typeof(global::EnterpriseWorkflow.Abstractions.TechnicalId);
-        _ = typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection);
-        _ = typeof(IComponent);
-        _ = typeof(EnterpriseWorkflow.Sdk.WorkflowModuleInfo);
-        return AssemblyLoadContext.Default.Assemblies
+        // Materialize contract assemblies before creating the private context. A discarded
+        // typeof expression can be optimized away, leaving SDK/handler contracts private.
+        Assembly[] contracts =
+        [
+            typeof(IWorkflowModule).Assembly,
+            typeof(global::EnterpriseWorkflow.Runtime.IWorkflowHandlerRegistry).Assembly,
+            typeof(global::EnterpriseWorkflow.Runtime.IServiceNodeHandler).Assembly,
+            typeof(global::EnterpriseWorkflow.Core.Model.WorkflowDefinition).Assembly,
+            typeof(global::EnterpriseWorkflow.Abstractions.TechnicalId).Assembly,
+            typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection).Assembly,
+            typeof(IComponent).Assembly,
+            typeof(EnterpriseWorkflow.Sdk.WorkflowModuleInfo).Assembly,
+            typeof(EnterpriseWorkflow.Presentation.WorkflowFormDefinition).Assembly,
+        ];
+        return AssemblyLoadContext.Default.Assemblies.Concat(contracts).Distinct()
             .Where(assembly => assembly.GetName().Name is { } name &&
                 (name.StartsWith("EnterpriseWorkflow.", StringComparison.Ordinal) ||
                  name is "Microsoft.Extensions.DependencyInjection.Abstractions" or "Microsoft.AspNetCore.Components"))

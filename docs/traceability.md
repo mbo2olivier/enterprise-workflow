@@ -51,3 +51,7 @@ Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a e
 | Formulaires standard et notification SMTP des pools | ADR 0024 A6–A7 ; P3/O3/O5 | L8b-4/5 | Rendu standard/personnalisé, projections autorisées, distribution bornée, panne SMTP et claim concurrent |
 
 La [preuve locale L8b](evidence/l8b.md) consigne 116 tests légers réussis. La [validation restante](l8b-validation.md) conserve explicitement les qualifications externes non acquises.
+
+## L9 — implémentation et preuves locales
+
+EF-12 inclut désormais CLI installable, templates, runtime `ew dev`, packaging et vérification d’artefacts. La [preuve L9](evidence/l9.md) consigne 70 tests ciblés, quatre parcours Chromium avec SMTP réel et panne/reprise, génération/embedded hors dépôt, conservation des anciennes instances et vérification du package dans le Kernel de production. La matrice CI L9 et les compléments listés dans la preuve ne sont pas encore acquis.

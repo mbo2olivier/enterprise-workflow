@@ -39,6 +39,8 @@ public sealed class PortalBrowserTests
             await RunKernelCommandAsync(kernel, database, "bootstrap", "browser-admin", password);
             host = StartKernel(kernel, database, baseAddress, hostLog);
             await WaitUntilReadyAsync(baseAddress, host, hostLog);
+            var developmentRoute = await page.APIRequest.GetAsync(baseAddress + "/__ew/dev");
+            Assert.Equal(404, developmentRoute.Status);
 
             await page.GotoAsync($"{baseAddress}/login");
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Se connecter" })).ToBeVisibleAsync();

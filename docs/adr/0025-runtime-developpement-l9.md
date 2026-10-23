@@ -1,6 +1,6 @@
 # ADR 0025 — Runtime de développement local `ew dev` (L9)
 
-Date : 20 octobre 2026. **Statut : acceptée pour le périmètre et les orientations ci-dessous à la demande du porteur ; non implémentée.** Les détails restants figurent dans la [spécification L9](../l9-spec.md).
+Date : 20 octobre 2026. **Statut : acceptée pour le périmètre et les orientations ci-dessous à la demande du porteur ; implémentation locale livrée, qualification finale restante.** Les détails restants figurent dans la [spécification L9](../l9-spec.md).
 
 ## Contexte
 
@@ -25,3 +25,7 @@ Cette décision complète les ADR 0006, 0010, 0022 et 0023 sans accepter implici
 ## Validation attendue
 
 Depuis copie propre : génération → `ew dev` → parcours LeaveRequest multi-acteurs → arrêt/reprise → modification et diagnostic de version → package → vérification → chargement Kernel. Tester aussi configuration invalide, droits refusés, coexistence des versions, isolement des routes de développement et absence de données locales dans le package. Voir les critères détaillés de la spécification L9 et T14/T16.
+
+## Application L9
+
+CLI et templates locaux, configuration JSON v1, réinitialisation par archivage, validation des artefacts combinés et stack SMTP de capture sont implémentés. Les choix et limites sont documentés dans le [guide CLI](../l9-cli.md) ; la [preuve locale](../evidence/l9.md) ne constitue pas une qualification CI multiplateforme.

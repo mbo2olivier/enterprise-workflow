@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enterprise Workflow development configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1, "default": 1 },
+    "server": {
+      "type": "object", "additionalProperties": false,
+      "properties": { "url": { "type": "string", "format": "uri", "default": "http://localhost:5080", "description": "HTTP loopback URL, validated at startup." } }
+    },
+    "storage": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "provider": { "const": "sqlite", "default": "sqlite" },
+        "path": { "type": "string", "minLength": 1, "default": ".ew/dev/workflow.db" }
+      }
+    },
+    "moduleDirectories": { "type": "array", "items": { "type": "string", "minLength": 1 }, "default": [] },
+    "watch": { "type": "boolean", "default": true },
+    "seed": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "users": {
+          "type": "array", "maxItems": 100,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["id"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,64}$" },
+              "displayName": { "type": "string" },
+              "permissions": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        }
+      }
+    },
+    "smtp": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "host": { "type": ["string", "null"] },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "enableSsl": { "type": "boolean" },
+        "userName": { "type": ["string", "null"] },
+        "password": { "type": ["string", "null"], "description": "Local-only; never commit credentials or include them in artifacts." },
+        "from": { "type": ["string", "null"] },
+        "baseUrl": { "type": "string", "format": "uri" },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "addresses": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}

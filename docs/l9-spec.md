@@ -1,12 +1,12 @@
 # L9 — CLI, templates et runtime de développement
 
-Date : 20 octobre 2026. **Spécification retenue à la demande du porteur ; non implémentée et non qualifiée.** Les noms publics des packages et templates restent provisoires. L’[ADR 0025](adr/0025-runtime-developpement-l9.md) consigne les décisions ; la distribution publique reste soumise à l’ADR 0010 et à L10.
+Date : 20 octobre 2026. **Spécification retenue et implémentée localement ; qualification multiplateforme L9 restante.** Les noms publics des packages et templates restent provisoires. L’[ADR 0025](adr/0025-runtime-developpement-l9.md) consigne les décisions ; la distribution publique reste soumise à l’ADR 0010 et à L10.
 
 ## Objectif et périmètre
 
 Un auteur doit pouvoir générer un module, explorer son rendu et exécuter ses parcours métier dans un navigateur avec `ew dev`, puis produire un artefact déployable. Aucun projet Kernel ni application embarquée à écrire pour cette boucle locale. L’hôte fourni par l’outil réutilise les bibliothèques runtime, application, sécurité, loader et UI ; il ne crée pas un second moteur.
 
-L9 comprend templates, CLI, packaging reproductible, runtime de développement et exemple embedded distinct. L10 conserve qualification de distribution, publication effective des packages publics (bibliothèques/adaptateurs retenus, CLI et templates) sur NuGet.org, archives RID et runbooks ; L11 conserve le Studio. Les commandes ci-dessous décrivent le contrat cible, pas des commandes déjà disponibles.
+L9 comprend templates, CLI, packaging reproductible, runtime de développement et exemple embedded distinct. L10 conserve qualification de distribution, publication effective des packages publics (bibliothèques/adaptateurs retenus, CLI et templates) sur NuGet.org, archives RID et runbooks ; L11 conserve le Studio. Les commandes ci-dessous sont implémentées ; voir le [guide CLI](l9-cli.md) et la [preuve locale](evidence/l9.md).
 
 ## Parcours et commandes cibles
 
@@ -36,7 +36,7 @@ ew verify ./artifacts/acme.leave-request/1.0.0
 | `ew verify` | Contrôle hors projet source du manifeste, fichiers, empreintes et compatibilité vérifiable ; la composition et l’inventaire de la cible restent vérifiés au chargement |
 | `dotnet new ew-embedded` | Exemple intégrant le même moteur dans une application .NET, avec composition et autorisation explicites |
 
-Les commandes CLI terminent en échec avec diagnostic et code non nul si leur opération échoue ; les codes détaillés restent à définir. Un projet est détecté dans le répertoire courant ; si plusieurs projets sont candidats, demander `--project` sans choisir arbitrairement. `ew pack` partage validation et préparation d’artefact avec `ew dev`. Il n’inclut ni base locale, ni configuration de développement, ni identités, secrets ou sélecteur de test. Une éventuelle commande `ew install` est hors du premier incrément.
+Les commandes CLI terminent en échec avec diagnostic et code non nul si leur opération échoue ; le code 1 signale les diagnostics CLI gérés. Un projet est détecté dans le répertoire courant ; si plusieurs projets sont candidats, demander `--project` sans choisir arbitrairement. `ew pack` partage validation et préparation d’artefact avec `ew dev`. Il n’inclut ni base locale, ni configuration de développement, ni identités, secrets ou sélecteur de test. Une éventuelle commande `ew install` est hors du premier incrément.
 
 ## Démarrage de `ew dev`
 
@@ -99,7 +99,7 @@ Le fichier runtime est `.ew/dev/workflow.db` par défaut ; les éventuels fichie
 
 Sans configuration, fournir des identités de démonstration et un parcours explicite pour attribuer les permissions du module dans l’administration locale ; aucune attribution automatique de tous les droits métier. Le fichier d’exemple configure les trois acteurs du parcours LeaveRequest, sans accorder de lecture complète implicite. La permission de lecture doit être ajoutée explicitement pour tester le suivi intégral.
 
-Le seed est idempotent par ID stable : un redémarrage ne duplique pas les utilisateurs et ne rétablit pas silencieusement un droit révoqué dans l’administration. Une modification du seed après initialisation doit être diagnostiquée et demander une réconciliation explicite ou une réinitialisation volontaire ; la syntaxe de ces opérations reste à définir. Les permissions inconnues sont refusées avant application partielle du seed. Les droits techniques d’administration locale sont distincts des permissions métier.
+Le seed est idempotent par ID stable : un redémarrage ne duplique pas les utilisateurs et ne rétablit pas silencieusement un droit révoqué dans l’administration. Une modification du seed après initialisation doit être diagnostiquée et demander une réconciliation explicite ou une réinitialisation volontaire ; `ew dev --reset` archive l’ancien environnement puis réinitialise ; aucun rapprochement automatique des changements du seed. Les permissions inconnues sont refusées avant application partielle du seed. Les droits techniques d’administration locale sont distincts des permissions métier.
 
 ## Identités et interface de développement
 
@@ -113,15 +113,15 @@ Réutiliser catalogue, démarrage, inbox, détail de tâche, suivi et administra
 
 La surveillance est active par défaut ; `--no-watch` la désactive. Une modification pertinente déclenche compilation et validation, puis arrêt contrôlé et redémarrage de l’hôte sur une génération immuable. Exclure `.ew/`, `bin/`, `obj/` et les sorties de packaging de la surveillance. Sérialiser les reconstructions pour éviter les courses. Aucun hot reload ni remplacement de DLL chargée n’est ajouté.
 
-L’arrêt et le redémarrage sans modification doivent conserver tâches, instances, droits et historique. Une nouvelle compilation ne remplace jamais un hash sous le même ID/release. Une modification d’artefact avec la même release produit un diagnostic demandant une nouvelle release ou une réinitialisation volontaire de l’espace local. L’outil n’invente pas de suffixe de version ni de révision de contrat. Des changements de définition peuvent aussi demander une nouvelle révision selon les règles existantes.
+L’arrêt et le redémarrage sans modification doivent conserver tâches, instances, droits et historique. Une nouvelle compilation ne remplace jamais un hash sous le même ID/release. Une modification d’artefact avec la même release produit un diagnostic demandant une nouvelle release ou une réinitialisation volontaire de l’espace local. L’outil n’invente pas de suffixe de version ni de révision de contrat. Tout processus redéclaré avec un nouvel artefact exige une nouvelle révision, puisque son identité canonique inclut cet artefact ; une ancienne révision se réutilise explicitement depuis son propriétaire exact.
 
 Les générations correspondent aux artefacts exacts, pas à une autorisation de muter une release. Les générations antérieures encore référencées sont conservées et réconciliées conformément à l’ADR 0022. Les ressources UI historiques restent disponibles. Une génération rejetée n’est pas publiée ; l’outil affiche clairement si l’ancien hôte reste actif ou si le runtime est arrêté.
 
-Aucune suppression automatique de base ou purge d’artefacts référencés. Une réinitialisation est une opération volontaire limitée à l’espace local possédé par l’outil ; sa commande et sa protection contre la suppression d’un chemin externe restent à spécifier avant implémentation. Le verrouillage des DLL Windows doit être pris en compte dans la stratégie de redémarrage.
+Aucune suppression automatique de base ou purge d’artefacts référencés. Une réinitialisation est une opération volontaire limitée à l’espace local possédé par l’outil ; `ew dev --reset` archive uniquement `.ew/dev`, refuse un stockage externe pour cette opération et ne supprime pas les données archivées. Le verrouillage des DLL Windows doit être pris en compte dans la stratégie de redémarrage.
 
 ## Qualification et critères de sortie
 
-Tous les scénarios sont à exécuter ; ce document ne fournit aucune preuve d’implémentation.
+La [preuve L9](evidence/l9.md) distingue les scénarios acquis localement des qualifications encore à exécuter ; cette table conserve les exigences de sortie.
 
 | Scénario | Résultat attendu |
 | --- | --- |
@@ -140,21 +140,21 @@ Tous les scénarios sont à exécuter ; ce document ne fournit aucune preuve d�
 
 Rattacher ces preuves à T14, T16, T12, T18 et T20 de la stratégie de tests. Qualifier CLI, SQLite, arrêt/reprise et surveillance sur Linux/macOS/Windows ; inclure un parcours navigateur et documenter sa plateforme. La compatibilité annoncée suit uniquement les preuves acquises.
 
-## Détails restant à finaliser avant implémentation
+## Détails de livraison et choix techniques
 
-- Noms publics des packages/templates et mode d’installation de la CLI.
-- Schéma JSON versionné et correspondance détaillée avec les services de configuration existants, dont l’administration locale.
-- Commandes de réconciliation du seed et de réinitialisation locale.
-- Organisation physique et rétention des générations ; stratégie de restauration de l’ancien hôte après échec.
-- Codes de sortie détaillés, format transportable des archives et éventuelle extension de providers.
+- CLI sous forme d’outil .NET `ew`, packages et templates locaux `1.0.0` ; noms et versions publics à confirmer en L10.
+- Schéma JSON versionné livré dans [schemas/ew.dev.schema.json](schemas/ew.dev.schema.json), avec SMTP explicite et `moduleDirectories` pour les propriétaires exacts externes.
+- Seed conservé après initialisation ; modification refusée et réinitialisation explicite avec archivage via `--reset`.
+- Générations immuables sous `.ew/dev/artifacts/<id>/<release>` ; validation du catalogue combiné avant activation. Erreur de compilation ou de version : ancien hôte conservé ; échec de démarrage après arrêt : runtime signalé arrêté.
+- Packaging en répertoire ; archives de transport et publication NuGet.org restent en L10. Les dépendances natives/RID et satellites sont refusées par le format initial.
 
-Ces points ne remettent pas en attente le périmètre confirmé de `ew dev` ; ils doivent être explicités dans la préparation technique L9 sans prétendre déjà disposer d’un runtime livré.
+Le [guide CLI](l9-cli.md) expose les limites et commandes de qualification. Le support revendiqué reste limité aux preuves acquises ; aucune réussite CI L9 n’est présumée.
 
 ## Complément de séquencement — qualification intégrée L8b/L9
 
-Le 20 octobre 2026, le porteur fournit la preuve Oracle 19 (13 tests réussis, 0 échec, 0 ignoré) et lève le gate d’entrée L9. Il reporte explicitement le parcours LeaveRequest complet et la qualification SMTP à la sortie L9 pour exercer le SDK et les nouvelles commandes ensemble. Ces preuves restent obligatoires avant clôture L9 ; le lot n’est pas encore implémenté.
+Le 20 octobre 2026, le porteur fournit la preuve Oracle 19 (13 tests réussis, 0 échec, 0 ignoré) et lève le gate d’entrée L9. Il reporte explicitement le parcours LeaveRequest complet et la qualification SMTP à la sortie L9 pour exercer le SDK et les nouvelles commandes ensemble. Ces preuves restent obligatoires avant clôture L9 ; le lot est désormais implémenté localement et sa qualification est suivie séparément.
 
-Ajouter à la configuration du runtime de développement un bloc SMTP explicite couvrant les options `Notifications:Smtp` existantes (hôte, port, TLS, expéditeur, URL de base, pagination, timeout, adresses et références aux secrets si nécessaires). Le schéma exact sera défini en implémentation ; aucun SMTP activé par défaut et aucun secret dans les packages. Cette capacité complète le schéma initial ; la sélection Oracle/LDAP pour `ew dev` reste différée.
+Ajouter à la configuration du runtime de développement un bloc SMTP explicite couvrant les options `Notifications:Smtp` existantes (hôte, port, TLS, expéditeur, URL de base, pagination, timeout, adresses et références aux secrets si nécessaires). Le bloc `smtp` est livré dans le schéma JSON v1 ; aucun SMTP activé par défaut et aucun secret dans les packages. Cette capacité complète le schéma initial ; la sélection Oracle/LDAP pour `ew dev` reste différée.
 
 Livrer une stack Docker Compose de capture SMTP et sa procédure : endpoint SMTP réel, consultation des messages, version d’image fixée, disponibilité, ports locaux et nettoyage. Elle reste facultative pour `ew dev` et sert à qualifier notifications, fan-out, retries et panne/reprise durant le parcours navigateur. Aucune livraison Internet ni capacité TLS/authentification de production n’est déduite de cette capture.
 

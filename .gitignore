@@ -9,3 +9,7 @@
 TestResults/
 tests/ldap/certs/
 tests/oracle/.env
+
+**/.ew/
+
+/artifacts/

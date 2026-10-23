@@ -2,7 +2,7 @@
 
 Date : 20 octobre 2026.
 
-Statut : implémentation terminée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions sur les trois OS, du test Playwright Linux et d’OpenLDAP/LDAPS paginé. Oracle 19 est ensuite confirmé par une capture du porteur : 13 tests réussis, aucun échec ni ignoré. Le SMTP et le parcours métier LeaveRequest complet sont explicitement reportés à la qualification intégrée de sortie L9 ; ils ne bloquent plus son démarrage. La [preuve](evidence/l8b.md) distingue les résultats acquis de ces capacités encore à qualifier.
+Statut : implémentation terminée. Le porteur confirme le 20 octobre 2026 la réussite de GitHub Actions sur les trois OS, du test Playwright Linux et d’OpenLDAP/LDAPS paginé. Oracle 19 est ensuite confirmé par une capture du porteur : 13 tests réussis, aucun échec ni ignoré. Le SMTP et le parcours métier LeaveRequest complet sont explicitement reportés à la qualification intégrée de sortie L9 ; ils ne bloquent plus son démarrage. La [preuve](evidence/l8b.md) distingue les résultats acquis. La [preuve locale L9](evidence/l9.md) acquiert ensuite les branches métier principales et le SMTP avec panne/reprise, via les commandes et Chromium ; les compléments de qualification y restent explicites.
 
 ## 1. Compilation et suites complètes en Release — acquises en CI
 

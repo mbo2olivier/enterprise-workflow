@@ -22,3 +22,9 @@ Le manifeste est produit depuis le module avec `WorkflowModuleManifestWriter.Cre
 Les emails de pool sont activés uniquement si `Notifications:Smtp:Host` est configuré dans le Kernel. Sans SMTP, le parcours inbox est identique. Pour les comptes locaux, fournir la correspondance `Notifications:Smtp:Addresses` avec une clé `local|<subjectId>` ; les identités d’annuaire utilisent leur email courant lorsqu’il est disponible. Les secrets SMTP restent dans la configuration de l’installation.
 
 Le [guide SDK](../../docs/sdk-fluent-design.md) décrit les contrats ; [l8b-validation.md](../../docs/l8b-validation.md) contient les tests externes restant à exécuter.
+
+## Exécuter avec la CLI L9
+
+Après installation locale de `ew` selon le [guide](../../docs/l9-cli.md), lancer `ew dev --project samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj` depuis le dépôt. Le fichier `ew.dev.json` initialise Alice, Bob et Carol avec des permissions explicites ; choisir une identité dans le sélecteur. Aucun SMTP n’est activé par défaut. `ew dev --reset` archive l’ancien environnement si son seed doit être remplacé.
+
+`ew pack --project samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj --output ./artifacts` produit le package installable ; `ew verify ./artifacts/sample.leave-request/1.0.0` vérifie son intégrité et ses déclarations. Le [script navigateur](../../scripts/qualify-l9-browser.sh) utilise une copie isolée du module et la [capture SMTP Docker](../../tests/smtp/README.md).

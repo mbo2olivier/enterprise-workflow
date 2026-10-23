@@ -1,9 +1,19 @@
 @inherits LayoutComponentBase
+@inject IServiceProvider Services
+@inject IAuthorizationProvider Authorization
 @inject NavigationManager Navigation
 @inject WorkflowWebIdentityAccessor Identity
 @inject ILocalAccountStore LocalAccounts
 @inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
+<div class="portal-frame">
+@if (Services.GetService(typeof(WorkflowDevelopmentEnvironment)) is WorkflowDevelopmentEnvironment development)
+{
+    <aside class="development-banner" aria-label="Environnement de développement">
+        <span><strong>Développement</strong><span class="development-banner-detail"> · @_displayName · @development.ModuleSummary</span></span>
+        <a href="/__ew/dev">Changer d’identité <span aria-hidden="true">→</span></a>
+    </aside>
+}
 <div class="app-shell">
     <aside class="sidebar @(IsAdmin ? "admin-mode" : null)">
         <a class="brand" href="/" aria-label="Enterprise Workflow">
@@ -45,7 +55,7 @@
             <details class="top-profile-wrap">
                 <summary class="top-profile-button" aria-label="Ouvrir le menu utilisateur">
                     <span class="avatar">@Initials</span>
-                    <span class="profile-copy"><strong>@_displayName</strong><small>@(IsAdmin ? "Mode administration" : "Administrateur")</small></span>
+                    <span class="profile-copy"><strong>@_displayName</strong><small>@(IsAdmin ? "Mode administration" : (_canAdmin ? "Administrateur" : "Utilisateur"))</small></span>
                     <PhosphorIcon Name="caret-down" Size="15" CssClass="profile-caret" />
                 </summary>
                 <div class="top-profile-menu" role="menu">
@@ -53,7 +63,7 @@
                     {
                         <a role="menuitem" href="/"><PhosphorIcon Name="arrow-left" Size="17" /> Retour à l’application</a>
                     }
-                    else
+                    else if (_canAdmin)
                     {
                         <a role="menuitem" href="/admin"><PhosphorIcon Name="gear" Size="17" /> Administration</a>
                     }
@@ -68,12 +78,16 @@
     </main>
 </div>
 
+</div>
+
 @code {
+    private bool _canAdmin;
     private string _displayName = "Utilisateur";
 
     protected override async Task OnInitializedAsync()
     {
         var identity = await Identity.GetRequiredAsync();
+        _canAdmin = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ManageAccess), CancellationToken.None)).Allowed;
         if (string.Equals(identity.ProviderId, SecurityProviderIds.Local, StringComparison.Ordinal))
         {
             var account = await LocalAccounts.FindByIdentityAsync(identity, CancellationToken.None);

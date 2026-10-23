@@ -84,5 +84,14 @@ jobs:
         if: always() && runner.os == 'Linux'
         run: docker compose -f tests/ldap/docker-compose.yml down --volumes
 
+      - name: Qualify L9 local packages and generated projects
+        shell: bash
+        run: ./scripts/qualify-l9.sh "$RUNNER_TEMP/ew-l9-qualification"
+
+      - name: Qualify L9 development runtime and SMTP in Chromium
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/qualify-l9-browser.sh "$RUNNER_TEMP/ew-l9-qualification"
+
       - name: Run executable workflow sample
         run: dotnet run --project samples/ExecutableWorkflow/ExecutableWorkflow.csproj --configuration Release --no-build --no-restore

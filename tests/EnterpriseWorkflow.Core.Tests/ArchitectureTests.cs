@@ -13,6 +13,7 @@ public sealed class ArchitectureTests
         var expectedReferences = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["EnterpriseWorkflow.Abstractions"] = [],
+            ["EnterpriseWorkflow.Cli"] = ["EnterpriseWorkflow.Extensions", "EnterpriseWorkflow.Persistence.Sqlite", "EnterpriseWorkflow.Security.Persistence.Sqlite", "EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Web"],
             ["EnterpriseWorkflow.Core"] = ["EnterpriseWorkflow.Abstractions"],
             ["EnterpriseWorkflow.Extensions.Abstractions"] =
                 ["EnterpriseWorkflow.Presentation.Abstractions", "EnterpriseWorkflow.Runtime", "EnterpriseWorkflow.Sdk"],

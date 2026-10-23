@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : L8b implémenté, 116 tests légers locaux réussis ; Oracle 19 confirmé (13 tests réussis) ; parcours métier et SMTP réservés à la sortie L9. Les lots L1 à L8 sont terminés et qualifiés ; L8 est confirmé sur la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : L9 implémenté localement (CLI, templates, `ew dev`, packaging et embedded), qualification CI L9 restante. L8b est implémenté ; Oracle 19 est confirmé (13 tests réussis), parcours métier et SMTP sont vérifiés localement avec L9. Les lots L1 à L8 sont terminés et qualifiés ; L8 est confirmé sur la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 
@@ -47,6 +47,8 @@ Les versions NuGet sont centralisées et chaque projet possède un fichier de ve
 22. [Preuve locale L8b](docs/evidence/l8b.md)
 23. [Validation restante L8b](docs/l8b-validation.md)
 24. [Spécification L9 : CLI, templates et `ew dev`](docs/l9-spec.md)
+25. [Utiliser la CLI L9](docs/l9-cli.md)
+26. [Preuve locale L9](docs/evidence/l9.md)
 
 ## Documents de référence
 

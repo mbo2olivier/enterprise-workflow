@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="EnterpriseWorkflow.Persistence.Sqlite" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Presentation" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Security.Persistence.Sqlite" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Security" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Runtime" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Sdk" Version="1.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageType>Template</PackageType>
+    <PackageId>EnterpriseWorkflow.Templates</PackageId>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <Description>Enterprise Workflow module and embedded project templates.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="module/**/*" Exclude="**/bin/**;**/obj/**;**/.ew/**" Pack="true" PackagePath="content/%(Identity)" />
+    <Content Include="embedded/**/*" Exclude="**/bin/**;**/obj/**;**/.ew/**" Pack="true" PackagePath="content/%(Identity)" />
+  </ItemGroup>
+</Project>

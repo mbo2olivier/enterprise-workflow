@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "seed": {
+    "users": [
+      {
+        "id": "alice",
+        "displayName": "Alice — Demandeuse",
+        "permissions": [
+          "sample.workflow.request",
+          "sample.workflow.read"
+        ]
+      },
+      {
+        "id": "bob",
+        "displayName": "Bob — Approbateur",
+        "permissions": [
+          "sample.workflow.review",
+          "sample.workflow.read"
+        ]
+      }
+    ]
+  }
+}

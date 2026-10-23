@@ -1,0 +1,26 @@
+@using System.Text.Json
+<div class="panel data-table-panel">
+    <div class="data-table-scroll" tabindex="0" role="region" aria-label="Données de la demande">
+        <table class="workflow-data-table">
+            <caption>Données de la demande</caption>
+            <thead><tr><th scope="col">Champ</th><th scope="col">Valeur</th></tr></thead>
+            <tbody>
+                @foreach (var field in Data.EnumerateObject())
+                {
+                    <tr><th scope="row">@(Labels?.GetValueOrDefault(field.Name) ?? field.Name)</th><td>@DisplayValue(field.Value)</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+@code {
+    [Parameter, EditorRequired] public JsonElement Data { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, string>? Labels { get; set; }
+    private static string DisplayValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Null or JsonValueKind.Undefined => "—",
+        JsonValueKind.True => "Oui",
+        JsonValueKind.False => "Non",
+        _ => value.ToString(),
+    };
+}

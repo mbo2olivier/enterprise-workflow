@@ -1,6 +1,6 @@
 # SDK fluent — lot L8b
 
-Date : 20 octobre 2026. Implémentation livrée ; qualification intégrée parcours métier/SMTP restante en sortie L9 dans [l8b-validation.md](l8b-validation.md). Les décisions acceptées sont consignées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md).
+Date : 20 octobre 2026. Implémentation livrée ; qualification intégrée locale documentée en [L9](evidence/l9.md), compléments de qualification restants dans [l8b-validation.md](l8b-validation.md). Les décisions acceptées sont consignées dans l’[ADR 0024](adr/0024-sdk-fluent-permissions-affectation.md).
 
 ## Module et processus
 
@@ -67,6 +67,6 @@ Les politiques fluent sont conservées dans la propriété réservée `$workflow
 
 Ce format ne modifie pas les octets ou hashes des anciennes définitions. Le JSON canonique de la définition constitue l’aperçu déterministe : références qualifiées, révisions, artefacts, permissions, affectations, actions et transitions. Aucun type CLR ou callback d’auteur n’est sérialisé comme comportement exécutable.
 
-## Boucle de développement prévue en L9
+## Boucle de développement L9
 
-`ew dev` compilera le module et préparera un artefact local pour un hôte de développement avec SQLite et UI, sans projet Kernel à écrire. Il réutilisera les règles de manifeste et de validation de `ew pack`, préservera les artefacts exacts et permettra de tester les identités et parcours L8b. Configuration, surveillance et critères sont décrits dans la [spécification L9](l9-spec.md). Ces commandes ne sont pas encore implémentées.
+`ew dev` compile le module et prépare un artefact local pour un hôte de développement avec SQLite et UI, sans projet Kernel à écrire. Il partage les règles de manifeste et de validation de `ew pack`, préserve les artefacts exacts et permet de tester les identités et parcours L8b. `--module-directory` fournit explicitement les propriétaires de contrats externes réutilisés. Voir le [guide CLI](l9-cli.md), la [spécification L9](l9-spec.md) et la [preuve locale](evidence/l9.md) ; aucune qualification CI L9 n’est présumée.

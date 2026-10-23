@@ -20,12 +20,7 @@
         }
         @if (_task.Summary is not null)
         {
-            <dl class="panel">
-                @foreach (var field in _task.Summary.ToJsonElement().EnumerateObject())
-                {
-                    <dt>@(_task.SummaryLabels?.GetValueOrDefault(field.Name) ?? field.Name)</dt><dd>@field.Value.ToString()</dd>
-                }
-            </dl>
+            <WorkflowDataTable Data="_task.Summary.ToJsonElement()" Labels="_task.SummaryLabels" />
         }
         @if (_task.CanAssign || _task.Policy?.Actions.Values.Any(action => action.AssigneeTarget is not null) == true)
         {
@@ -83,7 +78,7 @@
                     }
                     @foreach (var action in _task.Actions)
                     {
-                        <button class="@(action.ActionId.Value.Contains("reject", StringComparison.Ordinal) ? "secondary-button" : "primary-button")"
+                        <button class="@((action.ActionId.Value.Contains("reject", StringComparison.Ordinal) || action.ActionId.Value.Contains("cancel", StringComparison.Ordinal)) ? "secondary-button" : "primary-button")"
                                 type="submit" name="action" value="@action.ActionId.Value">@(_task.Policy?.Actions.GetValueOrDefault(action.ActionId.Value)?.Label ?? ActionLabel(action.ActionId.Value))</button>
                     }
                 </div>
