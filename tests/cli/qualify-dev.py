@@ -5,9 +5,11 @@ if len(sys.argv) != 3:
 cli=str(Path(sys.argv[1]).resolve())
 project=Path(sys.argv[2]).resolve()
 source=project/'Acme.LeaveModule.cs'
-original=source.read_text()
+original=source.read_text(encoding='utf-8')
 logpath=project.parent/'dev-qualification.log'
-log=logpath.open('w')
+log=logpath.open('wb')
+# The CLI emits UTF-8; polling may observe an incomplete trailing multibyte character.
+def read_log():return logpath.read_text(encoding='utf-8',errors='replace')
 with socket.socket() as reservation:
  reservation.bind(('127.0.0.1',0))
  port=reservation.getsockname()[1]
@@ -17,12 +19,12 @@ jar=http.cookiejar.CookieJar();opener=urllib.request.build_opener(urllib.request
 def wait(check,message,timeout=45):
  deadline=time.monotonic()+timeout
  while time.monotonic()<deadline:
-  if process.poll() is not None:raise RuntimeError(logpath.read_text()[-4000:])
+  if process.poll() is not None:raise RuntimeError(read_log()[-4000:])
   try:
    if check():print(message,flush=True);return
   except (OSError,urllib.error.URLError):pass
   time.sleep(.4)
- raise RuntimeError(message+' timed out\n'+logpath.read_text()[-3000:])
+ raise RuntimeError(message+' timed out\n'+read_log()[-3000:])
 def get(path):return opener.open(base+path,timeout=3).read().decode()
 def form_fields(html):return {k:v for k,v in re.findall(r'<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"',html)}
 def post(path,data):
@@ -36,13 +38,13 @@ try:
  assert 'started=' in response.url,response.url
  db=project/'.ew/dev/workflow.db'
  wait(lambda:sqlite3.connect(db).execute('select count(*) from EwHumanTasks').fetchone()[0]==1,'Durable task created')
- source.write_text(original+'\nBROKEN CSHARP\n')
- wait(lambda:'Ancienne génération toujours active' in logpath.read_text(),'Compilation failure retained old runtime')
+ source.write_text(original+'\nBROKEN CSHARP\n',encoding='utf-8')
+ wait(lambda:'Ancienne génération toujours active' in read_log(),'Compilation failure retained old runtime')
  assert 'Développement' in get('/__ew/dev')
- source.write_text(original.replace('.WithName("Acme.Leave")','.WithName("Changed preview")'))
- wait(lambda:'Release already used with another hash' in logpath.read_text(),'Same-release mutation rejected')
+ source.write_text(original.replace('.WithName("Acme.Leave")','.WithName("Changed preview")'),encoding='utf-8')
+ wait(lambda:'Release already used with another hash' in read_log(),'Same-release mutation rejected')
  assert 'Développement' in get('/__ew/dev')
- source.write_text(original.replace('"1.0.0", 1','"1.0.1", 2').replace('.WithName("Acme.Leave")','.WithName("Changed preview")'))
+ source.write_text(original.replace('"1.0.0", 1','"1.0.1", 2').replace('.WithName("Acme.Leave")','.WithName("Changed preview")'),encoding='utf-8')
  wait(lambda:'1.0.1' in get('/__ew/dev'),'Versioned restart ready')
  assert '1.0.0' in get('/__ew/dev')
  c=sqlite3.connect(db)

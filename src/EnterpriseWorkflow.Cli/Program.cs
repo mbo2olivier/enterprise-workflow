@@ -1,10 +1,14 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using System.Text.Json;
 using EnterpriseWorkflow.Extensions;
 using EnterpriseWorkflow.Runtime;
 using Microsoft.Extensions.DependencyInjection;
+
+// Keep redirected CLI diagnostics consistent across Windows and Unix consumers.
+Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
 try
 {
