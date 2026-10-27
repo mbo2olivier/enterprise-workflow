@@ -4,8 +4,17 @@ using System.Text;
 
 namespace EnterpriseWorkflow.Security.Persistence;
 
-public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore, IWorkflowAccessStore, IPresentationSettingsStore
+public sealed partial class RelationalSecurityStore(Func<SecurityDbContext> createContext, TimeProvider timeProvider) : ISecurityProfileStore, ILocalAccountStore, ISecuritySessionStore, ILocalSecurityProvisioningStore, IWorkflowAccessStore, IPresentationSettingsStore
 {
+    public async ValueTask<ProviderResult<IReadOnlyList<LocalAccount>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken)
+    {
+        await using var db = createContext();
+        var normalized = query.Trim().ToUpperInvariant();
+        var rows = await db.LocalAccounts.AsNoTracking().Where(row => row.Enabled && row.NormalizedUserName.Contains(normalized))
+            .OrderBy(row => row.NormalizedUserName).Take(Math.Clamp(maximumResults, 1, 100)).ToListAsync(cancellationToken);
+        return new(ProviderOutcome.Succeeded, rows.Select(ToAccount).ToArray());
+    }
+
     public async ValueTask<ProviderResult<IReadOnlyList<IdentityReference>>> ListKnownIdentitiesAsync(int offset, int maximumResults, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
@@ -95,6 +104,26 @@ public sealed class RelationalSecurityStore(Func<SecurityDbContext> createContex
 
     public ValueTask<ProviderResult<bool>> AssignIdentityAsync(IdentityReference identity, string profileId, IdentityReference actor, CancellationToken cancellationToken) =>
         ChangeIdentity(identity, profileId, actor, add: true, cancellationToken);
+    public async ValueTask<ProviderResult<bool>> ReplaceIdentityProfileAsync(IdentityReference identity, string oldProfileId, string newProfileId, IdentityReference actor, CancellationToken cancellationToken)
+    {
+        await using var db = createContext();
+        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
+        var oldProfile = await db.Profiles.FindAsync([oldProfileId], cancellationToken);
+        var newProfile = await db.Profiles.FindAsync([newProfileId], cancellationToken);
+        var previous = await db.IdentityProfiles.FindAsync([identity.ProviderId, identity.SubjectId, oldProfileId], cancellationToken);
+        if (oldProfile is null || newProfile is null || previous is null) return new(ProviderOutcome.Conflict, ErrorCode: "security.profile-assignment-changed");
+        if (oldProfileId == newProfileId) return new(ProviderOutcome.Succeeded, true);
+        if (oldProfile.GrantsAdministrativeAccess && !newProfile.GrantsAdministrativeAccess &&
+            !await HasAdministratorOutsideAsync(db, identity.ProviderId, identity.SubjectId, oldProfileId, cancellationToken))
+            return new(ProviderOutcome.Conflict, ErrorCode: "security.last-administrator");
+        if (await db.IdentityProfiles.FindAsync([identity.ProviderId, identity.SubjectId, newProfileId], cancellationToken) is null)
+            db.IdentityProfiles.Add(new() { ProviderId = identity.ProviderId, SubjectId = identity.SubjectId, ProfileId = newProfileId });
+        db.IdentityProfiles.Remove(previous);
+        AddAudit(db, actor, "security.identity.profile-change", $"{identity.ProviderId}:{identity.SubjectId}:{oldProfileId}:{newProfileId}", "succeeded");
+        await db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return new(ProviderOutcome.Succeeded, true);
+    }
     public ValueTask<ProviderResult<bool>> UnassignIdentityAsync(IdentityReference identity, string profileId, IdentityReference actor, CancellationToken cancellationToken) =>
         ChangeIdentity(identity, profileId, actor, add: false, cancellationToken);
     public ValueTask<ProviderResult<bool>> MapGroupAsync(GroupReference group, string profileId, IdentityReference actor, CancellationToken cancellationToken) => ChangeGroup(group, profileId, actor, true, cancellationToken);

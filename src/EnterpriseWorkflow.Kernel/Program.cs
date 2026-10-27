@@ -145,9 +145,12 @@ builder.Services.AddSingleton<IExternalEffectTransport>(services => new Workflow
     services.GetRequiredService<IWorkflowStore>(), services.GetRequiredService<IWorkflowAuthorizationService>(),
     services.GetRequiredService<ISecurityProfileStore>(), services.GetRequiredService<ILocalAccountStore>(),
     directories, smtp, new SmtpWorkflowMailSender(smtp), new KernelExternalEffectTransport()));
-builder.Services.AddEnterpriseWorkflowRuntime<KernelExternalEffectTransport>(options => options.NotifyHumanTaskPools = smtp.Enabled);
+builder.Services.AddEnterpriseWorkflowRuntime<KernelExternalEffectTransport>(options => { options.NotifyHumanTaskPools = smtp.Enabled; builder.Configuration.GetSection("Workflow:Serialization").Bind(options.Serialization); });
 builder.Services.AddEnterpriseWorkflowPresentation(options =>
-    options.InstallationId = builder.Configuration["Installation:Id"] ?? "enterprise-workflow");
+{
+    options.InstallationId = builder.Configuration["Installation:Id"] ?? "enterprise-workflow";
+    options.MediaRoot = builder.Configuration["Media:Root"] ?? Path.Combine(AppContext.BaseDirectory, "media");
+});
 builder.Services.AddEnterpriseWorkflowWeb();
 
 var app = builder.Build();

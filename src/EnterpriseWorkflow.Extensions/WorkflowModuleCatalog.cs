@@ -66,6 +66,13 @@ public sealed class WorkflowModuleCatalog
                     return new WorkflowModuleComponent(component.Id, component.TypeName, type);
                 }).ToImmutableArray();
                 var entryPoint = (IWorkflowModule)Activator.CreateInstance(entryType)!;
+                if (artifact.Manifest.DevelopmentGeneration is { } generation)
+                {
+                    if (entryPoint is not WorkflowModule fluent) throw new WorkflowModuleLoadException("EW7052_INVALID_DEVELOPMENT_MODULE", "Development generations require a fluent WorkflowModule.");
+                    fluent.SetDevelopmentGeneration(generation);
+                }
+                if (artifact.Manifest.DevelopmentGeneration is null && entryPoint.Info?.ContractRevision >= 1000000000)
+                    throw new WorkflowModuleLoadException("EW7053_RESERVED_DEVELOPMENT_REVISION", "This contract revision is reserved for local development generations.");
                 if (entryPoint.Info is { } info && (info.Id != artifact.Manifest.Id || info.ReleaseVersion != artifact.Manifest.Version))
                     throw new WorkflowModuleLoadException("EW7031_MODULE_METADATA_MISMATCH", "Module authoring metadata does not match its artifact manifest.");
                 var module = new LoadedWorkflowModule(artifact.RootPath, artifact.Manifest, artifact.ArtifactSha256,
@@ -88,6 +95,12 @@ public sealed class WorkflowModuleCatalog
             }
         }
         return new WorkflowModuleCatalog(loaded.MoveToImmutable(), resources.ToImmutable());
+    }
+
+    public static (WorkflowModuleManifest Manifest, string Sha256) InspectArtifact(string path, bool allowDevelopment = false)
+    {
+        var artifact = WorkflowModuleManifestReader.Read(path, new() { AllowDevelopmentGenerations = allowDevelopment });
+        return (artifact.Manifest, artifact.ArtifactSha256);
     }
 
     public bool TryOpenResource(

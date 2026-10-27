@@ -17,6 +17,7 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
 {
     private static readonly TechnicalId UnhandledError = new("runtime.unhandled-handler-exception");
     private static readonly TechnicalId TimeoutError = new("runtime.handler-timeout");
+    private readonly IWorkflowStateValidationService? _stateValidation;
     private readonly IWorkflowStore _store;
     private readonly IScopedWorkflowHandlerResolver _resolver;
     private readonly WorkflowRuntimeOptions _options;
@@ -24,14 +25,19 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
     private readonly TimeProvider _timeProvider;
     private readonly IWorkflowAuthorizationService? _authorization;
 
+    private readonly EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer _serializer;
+
     public WorkflowExecutionPump(
         IWorkflowStore store,
         IScopedWorkflowHandlerResolver resolver,
         IOptions<WorkflowRuntimeOptions> options,
         IWorkflowRetryDelayStrategy retry,
         TimeProvider timeProvider,
-        IWorkflowAuthorizationService? authorization = null)
+        IWorkflowAuthorizationService? authorization = null,
+        IWorkflowStateValidationService? stateValidation = null, EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer? serializer = null)
     {
+        _serializer = serializer ?? new EnterpriseWorkflow.Core.Serialization.WorkflowSerializer(options.Value.Serialization);
+        _stateValidation = stateValidation;
         _store = store;
         _resolver = resolver;
         _options = options.Value;
@@ -121,6 +127,13 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
             if (!leaseLost.Task.IsCompleted && !stoppingToken.IsCancellationRequested)
                 await CommitFailureAsync(claimed, TimeoutError, stoppingToken).ConfigureAwait(false);
         }
+        catch (WorkflowMediaInspectionPendingException)
+        {
+            heartbeatStop.Cancel();
+            await IgnoreHeartbeatCancellationAsync(heartbeat).ConfigureAwait(false);
+            if (!leaseLost.Task.IsCompleted && !stoppingToken.IsCancellationRequested)
+                await CommitFailureAsync(claimed, new("runtime.media-inspection-pending"), stoppingToken).ConfigureAwait(false);
+        }
         catch (WorkflowRuntimeException)
         {
             throw;
@@ -137,19 +150,33 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
     private async Task<ServiceNodeResult> InvokeServiceAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token)
     {
         await using var scope = _resolver.ResolveService(node.Handler!);
-        return await scope.Handler.ExecuteAsync(CreateContext(claimed, node), token).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("A service handler returned null.");
+        var context = CreateContext(claimed, node);
+        try
+        {
+            var result = await scope.Handler.ExecuteAsync(context, token).ConfigureAwait(false) ?? throw new InvalidOperationException("A service handler returned null.");
+            var media = context.MediaExecution!.Seal();
+            return result.Disposition == NodeExecutionDisposition.Succeeded ? result.WithCollectedMedia(media.Attachments, media.Deletions) : result;
+        }
+        catch { try { context.MediaExecution!.Seal(); } catch (InvalidOperationException) { } throw; }
     }
 
     private async Task<DecisionNodeResult> InvokeDecisionAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token)
     {
         await using var scope = _resolver.ResolveDecision(node.Handler!);
-        return await scope.Handler.EvaluateAsync(CreateContext(claimed, node), token).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("A decision handler returned null.");
+        var context = CreateContext(claimed, node);
+        try
+        {
+            var result = await scope.Handler.EvaluateAsync(context, token).ConfigureAwait(false) ?? throw new InvalidOperationException("A decision handler returned null.");
+            var media = context.MediaExecution!.Seal();
+            if (media.Attachments.Length > 0 || media.Deletions.Length > 0) throw new InvalidOperationException("Decision handlers cannot write media.");
+            return result;
+        }
+        catch { try { context.MediaExecution!.Seal(); } catch (InvalidOperationException) { } throw; }
     }
 
     private static NodeExecutionContext CreateContext(ClaimedWork claimed, WorkflowNode node) => new(
-        claimed.Lease.InstanceId, claimed.Lease.ActivationId, node.Id, claimed.Attempt, claimed.State, node.Configuration);
+        claimed.Lease.InstanceId, claimed.Lease.ActivationId, node.Id, claimed.Attempt, claimed.State, node.Configuration)
+        { MediaExecution = WorkflowMediaSession.Create(claimed.Definition, node.Configuration, new(new(new("system"), "workflow"), claimed.Lease.InstanceId, claimed.Lease.ActivationId)) };
 
     private async Task CommitHumanWaitAsync(ClaimedWork claimed, WorkflowNode node, CancellationToken token)
     {
@@ -193,7 +220,7 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
         {
             var outbox = result.Effects.Select(item => new OutboxWrite(
                 item.OperationId, item.Destination, item.ContentType, item.Payload.CanonicalText)).ToArray();
-            await CommitSuccessAsync(claimed, node, null, result.StateUpdate, outbox, token).ConfigureAwait(false);
+            await CommitSuccessAsync(claimed, node, null, result.StateUpdate, outbox, token, result.Media, result.MediaDeletes).ConfigureAwait(false);
         }
         else
         {
@@ -216,7 +243,8 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
         TechnicalId? outcome,
         NodeStateUpdate stateUpdate,
         IReadOnlyList<OutboxWrite> outbox,
-        CancellationToken token)
+        CancellationToken token,
+        IReadOnlyList<WorkflowMediaReference>? media = null, IReadOnlyList<WorkflowMediaReference>? mediaDeletes = null)
     {
         var transition = node.Role is WorkflowNodeRole.Decision
             ? claimed.Definition.Transitions.SingleOrDefault(item =>
@@ -233,6 +261,20 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
             replacement = WorkflowState.Create(element.GetRawText(), claimed.State.SchemaVersion);
         }
 
+        if (!_serializer.IsValidState((replacement ?? claimed.State).Value))
+        { await CommitFailureAsync(claimed, new("runtime.state-invalid"), token, NodeExecutionDisposition.PermanentFailure).ConfigureAwait(false); return; }
+        var stateContract = _stateValidation?.GetContract(claimed.Definition, claimed.State.SchemaVersion) ?? WorkflowStateContract.From(claimed.Definition);
+        if (stateContract is not null && (stateContract.Version != claimed.State.SchemaVersion || stateContract.Validate((replacement ?? claimed.State).Value, WorkflowStagePolicy.Read(node.Configuration)?.StateValidationGroups).Count > 0))
+        {
+            await CommitFailureAsync(claimed, new("runtime.state-invalid"), token, NodeExecutionDisposition.PermanentFailure).ConfigureAwait(false);
+            return;
+        }
+        if ((stateContract?.Validators?.Length ?? 0) > 0 && (_stateValidation is null || !await _stateValidation.ValidateAsync(claimed.Definition,
+            new(replacement ?? claimed.State, node.Id.Value, outcome?.Value, WorkflowStagePolicy.Read(node.Configuration)?.StateValidationGroups ?? []), token)))
+        {
+            await CommitFailureAsync(claimed, new("runtime.state-invalid"), token, NodeExecutionDisposition.PermanentFailure).ConfigureAwait(false);
+            return;
+        }
         await CommitAsync(
             claimed,
             NodeCommitKind.Continue,
@@ -240,7 +282,7 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
             new NextWork(transition.TargetId, MillisecondUtcNow()),
             null,
             outbox,
-            token).ConfigureAwait(false);
+            token, media: media, mediaDeletes: mediaDeletes).ConfigureAwait(false);
     }
 
     private Task CommitFailureAsync(
@@ -268,11 +310,12 @@ internal sealed class WorkflowExecutionPump : IWorkflowExecutionPump
         IReadOnlyList<OutboxWrite> outbox,
         CancellationToken token,
         HumanTaskWait? humanTask = null,
-        TimerWait? timer = null)
+        TimerWait? timer = null,
+        IReadOnlyList<WorkflowMediaReference>? media = null, IReadOnlyList<WorkflowMediaReference>? mediaDeletes = null)
     {
         var result = await _store.CommitNodeResultAsync(new CommitNodeResultCommand(
             claimed.Lease.WorkItemId, claimed.Lease.Token, claimed.Lease.Generation,
-            claimed.Lease.InstanceRevision, kind, replacement, nextWork, errorCode, outbox, humanTask, timer), token).ConfigureAwait(false);
+            claimed.Lease.InstanceRevision, kind, replacement, nextWork, errorCode, outbox, humanTask, timer, media, mediaDeletes), token).ConfigureAwait(false);
         if (result.Outcome is not StoreOutcome.Succeeded)
             throw new WorkflowRuntimeException(result.ErrorCode ?? "EW4091_COMMIT_FAILED", "The workflow result was not committed.");
     }

@@ -33,6 +33,10 @@ public readonly record struct PermissionId
 public static class WorkflowPermissions
 {
     public static readonly PermissionId ManageAccess = new("security.access.manage");
+    public static readonly PermissionId SearchByInitiator = new("workflow.instance.search.initiator");
+    public static readonly PermissionId ExportAudit = new("security.audit.export");
+    public static readonly PermissionId ReadTat = new("workflow.tat.read");
+    public static readonly PermissionId ExportTat = new("workflow.tat.export");
     public static readonly PermissionId ReadAudit = new("security.audit.read");
     public static readonly PermissionId SearchApprovalCandidates = new("workflow.approver.search");
     public static readonly PermissionId Approve = new("workflow.task.approve");

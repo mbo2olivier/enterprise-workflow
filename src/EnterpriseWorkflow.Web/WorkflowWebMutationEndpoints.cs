@@ -230,8 +230,10 @@ internal static class WorkflowWebMutationEndpoints
             var form = await context.Request.ReadFormAsync(context.RequestAborted).ConfigureAwait(false);
             var identity = new IdentityReference(form["providerId"].ToString(), form["subjectId"].ToString());
             var profileId = form["profileId"].ToString();
-            var result = add
-                ? await profiles.AssignIdentityAsync(identity, profileId, actor, context.RequestAborted).ConfigureAwait(false)
+            var oldProfileId = form["oldProfileId"].ToString();
+            var result = add && !string.IsNullOrEmpty(oldProfileId)
+                ? await profiles.ReplaceIdentityProfileAsync(identity, oldProfileId, profileId, actor, context.RequestAborted).ConfigureAwait(false)
+                : add ? await profiles.AssignIdentityAsync(identity, profileId, actor, context.RequestAborted).ConfigureAwait(false)
                 : await profiles.UnassignIdentityAsync(identity, profileId, actor, context.RequestAborted).ConfigureAwait(false);
             return AdminRedirect("/admin/access?tab=identities", result.Outcome, result.ErrorCode);
         }
@@ -366,7 +368,12 @@ internal static class WorkflowWebMutationEndpoints
                 if (!form.TryGetValue(name, out var values) || string.IsNullOrEmpty(values.ToString())) continue;
                 var value = values.ToString();
                 writer.WritePropertyName(field.Id.Value);
-                if (field.Kind is WorkflowFormFieldKind.Number &&
+                if (field.Kind is WorkflowFormFieldKind.File)
+                {
+                    using var document = JsonDocument.Parse(value);
+                    document.RootElement.WriteTo(writer);
+                }
+                else if (field.Kind is WorkflowFormFieldKind.Number &&
                     decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
                     writer.WriteNumberValue(number);
                 else

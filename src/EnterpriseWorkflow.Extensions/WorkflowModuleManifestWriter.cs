@@ -8,9 +8,12 @@ public static class WorkflowModuleManifestWriter
 {
     public static string Create(WorkflowModule entryPoint, string entryAssemblyPath,
         IEnumerable<string>? dependencyPaths = null,
-        IEnumerable<(string Path, string ContentType)>? resources = null)
+        IEnumerable<(string Path, string ContentType)>? resources = null, int? developmentGeneration = null)
     {
         ArgumentNullException.ThrowIfNull(entryPoint);
+        if (developmentGeneration is null && entryPoint.Info.ContractRevision >= 1000000000) throw new InvalidOperationException("Contract revisions from 1000000000 are reserved for local development generations.");
+        if (developmentGeneration is { } generation) entryPoint.SetDevelopmentGeneration(generation);
+        var metadata = ((IWorkflowModule)entryPoint).Info!;
         var fullPath = Path.GetFullPath(entryAssemblyPath);
         var root = Path.GetDirectoryName(fullPath)!;
         string Relative(string path)
@@ -22,9 +25,10 @@ public static class WorkflowModuleManifestWriter
         }
         return JsonSerializer.Serialize(new
         {
+            developmentGeneration,
             schemaVersion = WorkflowModuleLoadOptions.CurrentManifestSchemaVersion,
-            id = entryPoint.Info.Id.Value,
-            version = entryPoint.Info.ReleaseVersion,
+            id = metadata.Id.Value,
+            version = metadata.ReleaseVersion,
             contractVersion = WorkflowModuleLoadOptions.CurrentContractVersion,
             entryAssembly = Relative(fullPath),
             entryType = entryPoint.GetType().FullName,

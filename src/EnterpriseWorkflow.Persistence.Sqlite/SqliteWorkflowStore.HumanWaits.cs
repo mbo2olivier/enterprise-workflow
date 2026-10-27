@@ -180,7 +180,10 @@ public sealed partial class SqliteWorkflowStore
                 InstanceRevision = instance.Revision,
                 CommittedAtUnixMilliseconds = now,
             });
-            AddAudit(context, instance.Id, "HumanTaskCompleted", instance.Revision, now, command.Actor);
+            await AttachMediaAsync(context, command.Media, instance.Id, task.ActivationId, command.Actor, null, cancellationToken).ConfigureAwait(false);
+            await DeleteCommittedMediaAsync(context, command.MediaDeletes, instance.Id, cancellationToken).ConfigureAwait(false);
+            AddAudit(context, instance.Id, "HumanTaskCompleted", instance.Revision, now, command.Actor, task.NodeId, command.ActionId.Value);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new CompleteHumanTaskResult(task.Revision, instance.Revision, WasCompleted: true));
@@ -255,6 +258,7 @@ public sealed partial class SqliteWorkflowStore
             instance.UpdatedAtUnixMilliseconds = now;
             AddNextWork(context, instance.Id, new NextWork(new TechnicalId(timer.NextNodeId), DateTimeOffset.FromUnixTimeMilliseconds(now)), now);
             AddAudit(context, instance.Id, "TimerFired", instance.Revision, now);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new FireDueTimerResult(
@@ -297,6 +301,7 @@ public sealed partial class SqliteWorkflowStore
             instance.UpdatedAtUnixMilliseconds = now;
             AddNextWork(context, instance.Id, new NextWork(new TechnicalId(timer.NextNodeId), DateTimeOffset.FromUnixTimeMilliseconds(now)), now);
             AddAudit(context, instance.Id, "TimerFired", instance.Revision, now);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new FireNextDueTimerResult(
@@ -341,7 +346,8 @@ public sealed partial class SqliteWorkflowStore
             task.Revision = checked(task.Revision + 1);
             instance.Revision = checked(instance.Revision + 1);
             instance.UpdatedAtUnixMilliseconds = now;
-            AddAudit(context, instance.Id, eventType, instance.Revision, now, actor);
+            AddAudit(context, instance.Id, eventType, instance.Revision, now, actor, task.NodeId);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new HumanTaskMutationResult(newStatus, task.Revision, instance.Revision));

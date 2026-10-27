@@ -1,0 +1,65 @@
+@page "/admin/tat"
+@attribute [Authorize]
+@inject WorkflowTatService Tat
+@inject WorkflowWebIdentityAccessor Identity
+@inject IPresentationSettingsStore Settings
+@inject IAuthorizationProvider Authorization
+<PageTitle>Temps de traitement · Enterprise Workflow</PageTitle>
+<div class="content content-medium admin-content">
+<div class="page-intro"><p class="eyebrow">Administration</p><h1>Temps de traitement</h1><p>Durées calendaires. Les périodes sous affectation incluent l’inactivité et ne mesurent pas le travail actif.</p></div>
+<form method="get" class="panel filter-form">
+<div class="compact-form filter-fields">
+<label>Processus<input name="process" value="@Process" maxlength="128" /></label>
+<label>Version<input name="version" value="@Version" type="number" min="1" /></label>
+<label>Étape<input name="node" value="@Node" maxlength="128" /></label>
+<label>Clôturée depuis<input name="from" value="@From" type="date" /></label>
+<label>Clôturée jusqu’au<input name="until" value="@Until" type="date" /></label>
+<label>Fournisseur de l’analyste<input name="provider" value="@Provider" maxlength="128" /></label>
+<label>Analyste<input name="analyst" value="@Analyst" maxlength="256" /></label>
+<label>Regroupement<select name="group"><option value="stage" selected="@(Group != "analyst")">Par étape</option><option value="analyst" selected="@(Group == "analyst")">Par analyste et étape</option></select></label>
+</div><footer class="filter-actions">
+<button class="primary-button" type="submit">Afficher</button>
+@if (_canExport) { <button class="secondary-button" type="submit" formaction="/admin/tat/export">Exporter CSV</button> }
+</footer></form>
+<p class="field-help">Les moyennes portent sur les intervalles clôturés dans la période. Les ouverts sont présentés séparément à l’instant du rapport. La couverture historique incomplète est exclue.</p>
+@if (_error is not null) { <p class="form-error" role="alert">Rapport indisponible : vérifiez vos droits ou réduisez la sélection (maximum 10 000 observations).</p> }
+else
+{
+<section class="panel data-panel"><div class="table-wrap"><table><thead><tr><th>Processus / version</th><th>Étape</th><th>Analyste</th><th>Clôturées</th><th>Moyenne</th><th>Min / max</th><th>Ouvertes</th><th>Âge maximum</th></tr></thead><tbody>
+@foreach (var row in _rows)
+{
+<tr><td>@row.ProcessId / @row.ProcessVersion</td><td>@row.NodeId</td><td>@row.Analyst?.ProviderId.Value / @row.Analyst?.SubjectId</td><td>@row.CompletedCount</td><td>@Duration(row.MeanMilliseconds)</td><td>@Duration(row.MinimumMilliseconds) / @Duration(row.MaximumMilliseconds)</td><td>@row.OpenCount</td><td>@Duration(row.OldestOpenMilliseconds)</td></tr>
+}
+</tbody></table></div>@if (_rows.Count == 0) { <p>Aucune observation complète pour ces filtres.</p> }</section>
+}
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "process")] public string? Process { get; set; }
+    [SupplyParameterFromQuery(Name = "version")] public string? Version { get; set; }
+    [SupplyParameterFromQuery(Name = "node")] public string? Node { get; set; }
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+    [SupplyParameterFromQuery(Name = "until")] public string? Until { get; set; }
+    [SupplyParameterFromQuery(Name = "provider")] public string? Provider { get; set; }
+    [SupplyParameterFromQuery(Name = "analyst")] public string? Analyst { get; set; }
+    [SupplyParameterFromQuery(Name = "group")] public string? Group { get; set; }
+    private IReadOnlyList<WorkflowTatRow> _rows = [];
+    private string? _error;
+    private bool _canExport;
+    protected override async Task OnParametersSetAsync()
+    {
+        var identity = await Identity.GetRequiredAsync();
+        _canExport = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ExportTat), CancellationToken.None)).Allowed;
+        try
+        {
+            var zone = (await Settings.ReadAsync(CancellationToken.None)).Value?.TimeZoneId ?? "UTC";
+            var dates = WorkflowAuditFilters.Create(From, Until, Provider, Analyst, null, null, null, null, null, zone);
+            var query = new WorkflowTatQuery(Process, string.IsNullOrEmpty(Version) ? null : int.Parse(Version, CultureInfo.InvariantCulture), Node,
+                dates.Actor is { } actor ? new(new(actor.ProviderId), actor.SubjectId) : null, Group == "analyst", dates.FromUtc, dates.UntilUtc);
+            var result = await Tat.ReadAsync(identity, query, CancellationToken.None);
+            _rows = result.Value ?? [];
+            _error = result.ErrorCode;
+        }
+        catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException) { _rows = []; _error = "invalid"; }
+    }
+    private static string Duration(double? milliseconds) => milliseconds is null ? "—" : TimeSpan.FromMilliseconds(milliseconds.Value).ToString("g", CultureInfo.InvariantCulture);
+}

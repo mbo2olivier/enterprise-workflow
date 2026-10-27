@@ -8,6 +8,7 @@ using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Runtime;
 using EnterpriseWorkflow.Security;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EnterpriseWorkflow.Presentation;
 
@@ -18,7 +19,7 @@ public sealed record WorkflowProcessCard(
     string Description,
     WorkflowFormDefinition StartForm,
     IReadOnlyList<TechnicalId> DesignatedAssignmentNodes,
-    string? IconResourcePath);
+    string? IconResourcePath, Type? CustomComponentType = null);
 
 public sealed record WorkflowStartRequest(
     string ProcessId,
@@ -69,7 +70,7 @@ public sealed record WorkflowTaskView(
     int ProcessVersion = 0,
     bool CanAssign = false,
     IReadOnlyDictionary<string, string>? SummaryLabels = null,
-    IReadOnlyDictionary<string, string>? AssignmentLabels = null);
+    IReadOnlyDictionary<string, string>? AssignmentLabels = null, WorkflowRequestView? Request = null, CanonicalJson? VisibleState = null);
 
 public sealed record WorkflowRequestView(
     WorkflowInstanceId InstanceId,
@@ -79,7 +80,12 @@ public sealed record WorkflowRequestView(
     long Revision,
     string? BusinessKey,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc, string? PublicReference = null, ActorIdentity? Initiator = null, string? InitiatorDisplayName = null, string? CurrentStageId = null, string? CurrentStageLabel = null, WorkflowCompletionOutcome? CompletionOutcome = null)
+{
+    public string StatusLabel => Status == WorkflowInstanceStatus.Completed ? CompletionOutcome switch { WorkflowCompletionOutcome.Declined => "Refusée", WorkflowCompletionOutcome.Cancelled => "Annulée", _ => "Terminée" } : Status switch { WorkflowInstanceStatus.Cancelled => "Annulée", WorkflowInstanceStatus.Failed => "En erreur", WorkflowInstanceStatus.Waiting => "En attente", _ => "En cours" };
+    public string StatusClass => Status == WorkflowInstanceStatus.Completed ? CompletionOutcome switch { WorkflowCompletionOutcome.Succeeded => "success", WorkflowCompletionOutcome.Declined or WorkflowCompletionOutcome.Cancelled => "warning", _ => "neutral" } : Status is WorkflowInstanceStatus.Failed or WorkflowInstanceStatus.Cancelled ? "warning" : "progress";
+    public string VersionLabel => ProcessVersion >= 1000000000 ? $"génération locale g{ProcessVersion - 1000000000}" : $"version {ProcessVersion}";
+}
 
 public sealed record WorkflowCandidate(
     IdentityReference Identity,
@@ -89,6 +95,10 @@ public sealed record WorkflowCandidate(
 
 public interface IWorkflowPortalService
 {
+    ValueTask<WorkflowInstanceDetail?> ReadInstanceAsync(IdentityReference actor, WorkflowInstanceId instanceId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult<WorkflowInstanceDetail?>(null);
+    ValueTask<WorkflowSearchPage> SearchInstancesAsync(IdentityReference actor, WorkflowSearchRequest request, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new WorkflowSearchPage([], null, "presentation.search-not-supported"));
     ValueTask<IReadOnlyList<WorkflowProcessCard>> ListStartableProcessesAsync(
         IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<WorkflowPortalStartResult> StartAsync(
@@ -120,6 +130,9 @@ public interface IWorkflowPortalService
 
 public sealed class WorkflowPortalOptions
 {
+    public string? StartArtifactSha256 { get; set; }
+    public string MediaRoot { get; set; } = Path.Combine(AppContext.BaseDirectory, "media");
+
     public string InstallationId { get; set; } = "enterprise-workflow";
 
     public void Validate()
@@ -129,7 +142,7 @@ public sealed class WorkflowPortalOptions
     }
 }
 
-public sealed class WorkflowPortalService(
+public sealed partial class WorkflowPortalService(
     IWorkflowPresentationCatalog catalog,
     IWorkflowAuthorizationService authorization,
     IWorkflowFormService forms,
@@ -139,16 +152,19 @@ public sealed class WorkflowPortalService(
     IAuthorizationProvider generalAuthorization,
     ILocalAccountStore localAccounts,
     IReadOnlyDictionary<string, IIdentityDirectory> directories,
-    IOptions<WorkflowPortalOptions> configuredOptions) : IWorkflowPortalService
+    IOptions<WorkflowPortalOptions> configuredOptions,
+    IServiceScopeFactory? scopeFactory = null,
+    IWorkflowStateValidationService? stateValidation = null) : IWorkflowPortalService
 {
     private readonly WorkflowPortalOptions _options = Validate(configuredOptions.Value);
+    private bool IsSelectedForStart(WorkflowProcessDescriptor process) => _options.StartArtifactSha256 is null || process.Definition.Artifacts.Any(artifact => artifact.Sha256 == _options.StartArtifactSha256);
 
     public async ValueTask<IReadOnlyList<WorkflowProcessCard>> ListStartableProcessesAsync(
         IdentityReference actor,
         CancellationToken cancellationToken)
     {
         var accepted = new List<WorkflowProcessCard>();
-        foreach (var process in catalog.Processes)
+        foreach (var process in catalog.Processes.Where(IsSelectedForStart).GroupBy(item => item.Definition.Id.Value).Select(group => group.MaxBy(item => item.Definition.Version)!))
         {
             var decision = await authorization.AuthorizeAsync(new(actor,
                 new(process.Definition.Id.Value, process.Definition.Version, null, WorkflowActions.Start)),
@@ -157,7 +173,7 @@ public sealed class WorkflowPortalService(
                 registration is null)
                 continue;
             accepted.Add(new(process.Definition.Id.Value, process.Definition.Version, process.Title,
-                process.Description, registration.Form, process.DesignatedAssignmentNodes, process.IconResourcePath));
+                process.Description, registration.Form, process.DesignatedAssignmentNodes, process.IconResourcePath, registration.CustomComponentType));
         }
         return accepted;
     }
@@ -170,6 +186,9 @@ public sealed class WorkflowPortalService(
         ArgumentNullException.ThrowIfNull(request);
         if (!catalog.TryGetProcess(request.ProcessId, request.ProcessVersion, out var process) || process is null)
             return Failed("presentation.process-not-found");
+        if (!IsSelectedForStart(process)) return Failed("presentation.process-version-obsolete");
+        if (catalog.Processes.Where(IsSelectedForStart).Any(item => item.Definition.Id == process.Definition.Id && item.Definition.Version > process.Definition.Version))
+            return Failed("presentation.process-version-obsolete");
         if (!catalog.TryResolveForm(process.Definition, process.StartForm, out var registration) || registration is null)
             return Failed("presentation.start-form-not-found");
         var validation = forms.Validate(registration.Form, request.SubmissionJson);
@@ -179,18 +198,40 @@ public sealed class WorkflowPortalService(
         if (!requiredAssignments.SetEquals(request.DesignatedAssignments.Keys))
             return Failed("presentation.designated-assignments-incomplete");
 
+        if (!await WorkflowMediaFormService.ValidateAsync(store, registration.Form, validation.Submission!, new(new(actor.ProviderId), actor.SubjectId),
+            null, null, request.IdempotencyKey.Value, cancellationToken)) return Failed("presentation.form-media-invalid");
+        var initialData = validation.Submission!;
+        IReadOnlyList<WorkflowMediaReference> generatedMedia = [];
+        if (process.StateInitializerType is { } initializerType)
+        {
+            var canStart = await authorization.AuthorizeAsync(new(actor, new(process.Definition.Id.Value, process.Definition.Version, null, WorkflowActions.Start)), cancellationToken);
+            if (!canStart.Allowed || scopeFactory is null) return Failed("security.workflow-start-denied");
+            await using var initializerScope = scopeFactory.CreateAsyncScope();
+            var initializer = (IWorkflowStateInitializer)ActivatorUtilities.GetServiceOrCreateInstance(initializerScope.ServiceProvider, initializerType);
+            var startNode = process.Definition.Nodes.Single(node => node.Role == WorkflowNodeRole.Start);
+            var mediaExecution = WorkflowMediaSession.Create(process.Definition, startNode.Configuration, new(new(new(actor.ProviderId), actor.SubjectId), null, null, request.IdempotencyKey.Value), validation.Submission!);
+            WorkflowStateInitializationResult initialized;
+            try { initialized = await initializer.InitializeAsync(new(new(new(actor.ProviderId), actor.SubjectId), validation.Submission!, request.IdempotencyKey.Value) { MediaExecution = mediaExecution }, cancellationToken); }
+            catch (WorkflowMediaInspectionPendingException) { mediaExecution.Seal(); return Failed("runtime.media-inspection-pending"); }
+            catch (FormatException) { mediaExecution.Seal(); return Failed("presentation.state-invalid"); }
+            catch { mediaExecution.Seal(); throw; }
+            var collectedMedia = mediaExecution.Seal();
+            initialData = initialized.State;
+            generatedMedia = collectedMedia.Attachments;
+            if (initialData is null) return Failed("presentation.state-initializer-returned-null");
+        }
         var published = await store.PublishDefinitionAsync(new(process.Definition), cancellationToken).ConfigureAwait(false);
         if (published.Outcome is not (StoreOutcome.Succeeded or StoreOutcome.Idempotent) || published.Value is null)
             return Failed(published.ErrorCode ?? "presentation.definition-publication-failed");
         var assignments = request.DesignatedAssignments.Select(item => new DesignatedTaskAssignment(
             item.Key, new(new TechnicalId(item.Value.ProviderId), item.Value.SubjectId))).ToArray();
         var scope = new StartCommandScope(new(_options.InstallationId), new("workflow.start"),
-            new(new TechnicalId(actor.ProviderId), actor.SubjectId));
+            new(new TechnicalId(actor.ProviderId), actor.SubjectId) { DisplayName = await DisplayNameAsync(new(new(actor.ProviderId), actor.SubjectId), cancellationToken).ConfigureAwait(false) });
         var submission = validation.Submission!;
         var command = new StartInstanceCommand(scope, request.IdempotencyKey,
             RequestHash(process.Definition, submission, assignments), published.Value,
-            WorkflowState.Create(submission.CanonicalText, process.InitialStateSchemaVersion),
-            request.BusinessKey, request.CorrelationId, MillisecondUtcNow(), assignments);
+            WorkflowState.Create(initialData.CanonicalText, process.InitialStateSchemaVersion),
+            request.BusinessKey, request.CorrelationId, MillisecondUtcNow(), assignments, generatedMedia.Concat(WorkflowMediaFormService.References(process.StartForm, catalog, process.Definition, validation.Submission!)).Distinct().ToArray());
         var started = await starts.StartAsync(process.Definition, command, cancellationToken).ConfigureAwait(false);
         return started.Succeeded
             ? new(true, started.InstanceId, started.WasReplay, [])
@@ -218,11 +259,7 @@ public sealed class WorkflowPortalService(
                 new(instance.DefinitionId.Value, instance.DefinitionVersion, null, WorkflowActions.ReadInstance)),
                 cancellationToken).ConfigureAwait(false);
             if (!decision.Allowed) continue;
-            var title = catalog.TryGetProcess(instance.DefinitionId.Value, instance.DefinitionVersion, out var process) && process is not null
-                ? process.Title
-                : instance.DefinitionId.Value;
-            accepted.Add(new(instance.InstanceId, title, instance.DefinitionVersion, instance.Status,
-                instance.Revision, instance.BusinessKey, instance.CreatedAtUtc, instance.UpdatedAtUtc));
+            accepted.Add(await ViewAsync(instance, cancellationToken).ConfigureAwait(false));
         }
         return accepted;
     }
@@ -277,7 +314,8 @@ public sealed class WorkflowPortalService(
 
         var take = Math.Clamp(maximumResults, 1, 50);
         var candidates = new Dictionary<IdentityReference, DirectoryIdentity>();
-        var accounts = await localAccounts.ListAsync(500, cancellationToken).ConfigureAwait(false);
+        var accounts = await localAccounts.SearchAsync(query.Trim(), Math.Min(take * 3, 100), cancellationToken).ConfigureAwait(false);
+        if (accounts.Outcome == ProviderOutcome.Unavailable) throw new InvalidOperationException("presentation.candidate-search-unavailable");
         if (accounts.Outcome is ProviderOutcome.Succeeded && accounts.Value is not null)
         {
             foreach (var account in accounts.Value.Where(item => item.Enabled &&
@@ -290,6 +328,7 @@ public sealed class WorkflowPortalService(
         {
             var found = await directory.SearchAsync(query.Trim(), Math.Min(take * 3, 100), cancellationToken)
                 .ConfigureAwait(false);
+            if (found.Outcome == ProviderOutcome.Unavailable) throw new InvalidOperationException("presentation.candidate-search-unavailable");
             if (found.Outcome is not ProviderOutcome.Succeeded || found.Value is null) continue;
             foreach (var candidate in found.Value) candidates[candidate.Identity] = candidate;
         }
@@ -327,7 +366,9 @@ public sealed class WorkflowPortalService(
         var contract = node.HumanTask!;
         if (!catalog.TryResolveForm(snapshot.Definition, contract.Form, out var registration) || registration is null)
             return null;
-        var data = forms.Project(registration.Form, snapshot.State.Value, WorkflowFieldAudience.TaskParticipant);
+        var stateContract = stateValidation?.GetContract(snapshot.Definition, snapshot.State.SchemaVersion) ?? WorkflowStateContract.From(snapshot.Definition);
+        if (stateContract is null || stateContract.Version != snapshot.State.SchemaVersion) return null;
+        var data = CanonicalJson.CreateObject("{}", 256 * 1024);
         var policy = WorkflowStagePolicy.Read(node.Configuration);
         var actions = new List<HumanTaskAction>();
         foreach (var action in contract.Actions)
@@ -337,12 +378,14 @@ public sealed class WorkflowPortalService(
         }
         CanonicalJson? summary = null;
         IReadOnlyDictionary<string, string>? summaryLabels = null;
-        if (policy is not null && catalog.TryGetProcess(snapshot.Definition.Id.Value, snapshot.Definition.Version, out var process) && process is not null &&
-            catalog.TryResolveForm(snapshot.Definition, process.StartForm, out var startRegistration) && startRegistration is not null)
+        if (stateContract is not null && policy is not null)
         {
-            var summaryForm = startRegistration.Form with { Fields = startRegistration.Form.Fields.Where(field => policy.SummaryFields.Contains(field.Id.Value, StringComparer.Ordinal)).ToImmutableArray() };
-            summary = forms.Project(summaryForm, snapshot.State.Value, WorkflowFieldAudience.TaskParticipant);
-            summaryLabels = summaryForm.Fields.ToDictionary(field => field.Id.Value, field => field.Label, StringComparer.Ordinal);
+            var permissions = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var permission in AllPermissions(stateContract.Root).Distinct(StringComparer.Ordinal))
+                if ((await generalAuthorization.AuthorizeAsync(new(actor, new(permission)), cancellationToken)).Allowed) permissions.Add(permission);
+            var selected = stateContract.Root.Fields.Where(field => policy.SummaryFields.Contains(field.Name, StringComparer.Ordinal)).ToArray();
+            summary = (stateContract with { Root = TableFields(stateContract.Root with { Fields = selected }) }).Project(snapshot.State.Value, permissions);
+            summaryLabels = selected.Where(field => !field.Hidden && field.PermissionGroups.All(group => group.Any(permissions.Contains))).ToDictionary(field => field.Name, field => field.Label, StringComparer.Ordinal);
         }
         var canAssign = snapshot.Status == HumanTaskStatus.AwaitingAssignment &&
             (await authorization.AuthorizeAsync(new(actor, new(snapshot.Definition.Id.Value, snapshot.Definition.Version, node.Id.Value, WorkflowActions.AssignTask)), cancellationToken).ConfigureAwait(false)).Allowed;
@@ -352,7 +395,9 @@ public sealed class WorkflowPortalService(
             snapshot.Revision, registration.Form, registration.CustomComponentType, data,
             actions, snapshot.CreatedAtUtc, policy, summary, snapshot.Definition.Id.Value, snapshot.Definition.Version, canAssign, summaryLabels,
             snapshot.Definition.Nodes.Where(candidate => candidate.HumanTask is not null).ToDictionary(candidate => candidate.Id.Value,
-                candidate => candidate.DisplayLabel ?? candidate.Id.Value, StringComparer.Ordinal));
+                candidate => candidate.DisplayLabel ?? candidate.Id.Value, StringComparer.Ordinal),
+            await ReadRequestAsync(snapshot.InstanceId, cancellationToken).ConfigureAwait(false),
+            await ProjectStateAsync(snapshot.Definition, snapshot.State, actor, cancellationToken).ConfigureAwait(false));
     }
 
     public async ValueTask<WorkflowPortalTaskActionResult> AssignTaskAsync(IdentityReference actor, HumanTaskId taskId, long expectedRevision,
@@ -408,14 +453,17 @@ public sealed class WorkflowPortalService(
         var validation = forms.Validate(task.Form, request.SubmissionJson);
         if (!validation.Succeeded)
             return new(false, false, validation.Errors);
+        var snapshot = await humanTasks.ReadAsync(request.TaskId, actor, cancellationToken);
+        if (snapshot.Snapshot is not { } durable || !await WorkflowMediaFormService.ValidateAsync(store, task.Form, validation.Submission!, new(new(actor.ProviderId), actor.SubjectId),
+            task.InstanceId, durable.ActivationId, null, cancellationToken)) return FailedTask("presentation.form-media-invalid");
         return ToPortalResult(await humanTasks.CompleteAsync(
             request.TaskId,
             request.ExpectedRevision,
             actor,
             request.Action,
             request.IdempotencyKey,
-            HumanTaskSubmission.WithAssignments(validation.Submission!, (request.DesignatedAssignments ?? new Dictionary<TechnicalId, IdentityReference>())
-                .Select(item => new DesignatedTaskAssignment(item.Key, new(new(item.Value.ProviderId), item.Value.SubjectId)))),
+            HumanTaskSubmission.WithMedia(HumanTaskSubmission.WithAssignments(validation.Submission!, (request.DesignatedAssignments ?? new Dictionary<TechnicalId, IdentityReference>())
+                .Select(item => new DesignatedTaskAssignment(item.Key, new(new(item.Value.ProviderId), item.Value.SubjectId)))), WorkflowMediaFormService.References(task.Form, validation.Submission!)),
             cancellationToken).ConfigureAwait(false));
     }
 

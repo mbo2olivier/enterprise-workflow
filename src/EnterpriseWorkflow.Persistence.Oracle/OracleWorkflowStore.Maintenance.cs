@@ -66,6 +66,7 @@ public sealed partial class OracleWorkflowStore : IWorkflowMaintenanceStore
                     });
             }
 
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new ModuleArtifactReconciliationResult(
@@ -153,6 +154,7 @@ public sealed partial class OracleWorkflowStore : IWorkflowMaintenanceStore
                 ActorProviderId = command.Actor.ProviderId.Value,
                 ActorSubjectId = command.Actor.SubjectId,
             });
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new StateMigrationResult(instance.Revision, instance.StateSchemaVersion));

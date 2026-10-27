@@ -9,6 +9,8 @@ public sealed record WorkflowStagePolicy
 {
     public const string PropertyName = "$workflow";
     public int Version { get; init; } = 1;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowCompletionOutcome? CompletionOutcome { get; init; }
     public string[][] Permissions { get; init; } = [];
     public string[][] ReadPermissions { get; init; } = [];
     public string[][] CancelPermissions { get; init; } = [];
@@ -16,6 +18,20 @@ public sealed record WorkflowStagePolicy
     public bool AssignedFromPreviousTask { get; init; }
     public string[] SummaryFields { get; init; } = [];
     public Dictionary<string, WorkflowActionPolicy> Actions { get; init; } = new(StringComparer.Ordinal);
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowStateContract? StateContract { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string[]? StateValidationGroups { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, WorkflowMediaPolicy>? MediaPolicies { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MediaPolicyModule { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MediaPolicyModuleVersion { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string>? MediaFields { get; init; }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -39,7 +55,14 @@ public sealed record WorkflowStagePolicy
 
     public void Validate()
     {
+        if (CompletionOutcome is { } completion && !Enum.IsDefined(completion)) throw new FormatException("Invalid completion outcome.");
         if (Version != 1) throw new FormatException("Unsupported workflow policy version.");
+        if (StateValidationGroups is { } validationGroups && (validationGroups.Length > 32 || validationGroups.Any(group => !TechnicalId.IsValid(group))))
+            throw new FormatException("Invalid state validation groups.");
+        StateContract?.EnsureValid();
+        if (MediaPolicyModule is not null && !TechnicalId.IsValid(MediaPolicyModule)) throw new FormatException("Invalid media policy module.");
+        if (MediaPolicies is { } mediaPolicies) { if (mediaPolicies.Count > 64) throw new FormatException("Too many media policies."); foreach (var (id, mediaPolicy) in mediaPolicies) { mediaPolicy.Validate(); if (id != mediaPolicy.Id) throw new FormatException("Invalid media policy key."); } }
+        if (MediaFields is { } mediaFields && (mediaFields.Count > 128 || mediaFields.Any(field => !TechnicalId.IsValid(field.Key) || !TechnicalId.IsValid(field.Value)))) throw new FormatException("Invalid media fields.");
         ValidateGroups(Permissions);
         ValidateGroups(ReadPermissions);
         ValidateGroups(CancelPermissions);
@@ -50,6 +73,10 @@ public sealed record WorkflowStagePolicy
         foreach (var (id, action) in Actions)
         {
             if (!TechnicalId.IsValid(id) || action is null) throw new FormatException("Invalid workflow policy action.");
+            if (action.StateValidationGroups is { } actionGroups && (actionGroups.Length > 32 || actionGroups.Any(group => !TechnicalId.IsValid(group))))
+                throw new FormatException("Invalid action state validation groups.");
+            if (action.CommentPath is { } commentPath && (commentPath.Length is 0 or > 12 || commentPath.Any(part => string.IsNullOrWhiteSpace(part) || part.Length > 128)))
+                throw new FormatException("Invalid comment state path.");
             ValidateGroups(action.Permissions);
             if (string.IsNullOrWhiteSpace(action.Label) || action.Label.Length > 200 ||
                 (action.AssigneeTarget is not null && !TechnicalId.IsValid(action.AssigneeTarget)))
@@ -72,6 +99,12 @@ public sealed record WorkflowActionPolicy
 {
     public string Label { get; init; } = string.Empty;
     public string[][] Permissions { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool CaptureCommentActorName { get; init; }
     public bool RequireComment { get; init; }
     public string? AssigneeTarget { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string[]? StateValidationGroups { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string[]? CommentPath { get; init; }
 }

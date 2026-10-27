@@ -37,6 +37,13 @@ public sealed class NodeStateUpdate
         return new NodeStateUpdate(replacement);
     }
 
+    /// <summary>Serializes a detached DTO as a complete state replacement; validation occurs before commit.</summary>
+    public static NodeStateUpdate Replace<TState>(TState replacement) where TState : class
+    {
+        ArgumentNullException.ThrowIfNull(replacement);
+        return Replace(JsonSerializer.SerializeToElement(replacement, WorkflowJson.Options));
+    }
+
     /// <summary>
     /// Gets a detached copy of the replacement state, when present.
     /// </summary>

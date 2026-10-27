@@ -85,3 +85,16 @@ Oracle 19 L8b est acquis sur preuve du porteur (13/13 tests, aucun ignoré). Par
 Voir la [preuve L9](evidence/l9.md) : build Release sans avertissement, 70 tests ciblés (Core, Extensions, CLI, Web), quatre scénarios Chromium incluant refus/commentaire et annulation, capture SMTP réelle avec panne/reprise, templates et outil installés depuis un flux local, exemple embedded et ancienne instance complétée après redémarrage versionné. Le package LeaveRequest est également vérifié dans le Kernel, avec absence des routes de développement.
 
 La CI exécute `scripts/qualify-l9.sh` sur les trois OS et `scripts/qualify-l9-browser.sh` sur Linux. Le script navigateur consomme un sample isolé à partir des packages locaux, arrête explicitement le runtime via stdin et nettoie la stack SMTP. Ces nouvelles exécutions CI restent à confirmer ; les compléments navigateur et imports historiques sont suivis dans la preuve. Aucun test ignoré ne vaut réussite.
+
+## Qualification locale L9b — 25 octobre 2026
+
+Les contrats DTO/migrations, projections sécurisées, recherche/candidats, audit/export, médias/quarantaine/restauration et TAT sont couverts par la [preuve locale L9b](evidence/l9b.md). Résultats finaux : 140 tests Release des neuf suites locales, 14 tests Oracle Enterprise 19.19 et cinq cas Chromium sans SMTP ; quatre cas métier sont également rejoués avec SMTP réel/panne-reprise et package chargé dans le Kernel. Aucun échec ni ignoré dans ces campagnes finales. Les tentatives intermédiaires et limites sont consignées dans la preuve ; la CI multiplateforme et LDAP réel L9b ne sont pas présentés comme acquis.
+
+## L9b — ultime itération
+
+Les tests locaux rapides couvrent le fluent obligatoire typé, les lectures/remplacements DTO, les commentaires d’approbation atomiques et idempotents, les formats intégrés et les validateurs personnalisés liés à l’artefact exact. La [recette finale du porteur](validation/l9b-final-recette.md) détaille les essais longs délégués, avec commandes, résultats attendus et tableau de confirmation : documents réels, UI/permissions, Chromium/SMTP/packages, Oracle 19.19, restauration et CI/LDAP. Ne pas assimiler un test Oracle compilé à un test Oracle exécuté.
+
+
+### Cycle natif `ew dev` (L9b)
+
+Le test `DevelopmentLifecycleTests.SourceGenerationsPreserveInstancesAndNamedEnvironmentsAreIsolated` est opt-in localement via `EW_DEV_LIFECYCLE_TESTS=1`. Il compile une copie du sample en C#, sans Python, et conserve son dossier temporaire comme preuve. Il vérifie changement/réutilisation de génération, instance historique traitable, environnements isolés, reset archivé, release ciblée, cache après déplacement et diagnostic d’artefact requis manquant. La matrice CI active ce test ; une compilation locale ne vaut pas qualification de cette matrice. La [recette N1–N6](validation/l9b-final-recette.md) décrit les parcours longs complémentaires.

@@ -24,6 +24,9 @@ public readonly record struct LeaseToken(Guid Value);
 /// <summary>Stable authenticated actor identity. Empty subject identifiers are not portable to Oracle.</summary>
 public sealed record ActorIdentity
 {
+    public string? DisplayName { get; init; }
+    public bool Equals(ActorIdentity? other) => other is not null && ProviderId == other.ProviderId && SubjectId == other.SubjectId;
+    public override int GetHashCode() => HashCode.Combine(ProviderId, SubjectId);
     /// <summary>Creates a provider-qualified identity.</summary>
     public ActorIdentity(TechnicalId providerId, string subjectId)
     {
@@ -227,7 +230,8 @@ public sealed record StartInstanceCommand(
     string? BusinessKey,
     string? CorrelationId,
     DateTimeOffset RequestedAtUtc,
-    IReadOnlyList<DesignatedTaskAssignment>? DesignatedAssignments = null);
+    IReadOnlyList<DesignatedTaskAssignment>? DesignatedAssignments = null,
+    IReadOnlyList<WorkflowMediaReference>? Media = null);
 
 /// <summary>Result persisted for a start receipt.</summary>
 public sealed record StartInstanceResult(WorkflowInstanceId InstanceId, bool WasCreated, long Revision);
@@ -244,7 +248,9 @@ public sealed record WorkflowInstanceSummary(
     long Revision,
     string? BusinessKey,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    string? PublicReference = null,
+    ActorIdentity? Initiator = null, IReadOnlyList<WorkflowInstancePosition>? Positions = null);
 
 /// <summary>Claims at most one due work item using the store clock.</summary>
 public sealed record ClaimDueWorkCommand(TechnicalId OwnerId, TimeSpan LeaseDuration);
@@ -268,7 +274,8 @@ public sealed record CommitNodeResultCommand(
     string? ErrorCode,
     IReadOnlyList<OutboxWrite>? Outbox = null,
     HumanTaskWait? HumanTask = null,
-    TimerWait? Timer = null);
+    TimerWait? Timer = null,
+    IReadOnlyList<WorkflowMediaReference>? Media = null, IReadOnlyList<WorkflowMediaReference>? MediaDeletes = null);
 
 /// <summary>Result of a successful node commit.</summary>
 public sealed record CommitNodeResult(
@@ -335,7 +342,8 @@ public sealed record CompleteHumanTaskCommand(
     WorkflowState? ReplacementState,
     NextWork NextWork,
     IReadOnlyList<OutboxWrite>? Outbox = null,
-    IReadOnlyList<DesignatedTaskAssignment>? DesignatedAssignments = null);
+    IReadOnlyList<DesignatedTaskAssignment>? DesignatedAssignments = null,
+    IReadOnlyList<WorkflowMediaReference>? Media = null, IReadOnlyList<WorkflowMediaReference>? MediaDeletes = null);
 
 /// <summary>Result of a committed or replayed task completion.</summary>
 public sealed record CompleteHumanTaskResult(long TaskRevision, long InstanceRevision, bool WasCompleted);

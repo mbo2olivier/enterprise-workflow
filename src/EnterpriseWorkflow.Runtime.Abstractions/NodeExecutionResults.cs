@@ -96,6 +96,10 @@ public sealed class ServiceNodeResult
     public TechnicalId? ErrorCode { get; }
 
     /// <summary>Gets external effects to enqueue atomically after a successful attempt.</summary>
+    internal ImmutableArray<WorkflowMediaReference> Media { get; private init; } = [];
+    internal ImmutableArray<WorkflowMediaReference> MediaDeletes { get; private init; } = [];
+    internal ServiceNodeResult WithCollectedMedia(IEnumerable<WorkflowMediaReference> attachments, IEnumerable<WorkflowMediaReference> deletions) =>
+        new(Disposition, StateUpdate, ErrorCode, Effects) { Media = Media.Concat(attachments).Distinct().ToImmutableArray(), MediaDeletes = deletions.ToImmutableArray() };
     public ImmutableArray<ExternalEffectIntent> Effects { get; }
 
     /// <summary>Creates a successful result. The runtime chooses the next node.</summary>
@@ -110,7 +114,7 @@ public sealed class ServiceNodeResult
             throw new ArgumentException("Effect operation identifiers must be unique within one result.", nameof(effects));
         }
 
-        return new(NodeExecutionDisposition.Succeeded, stateUpdate ?? NodeStateUpdate.Unchanged, null, immutableEffects);
+        return new ServiceNodeResult(NodeExecutionDisposition.Succeeded, stateUpdate ?? NodeStateUpdate.Unchanged, null, immutableEffects);
     }
 
     /// <summary>Creates a retryable failure. The worker owns delay and retry limits.</summary>
@@ -175,14 +179,12 @@ public sealed class HumanTaskCompletionResult
 {
     private HumanTaskCompletionResult(
         bool succeeded,
-        TechnicalId? outcome,
         NodeStateUpdate stateUpdate,
         TechnicalId? errorCode,
         ImmutableArray<ExternalEffectIntent> effects,
         ImmutableArray<DesignatedTaskAssignment> designatedAssignments)
     {
         Succeeded = succeeded;
-        Outcome = outcome;
         StateUpdate = stateUpdate;
         ErrorCode = errorCode;
         Effects = effects;
@@ -190,14 +192,12 @@ public sealed class HumanTaskCompletionResult
     }
 
     public bool Succeeded { get; }
-    public TechnicalId? Outcome { get; }
     public NodeStateUpdate StateUpdate { get; }
     public TechnicalId? ErrorCode { get; }
     public ImmutableArray<ExternalEffectIntent> Effects { get; }
     public ImmutableArray<DesignatedTaskAssignment> DesignatedAssignments { get; }
 
     public static HumanTaskCompletionResult Success(
-        TechnicalId outcome,
         NodeStateUpdate? stateUpdate = null,
         IEnumerable<ExternalEffectIntent>? effects = null,
         IEnumerable<DesignatedTaskAssignment>? designatedAssignments = null)
@@ -205,10 +205,10 @@ public sealed class HumanTaskCompletionResult
         var effectSnapshot = effects?.ToImmutableArray() ?? [];
         if (effectSnapshot.Select(item => item.OperationId.Value).Distinct(StringComparer.Ordinal).Count() != effectSnapshot.Length)
             throw new ArgumentException("Effect operation identifiers must be unique.", nameof(effects));
-        return new(true, outcome, stateUpdate ?? NodeStateUpdate.Unchanged, null, effectSnapshot,
+        return new HumanTaskCompletionResult(true, stateUpdate ?? NodeStateUpdate.Unchanged, null, effectSnapshot,
             designatedAssignments?.ToImmutableArray() ?? []);
     }
 
     public static HumanTaskCompletionResult Rejected(TechnicalId errorCode) =>
-        new(false, null, NodeStateUpdate.Unchanged, errorCode, [], []);
+        new(false, NodeStateUpdate.Unchanged, errorCode, [], []);
 }

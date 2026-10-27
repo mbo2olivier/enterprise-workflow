@@ -54,4 +54,30 @@ La [preuve locale L8b](evidence/l8b.md) consigne 116 tests légers réussis. La 
 
 ## L9 — implémentation et preuves locales
 
-EF-12 inclut désormais CLI installable, templates, runtime `ew dev`, packaging et vérification d’artefacts. La [preuve L9](evidence/l9.md) consigne 70 tests ciblés, quatre parcours Chromium avec SMTP réel et panne/reprise, génération/embedded hors dépôt, conservation des anciennes instances et vérification du package dans le Kernel de production. La matrice CI L9 et les compléments listés dans la preuve ne sont pas encore acquis.
+EF-12 inclut désormais CLI installable, templates, runtime `ew dev`, packaging et vérification d’artefacts. La [preuve L9](evidence/l9.md) consigne 70 tests ciblés, quatre parcours Chromium avec SMTP réel et panne/reprise, génération/embedded hors dépôt, conservation des anciennes instances et vérification du package dans le Kernel de production. Le porteur confirme la validation de la pipeline GitHub L9 le 23 octobre 2026 ; les compléments fonctionnels listés dans la preuve restent tracés séparément.
+
+## L9b — besoins du 23 octobre, décisions acceptées le 25 octobre 2026
+
+| Exigence | Conception / arbitrage | Sous-lots | Preuve attendue (non acquise) |
+| --- | --- | --- | --- |
+| EF-17 Détail universel | [Spécification §1](l9b-spec.md), A1 | L9b-0/1/5 | Liens de tous écrans, instance terminale, projections et accès direct refusé sans droits |
+| EF-18 Recherche autorisée | Spécification §2, A1 | L9b-0/1/5 | Modale/SERP, filtres/dates, curseurs, révocation, absence de fuite dans résultats et compteurs |
+| EF-19 Audit filtré/exporté | Spécification §3, A2/A3 | L9b-0/2/5 | Pagination au-delà de 250, export filtré complet ou limite explicite, droit distinct, audit d’extraction, CSV protégé |
+| EF-20 Médias SDK/API/UI | Spécification §4, A4/A5 | L9b-0/3/5 | Upload et génération, validation, révisions, suppression, autorisation, crash/retry, restauration des fichiers et métadonnées |
+| EF-21 TAT | Spécification §5, A6/A7 | L9b-0/4/5 | Transactions et replay sans doublon, intervalles d’affectation, rapports et SQL SQLite/Oracle, historique incomplet marqué |
+
+L9b étend aussi EF-04/09/11/12/14 et ENF-03/05/07/08. Toutes ces preuves sont à acquérir ; la confirmation CI L9 ne couvre pas L9b. L10 dépend de leur qualification et de la stabilisation des contrats publics.
+
+### Décision état métier — 25 octobre 2026
+
+EF-05/09/11/17 et ENF-04/05 sont complétées par l’[ADR 0026](adr/0026-etat-metier-type-et-validation.md), acceptée : DTO d’état annoté, version explicite/migrations, formulaires indépendants et mapping initial/humain/service, validation permanente et groupes contextuels, filtrage serveur des champs. Implémentation : L9b-0/1/5. Preuves à acquérir : noms formulaire/state différents, état initial produit explicitement, validation avant commit sans effets transactionnels en cas de rejet, contexte serveur, masquage imbriqué et permissions any/all, anciennes versions et migration cible. Aucune preuve de code acquise par cette décision documentaire.
+
+A1–A7 sont acceptés le 25 octobre 2026 dans l’[ADR 0027](adr/0027-consultation-medias-audit-tat-l9b.md) : lecture sans privilège métier implicite, audit de sécurité, CSV en flux borné, stockage disque privé extensible et révisions immuables, hook antivirus selon installation, TAT calendaire avec historique partiel marqué, projections transactionnelles reconstructibles. Les preuves du tableau restent à acquérir.
+
+### Dette UX destinataires — 25 octobre 2026
+
+EF-05/09/11, L9b-1/5 : [sélecteur distant de candidats éligibles](l9b-spec.md), §2.1. Preuves attendues : recherche partielle par nom, identité stable explicite, filtrage et revalidation serveur, séparation par action/cible, réponses obsolètes ignorées, formulaire préservé, clavier, panne et révocation ; parcours démarrage/désignation suivante/récupération. Réutiliser les services de recherche existants sans rendre l’annuaire librement consultable. Non implémenté et non qualifié à ce stade.
+
+## Implémentation et qualification locale L9b
+
+La [preuve du 25 octobre 2026](evidence/l9b.md) remplace le statut « non implémenté » des sections de cadrage précédentes pour EF-17 à EF-21, le state DTO et la dette UX des destinataires. Elle associe aux tests les contrats/migrations SQLite/Oracle, le parcours Chromium et les limites encore ouvertes. Le [guide](l9b-sdk.md) documente DTO, validation/migrations, médias, capacités, TAT et sauvegarde. Les critères non couverts ne sont pas déclarés acquis.

@@ -17,6 +17,93 @@ public sealed class OracleIntegrationSet;
 public sealed class OracleWorkflowStoreTests
 {
     [Fact]
+    public async Task TypedApprovalCommentsAreCommittedOnceWithTheDecision()
+    {
+        var fixture = await ResetDatabaseAsync(); var store = fixture.Store; var token = TestContext.Current.CancellationToken;
+        var configuration = new WorkflowStagePolicy
+        {
+            StateContract = WorkflowStateContractCompiler.Compile<OracleApprovalState>(1), Permissions = [["oracle.act"]]
+        }.ToConfigurationJson();
+        var approval = new WorkflowStagePolicy
+        {
+            Permissions = [["oracle.act"]], Actions = new() { ["approve"] = new() { Label = "Approve", RequireComment = true, CommentPath = ["comments"] } }
+        }.ToConfigurationJson();
+        var definition = WorkflowBuilder.Create("oracle.typed", 1).Start("start", configuration)
+            .HumanTask("review", HumanTaskKind.Approval, HumanTaskAssignmentMode.EligiblePool, "form", 1, "oracle.approve", [new("approve", "approve")], configurationJson: approval)
+            .End("end").Then("start", "review").On("review", "approve", "end").Validate().Definition!;
+        await store.PublishDefinitionAsync(new(definition), token);
+        var started = await store.StartInstanceAsync(CreateStartCommand(definition, "typed-approval") with
+        {
+            InitialState = WorkflowState.Create("{\"step\":0,\"comments\":[]}", 1)
+        }, token);
+        Assert.Equal(StoreOutcome.Succeeded, started.Outcome);
+        var services = new ServiceCollection(); services.AddSingleton<IWorkflowStore>(store);
+        services.AddSingleton<EnterpriseWorkflow.Security.IWorkflowAuthorizationService, OracleApprovalAuthorization>();
+        services.AddEnterpriseWorkflowHandlers(registry => registry.AddHumanTask<StandardHumanTaskHandler>("oracle.approve", 1));
+        services.AddEnterpriseWorkflowRuntime<OracleTestTransport>();
+        await using var provider = services.BuildServiceProvider(); var pump = provider.GetRequiredService<IWorkflowExecutionPump>();
+        Assert.True(await pump.ExecuteNextAsync(new("worker"), token)); Assert.True(await pump.ExecuteNextAsync(new("worker"), token));
+        var open = Assert.Single((await store.ReadOpenHumanTasksAsync(new(null, 10), token)).Value!.Tasks);
+        var task = (await store.GetHumanTaskAsync(open.TaskId, token)).Value!; var human = provider.GetRequiredService<IHumanTaskService>();
+        var actor = new EnterpriseWorkflow.Security.IdentityReference("local", "reviewer");
+        Assert.True((await human.ClaimAsync(task.TaskId, task.Revision, actor, token)).Succeeded);
+        task = (await store.GetHumanTaskAsync(task.TaskId, token)).Value!;
+        Assert.Equal("runtime.comment-required", (await human.CompleteAsync(task.TaskId, task.Revision, actor, new("approve"), new("empty"), CanonicalJson.CreateObject("{}", 1024), token)).ErrorCode);
+        var submission = CanonicalJson.CreateObject("{\"comment\":\"Oracle approval\"}", 1024);
+        Assert.True((await human.CompleteAsync(task.TaskId, task.Revision, actor, new("approve"), new("approve-once"), submission, token)).Succeeded);
+        Assert.True((await human.CompleteAsync(task.TaskId, task.Revision, actor, new("approve"), new("approve-once"), submission, token)).WasReplay);
+        var state = (await store.ReadInstanceAsync(started.Value!.InstanceId, token)).Value!.State.Value.Deserialize<OracleApprovalState>();
+        var comment = Assert.Single(state.Comments); Assert.Equal("Oracle approval", comment.Text); Assert.Equal("reviewer", comment.ActorSubjectId);
+        var audit = Assert.Single((await store.SearchAuditAsync(new(Action: "approve", Stage: "review"), token)).Value!);
+        Assert.Equal("reviewer", audit.Actor!.SubjectId);
+        Assert.True(WorkflowPublicReference.IsValid(audit.Reference));
+        Assert.Single((await store.SearchInstancesAsync(new(PublicReference: audit.Reference), token)).Value!);
+    }
+    public sealed class OracleApprovalState
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("step")] public int Step { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("comments")] public List<WorkflowComment> Comments { get; init; } = [];
+    }
+    private sealed class OracleApprovalAuthorization : EnterpriseWorkflow.Security.IWorkflowAuthorizationService
+    {
+        public ValueTask<EnterpriseWorkflow.Security.AuthorizationDecision> AuthorizeAsync(EnterpriseWorkflow.Security.WorkflowAuthorizationRequest request, CancellationToken cancellationToken) => ValueTask.FromResult(new EnterpriseWorkflow.Security.AuthorizationDecision(true, "test"));
+    }
+
+    [Fact]
+    public async Task SearchMediaAndTatRebuildUseTheOracleTransactionBoundary()
+    {
+        var fixture = await ResetDatabaseAsync();
+        var store = fixture.Store;
+        var token = TestContext.Current.CancellationToken;
+        var definition = BuildDefinition();
+        await store.PublishDefinitionAsync(new(definition), token);
+        var command = CreateStartCommand(definition, "l9b-media");
+        var reference = new WorkflowMediaReference(Guid.NewGuid(), 1);
+        var record = new WorkflowMediaRecord(reference, "oracle.txt", "text/plain", 4, new string('a', 64), "privatekey", command.Scope.Actor,
+            null, null, command.IdempotencyKey.Value, "document", false, [], WorkflowMediaStatus.Staged, MillisecondUtcNow());
+        record = record with { Status = WorkflowMediaStatus.Quarantined };
+        Assert.Equal(StoreOutcome.Succeeded, (await store.StageMediaAsync(new(record), token)).Outcome);
+        Assert.Equal(StoreOutcome.Conflict, (await store.StartInstanceAsync(command with { Media = [reference] }, token)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.CompleteMediaInspectionAsync(new(reference, record.Sha256, true), token)).Outcome);
+        Assert.Equal(StoreOutcome.Conflict, (await store.StartInstanceAsync(command with { IdempotencyKey = new("wrong"), Media = [reference] }, token)).Outcome);
+        Assert.Empty((await store.SearchInstancesAsync(new(), token)).Value!);
+        var started = await store.StartInstanceAsync(command with { Media = [reference] }, token);
+        Assert.Equal(StoreOutcome.Succeeded, started.Outcome);
+        await store.StartInstanceAsync(command with { Media = [reference] }, token);
+        await store.StartInstanceAsync(command with { IdempotencyKey = new("second") }, token);
+        var first = Assert.Single((await store.SearchInstancesAsync(new(Limit: 1), token)).Value!);
+        var second = Assert.Single((await store.SearchInstancesAsync(new(Limit: 1, After: new(first.Summary.CreatedAtUtc.ToUnixTimeMilliseconds(), first.Summary.InstanceId.Value.ToString("N"))), token)).Value!);
+        Assert.NotEqual(first.Summary.InstanceId, second.Summary.InstanceId);
+        Assert.Equal(2, (await store.SearchInstancesAsync(new(Statuses: [first.Summary.Status]), token)).Value!.Count);
+        Assert.Equal(definition.Sha256, (await store.ReadInstanceAsync(started.Value!.InstanceId, token)).Value!.Definition.Sha256);
+        Assert.Single((await store.ListMediaAsync(started.Value.InstanceId, token)).Value!);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.RebuildTatAsync(started.Value.InstanceId, token)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.ReadTatAsync(new(), token)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.DeleteMediaAsync(new(reference, started.Value.InstanceId), token)).Outcome);
+        Assert.Empty((await store.ListMediaAsync(started.Value.InstanceId, token)).Value!);
+    }
+
+    [Fact]
     public async Task MigrationAndStartAreDurableAndIdempotent()
     {
         var fixture = await ResetDatabaseAsync();
@@ -296,6 +383,10 @@ public sealed class OracleWorkflowStoreTests
         Assert.Equal(HumanTaskStatus.Assigned, openedTask.Value!.Status);
         Assert.Equal(StoreOutcome.Succeeded, first.Outcome);
         Assert.Equal(StoreOutcome.Idempotent, replay.Outcome);
+        var report = await fixture.Store.ReadTatAsync(new(ByAnalyst: true), TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Succeeded, report.Outcome);
+        Assert.Equal(1, Assert.Single(report.Value!).CompletedCount);
+        Assert.Equal(actor, report.Value![0].Analyst);
     }
 
     [Fact]

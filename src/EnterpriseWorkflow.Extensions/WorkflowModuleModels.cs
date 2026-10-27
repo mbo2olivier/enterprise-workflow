@@ -24,7 +24,7 @@ public sealed record WorkflowModuleManifest(
     string EntryAssemblySha256,
     ImmutableArray<WorkflowModuleDependency> Dependencies,
     ImmutableArray<WorkflowModuleResource> Resources,
-    ImmutableArray<(TechnicalId Id, string TypeName)> Components);
+    ImmutableArray<(TechnicalId Id, string TypeName)> Components, int? DevelopmentGeneration = null);
 
 /// <summary>A trusted module loaded into its own non-collectible context for the process lifetime.</summary>
 public sealed class LoadedWorkflowModule

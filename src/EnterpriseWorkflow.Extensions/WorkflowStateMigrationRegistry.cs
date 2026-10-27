@@ -1,3 +1,4 @@
+using EnterpriseWorkflow.Core.Model;
 using System.Collections.Immutable;
 using EnterpriseWorkflow.Persistence;
 
@@ -8,10 +9,14 @@ public sealed record WorkflowStateMigrationRegistration(
     ModuleArtifactReference Artifact,
     int SourceSchemaVersion,
     int TargetSchemaVersion,
-    Type MigratorType);
+    Type MigratorType,
+    WorkflowStateContract? TargetContract = null,
+    Type[]? TargetValidatorTypes = null,
+    string[]? ValidationGroups = null);
 
 public interface IWorkflowStateMigrationRegistry
 {
+    IReadOnlyList<WorkflowStateMigrationRegistration> StateContracts => [];
     bool TryGet(ModuleArtifactReference artifact, int sourceSchemaVersion, int targetSchemaVersion,
         out WorkflowStateMigrationRegistration? registration);
 }
@@ -23,6 +28,8 @@ public sealed class WorkflowStateMigrationRegistry : IWorkflowStateMigrationRegi
 
     private WorkflowStateMigrationRegistry(ImmutableDictionary<MigrationKey, WorkflowStateMigrationRegistration> registrations) =>
         _registrations = registrations;
+
+    public IReadOnlyList<WorkflowStateMigrationRegistration> StateContracts => Registrations;
 
     public ImmutableArray<WorkflowStateMigrationRegistration> Registrations =>
         _registrations.Values.OrderBy(item => item.Artifact.Id.Value, StringComparer.Ordinal)
@@ -55,12 +62,24 @@ public sealed class WorkflowStateMigrationRegistry : IWorkflowStateMigrationRegi
                 var key = new MigrationKey(artifact.Id.Value, artifact.Version, artifact.Sha256,
                     declaration.SourceSchemaVersion, declaration.TargetSchemaVersion);
                 if (!registrations.TryAdd(key, new WorkflowStateMigrationRegistration(artifact,
-                    declaration.SourceSchemaVersion, declaration.TargetSchemaVersion, declaration.MigratorType)))
+                    declaration.SourceSchemaVersion, declaration.TargetSchemaVersion, declaration.MigratorType, QualifyContract(declaration.TargetContract, module.Manifest.Id.Value), declaration.TargetValidatorTypes, declaration.ValidationGroups)))
                     throw new WorkflowModuleLoadException("EW7017_DUPLICATE_STATE_MIGRATION",
                         $"State migration {declaration.SourceSchemaVersion}->{declaration.TargetSchemaVersion} is duplicated for module '{artifact.Id.Value}' version '{artifact.Version}'.");
             }
         }
         return new WorkflowStateMigrationRegistry(registrations.ToImmutable());
+    }
+
+    private static WorkflowStateContract? QualifyContract(WorkflowStateContract? contract, string moduleId)
+    {
+        if (contract is null) return null;
+        return contract with { Root = Qualify(contract.Root) };
+        WorkflowStateField Qualify(WorkflowStateField field) => field with
+        {
+            PermissionGroups = field.PermissionGroups.Select(group => group.Select(permission => permission.StartsWith(moduleId + ".", StringComparison.Ordinal) ? permission : moduleId + "." + permission).ToArray()).ToArray(),
+            Fields = field.Fields.Select(Qualify).ToArray(),
+            Item = field.Item is null ? null : Qualify(field.Item),
+        };
     }
 
     private readonly record struct MigrationKey(string Id, string Version, string Sha256, int Source, int Target);

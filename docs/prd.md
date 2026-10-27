@@ -49,6 +49,11 @@ Le Studio appartient au produit et à la livraison suivante, sans conditionner l
 | EF-13 | Préservation des versions d’instances et de modules | Proposé | Coexistence prouvée ou remplacement incompatible bloqué |
 | EF-14 | Audit et diagnostic | Proposé | Acteur, action et corrélation disponibles sans secret |
 | EF-16 | Stages administratifs : habilitations par workflow, nœud et action ; stage = nœud | Confirmé S12/S13 ; mécanismes ADR 0019 proposés | Parcours clientèle → superviseur → back-office maker → validateur ; refus serveur des actions hors nœud ou non habilitées ; reprise et concurrence sur les deux bases |
+| EF-17 | Détail d’instance depuis tous les écrans présentant une demande | Confirmé le 23 octobre 2026 ; L9b | Vue indépendante des tâches actives, state DTO annoté/versionné, mapping explicite des formulaires et validation contextuelle ; accès et champs contrôlés côté serveur (ADR 0026) |
+| EF-18 | Recherche globale de demandes autorisées | Confirmé le 23 octobre 2026 ; L9b | Loupe à gauche du profil, modale filtrée et SERP ; statut, dates, processus, initiateur réservé aux admins habilités ; aucune fuite de ressources interdites |
+| EF-19 | Recherche et export de l’audit admin | Confirmé le 23 octobre 2026 ; L9b | Filtres serveur, pagination et extraction cohérente des résultats autorisés ; audit de sécurité et CSV en flux acceptés en A2/A3 |
+| EF-20 | API médias commune et bibliothèque d’instance | Confirmé le 23 octobre 2026 ; L9b | Upload/génération, lecture, remplacement, suppression et validation par SDK/API ; bibliothèque filtrée, reprise et sauvegarde qualifiées |
+| EF-21 | Suivi et rapports des temps de traitement | Confirmé le 23 octobre 2026 ; L9b | Projections normalisées dédiées, rapports admin/export et SQL documenté par analyste/processus/étape ; durées et couverture historique explicites |
 | EF-15 | Studio et export C# | Source / différé confirmé | Export compilable, modèle équivalent, absence du Studio en production |
 
 EF-08 utilise des extensions : comptes locaux ou identités distantes selon l’installation, sans incidence sur le cœur. L’extension LDAP vérifie un identifiant et un mot de passe sur LDAPS par défaut ; LDAP clair exige une sélection explicite de l’installation et n’est jamais utilisé comme downgrade automatique. Son schéma et ses capacités sont configurés. AD est un cas possible, soumis à qualification propre. L’administration expose seulement les capacités de gestion prises en charge par l’extension. Aucune API tierce universelle n’est présumée existante.
@@ -88,7 +93,7 @@ Cas négatifs : accès non autorisé, tâche d’autrui, formulaire invalide, mo
 
 ## Non-objectifs du MVP
 
-Cycles et parallélisme/jointures sont exclus du MVP par l’ADR 0007 accepté. Les autres exclusions proposées sont : sous-workflows, compensation automatique, migration d’instances, événements externes avant contrat explicite, édition arbitraire de l’état SQL, hot reload, plugins non fiables, round-trip de C# libre, pièces jointes avancées, éditeur de formulaires complet et administration centrale multi-organisations.
+Cycles et parallélisme/jointures sont exclus du MVP par l’ADR 0007 accepté. Les autres exclusions proposées sont : sous-workflows, compensation automatique, migration d’instances, événements externes avant contrat explicite, édition arbitraire de l’état SQL, hot reload, plugins non fiables, round-trip de C# libre, gestion documentaire avancée (coédition, OCR, recherche plein texte), éditeur de formulaires complet et administration centrale multi-organisations.
 
 ## Acceptation du MVP
 
@@ -112,4 +117,20 @@ Implémentation L8b livrée, tests légers locaux réussis ; qualification inté
 
 ## Évolution confirmée le 20 octobre 2026 — runtime de développement L9
 
-`ew dev` permet à l’auteur d’exécuter son module et d’explorer son rendu dans un navigateur avant packaging, sans écrire de Kernel ou d’intégration embedded. L’hôte de développement réutilise le runtime et l’UI, avec SQLite persistant, configuration JSON facultative, identités de test et surveillance par reconstruction/redémarrage. Il conserve autorisation, durabilité et artefacts immuables ; les fonctionnalités de test restent propres au développement. Voir la [spécification L9](l9-spec.md) et l’[ADR 0025](adr/0025-runtime-developpement-l9.md). Cette extension est implémentée localement ; voir le [guide CLI](l9-cli.md) et la [preuve L9](evidence/l9.md). La qualification CI reste à confirmer.
+`ew dev` permet à l’auteur d’exécuter son module et d’explorer son rendu dans un navigateur avant packaging, sans écrire de Kernel ou d’intégration embedded. L’hôte de développement réutilise le runtime et l’UI, avec SQLite persistant, configuration JSON facultative, identités de test et surveillance par reconstruction/redémarrage. Il conserve autorisation, durabilité et artefacts immuables ; les fonctionnalités de test restent propres au développement. Voir la [spécification L9](l9-spec.md) et l’[ADR 0025](adr/0025-runtime-developpement-l9.md). Cette extension est implémentée localement ; voir le [guide CLI](l9-cli.md) et la [preuve L9](evidence/l9.md). La pipeline GitHub est confirmée par le porteur le 23 octobre 2026 ; les compléments fonctionnels restent tracés dans la preuve L9.
+
+## Évolution confirmée le 23 octobre 2026 — lot intermédiaire L9b
+
+Les exigences EF-17 à EF-21 entrent dans le périmètre avant publication L10. La [spécification L9b](l9b-spec.md) confronte les besoins au code et propose les contrats, règles de sécurité, cycle des médias, projections TAT, critères de sortie et arbitrages A1–A7. Les recommandations A1–A7 sont acceptées le 25 octobre 2026 dans l’[ADR 0027](adr/0027-consultation-medias-audit-tat-l9b.md) ; leur implémentation et qualification restent à réaliser. La gestion documentaire avancée reste hors périmètre ; les pièces jointes usuelles font désormais partie du socle. Le TAT ne peut être assimilé à du travail humain actif sans instrumentation complémentaire.
+
+## Décision du 25 octobre 2026 — état métier du processus
+
+Le processus déclare son état métier par DTO annoté, distinct des métadonnées framework et des contrats de formulaires. Les handlers assurent le mapping explicite au démarrage, dans les tâches humaines et les services. Version de schéma explicite et migrations existantes sont conservées. Les annotations centralisent libellés, visibilité du détail (champs visibles par défaut, masquage/restrictions par permissions) et validation permanente/contextuelle avant commit. Cette décision est acceptée dans l’[ADR 0026](adr/0026-etat-metier-type-et-validation.md) et détaillée dans la [spécification L9b](l9b-spec.md) ; les arbitrages A1–A7 font l’objet d’une acceptation distincte le même jour (ADR 0027).
+
+## Complément L9b du 25 octobre 2026 — sélection des destinataires
+
+EF-05/09/11 incluent un sélecteur réutilisable avec recherche distante partielle par nom, sans connaissance de l’identifiant technique ni chargement exhaustif de l’annuaire. Couverture : démarrage, désignation pour l’étape suivante et récupération/réaffectation autorisée. Recherche sans rechargement/perte de saisie ; sélection explicite d’une identité stable parmi les seuls candidats éligibles, puis revalidation serveur. Voir [L9b §2.1](l9b-spec.md). L’ajout concerne la préparation du lot ; aucun composant n’est encore implémenté par cette décision.
+
+## Implémentation locale L9b — 25 octobre 2026
+
+Les exigences EF-17 à EF-21, le state DTO et le sélecteur distant sont implémentés localement. Le [guide SDK/exploitation](l9b-sdk.md) décrit leurs contrats effectifs ; la [preuve L9b](evidence/l9b.md) distingue qualifications locales et limites. Le lot reste soumis à son gate intégré avant L10 ; les résultats L9 ne sont pas étendus par déduction.

@@ -12,6 +12,7 @@ public enum WorkflowFormFieldKind
     Number,
     Boolean,
     Choice,
+    File,
 }
 
 [Flags]
@@ -37,7 +38,13 @@ public sealed record WorkflowFormField(
     decimal? Maximum = null,
     string? Pattern = null,
     string? HelpText = null,
-    ImmutableArray<WorkflowChoiceOption> Options = default);
+    ImmutableArray<WorkflowChoiceOption> Options = default,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    WorkflowFileFieldSpecification? FileSpecification = null);
+
+public sealed record WorkflowFileFieldSpecification(long MaximumBytes, int MaximumFiles, string[] AllowedContentTypes, string[] AllowedExtensions,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? PolicyId = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] WorkflowMediaPolicy? Policy = null);
 
 public sealed record WorkflowFormDefinition(
     WorkflowFormReference Reference,
@@ -61,7 +68,9 @@ public sealed record WorkflowProcessDeclaration(
     int InitialStateSchemaVersion,
     WorkflowDefinitionFactory DefinitionFactory,
     ImmutableArray<TechnicalId> DesignatedAssignmentNodes = default,
-    string? IconResourcePath = null);
+    string? IconResourcePath = null,
+    Type? StateInitializerType = null,
+    Type[]? StateValidatorTypes = null);
 
 public sealed record WorkflowProcessDescriptor(
     WorkflowDefinition Definition,
@@ -71,4 +80,6 @@ public sealed record WorkflowProcessDescriptor(
     WorkflowFormReference StartForm,
     int InitialStateSchemaVersion,
     ImmutableArray<TechnicalId> DesignatedAssignmentNodes,
-    string? IconResourcePath);
+    string? IconResourcePath,
+    Type? StateInitializerType = null,
+    Type[]? StateValidatorTypes = null);

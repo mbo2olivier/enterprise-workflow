@@ -1,0 +1,73 @@
+@page "/search"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+@inject IAuthorizationProvider Authorization
+@inject IPresentationSettingsStore Settings
+<PageTitle>Recherche de demandes · Enterprise Workflow</PageTitle>
+<div class="content content-medium">
+<div class="page-intro"><h1>Rechercher des demandes</h1><p>Seules les demandes que vous pouvez consulter apparaissent.</p></div>
+<form method="get" class="panel filter-form" role="search">
+<div class="compact-form filter-fields">
+    <WorkflowSearchFields Status="@string.Join(',', Status ?? [])" From="@From" Until="@Until" Process="@Process" Version="@Version" Instance="@Instance" Reference="@Reference" Provider="@Provider" Initiator="@Initiator" CanFilterInitiator="@_canInitiator" />
+</div><footer class="filter-actions">
+    <button class="primary-button" type="submit">Rechercher</button>
+</footer></form>
+@if (_page?.ErrorCode is not null) { <p role="alert" class="form-error">Recherche impossible. Vérifiez les filtres et vos droits, puis relancez la recherche.</p> }
+else if (_page is not null)
+{
+    <section class="panel request-list">
+    @foreach (var item in _page.Items)
+    {
+        <WorkflowRequestRow Request="item" Href="@($"/instances/{item.InstanceId.Value}")" />
+    }
+    @if (_page.Items.Count == 0) { <div class="search-empty"><span class="row-icon large"><PhosphorIcon Name="magnifying-glass" Size="24" /></span><h2>Aucune demande trouvée</h2><p>Aucune demande accessible ne correspond à ces critères.</p><p class="field-help">Essayez d’élargir la période ou de retirer un filtre.</p></div> }
+    </section>
+    @if (_page.NextCursor is not null) { <a class="secondary-button" href="@NextUrl()">Continuer la recherche</a> }
+}
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "status")] public string[]? Status { get; set; }
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+    [SupplyParameterFromQuery(Name = "until")] public string? Until { get; set; }
+    [SupplyParameterFromQuery(Name = "process")] public string? Process { get; set; }
+    [SupplyParameterFromQuery(Name = "version")] public string? Version { get; set; }
+    [SupplyParameterFromQuery(Name = "instance")] public string? Instance { get; set; }
+    [SupplyParameterFromQuery(Name = "reference")] public string? Reference { get; set; }
+    [SupplyParameterFromQuery(Name = "provider")] public string? Provider { get; set; }
+    [SupplyParameterFromQuery(Name = "initiator")] public string? Initiator { get; set; }
+    [SupplyParameterFromQuery(Name = "cursor")] public string? Cursor { get; set; }
+    private WorkflowSearchPage? _page;
+    private bool _canInitiator;
+    private string _zone = "UTC";
+    protected override async Task OnParametersSetAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _zone = (await Settings.ReadAsync(CancellationToken.None)).Value?.TimeZoneId ?? "UTC";
+        _canInitiator = (await Authorization.AuthorizeAsync(new(actor, WorkflowPermissions.SearchByInitiator), CancellationToken.None)).Allowed;
+        try
+        {
+            var statuses = (Status ?? []).SelectMany(value => value.Split(',', StringSplitOptions.RemoveEmptyEntries)).Select(Enum.Parse<WorkflowInstanceStatus>).ToArray();
+            var version = string.IsNullOrEmpty(Version) ? (int?)null : int.Parse(Version, CultureInfo.InvariantCulture);
+            var instance = string.IsNullOrEmpty(Instance) ? (Guid?)null : Guid.TryParse(Instance, out var parsedId) ? parsedId : WorkflowPublicReference.IsValid(Instance.ToUpperInvariant()) ? null : throw new FormatException("Invalid instance reference.");
+            var initiator = string.IsNullOrEmpty(Provider) && string.IsNullOrEmpty(Initiator) ? (IdentityReference?)null : new IdentityReference(Provider!, Initiator!);
+            _page = await Portal.SearchInstancesAsync(actor, new(null, Date(From, false), Date(Until, true), Empty(Process), version,
+                instance, Empty(Reference), initiator, Cursor, statuses, !string.IsNullOrEmpty(Instance) && !Guid.TryParse(Instance, out _) ? Instance.ToUpperInvariant() : null), CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException)
+        { _page = new([], null, "presentation.search-invalid"); }
+    }
+    private DateTimeOffset? Date(string? value, bool end)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+        var date = DateOnly.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (end) date = date.AddDays(1);
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(TimeOnly.MinValue), TimeZoneInfo.FindSystemTimeZoneById(_zone)));
+    }
+    private static string? Empty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private string NextUrl() => "/search?" + string.Join("&", new Dictionary<string, string?>
+    {
+        ["status"] = Status is null ? null : string.Join(',', Status), ["from"] = From, ["until"] = Until, ["process"] = Process, ["version"] = Version,
+        ["instance"] = Instance, ["reference"] = Reference, ["provider"] = Provider, ["initiator"] = Initiator, ["cursor"] = _page!.NextCursor,
+    }.Where(item => !string.IsNullOrEmpty(item.Value)).Select(item => Uri.EscapeDataString(item.Key) + "=" + Uri.EscapeDataString(item.Value!)));
+}

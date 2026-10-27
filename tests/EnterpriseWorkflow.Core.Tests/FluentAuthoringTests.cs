@@ -12,16 +12,17 @@ public sealed class FluentAuthoringTests
     public void ReferencesResolveAfterCollectionAndPoliciesRoundTripCanonically()
     {
         var module = new WorkflowModuleBuilder(new("sample.leave", "2.0.0", 4));
-        WorkflowActionBuilder? mutableAction = null;
+        WorkflowTypedActionBuilder<AuthorState>? mutableAction = null;
         module.AddProcess(process =>
         {
-            process.WithId("request").WithStateSchemaVersion(3).RequiresPermission("request")
+            var flow = process.WithState<AuthorState>().InitializedBy<AuthorInitializer>();
+            flow.WithId("request").WithStateSchemaVersion(3).RequiresPermission("request")
                 .StartWithForm("request-form").Then("review");
-            process.Approval("review", "Examiner", stage => stage
+            flow.Approval("review", "Examiner", stage => stage
                 .RequiresPermission("review").RequiresAnyPermission("senior", "deputy")
                 .ClaimedByEligibleParticipant().ShowFields("reason")
                 .Actions(actions => actions.Add("approve", "Approuver", action => { mutableAction = action; action.Then("end"); })));
-            process.End("end");
+            flow.End("end");
         });
         module.AddForm("request-form", "Demande", form => form.HandledBy<Handler>()
             .ReadableBy(WorkflowFieldAudience.TaskParticipant).Fields(fields => fields.Text("reason", "Motif").Required()));
@@ -57,7 +58,7 @@ public sealed class FluentAuthoringTests
         var module = new WorkflowModuleBuilder(new("sample", "1.0.0", 1));
         module.AddHumanTask<Handler>("handler").AddForm("form", "Formulaire", form => form.HandledBy<Handler>()
             .Fields(fields => fields.Text("reason", "Motif")));
-        module.AddProcess(process => process.WithId("test").RequiresPermission("unknown").StartWithForm("form").Then("end").End("end"));
+        module.AddProcess(process => process.WithState<AuthorState>().InitializedBy<AuthorInitializer>().WithId("test").RequiresPermission("unknown").StartWithForm("form").Then("end").End("end"));
         var registry = new WorkflowPresentationRegistryBuilder();
         Assert.Throws<InvalidOperationException>(() => module.ConfigurePresentation(registry, []));
     }
@@ -88,18 +89,28 @@ public sealed class FluentAuthoringTests
             .Fields(fields => fields.Text("reason", "Motif")));
         module.AddProcess(process =>
         {
-            process.WithId("test").WithStateSchemaVersion(1).RequiresPermission("act").StartWithForm("form").Then("review");
-            process.Approval("review", "Examen", stage => stage.RequiresPermission("act").ClaimedByEligibleParticipant()
+            var flow = process.WithState<AuthorState>().InitializedBy<AuthorInitializer>();
+            flow.WithId("test").WithStateSchemaVersion(1).RequiresPermission("act").StartWithForm("form").Then("review");
+            flow.Approval("review", "Examen", stage => stage.RequiresPermission("act").ClaimedByEligibleParticipant()
                 .Actions(actions => actions.Add("approve", "Approuver", action => action.SelectAssigneeFor("later").Then("end"))));
-            process.End("end");
+            flow.End("end");
         });
         var permissions = new WorkflowPermissionRegistryBuilder(module.Info).Add("act", "Agir");
         Assert.Throws<InvalidOperationException>(() => module.ConfigurePresentation(new(), permissions.Permissions));
     }
 
+    public sealed class AuthorState
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("reason")] public string? Reason { get; set; }
+    }
+    private sealed class AuthorInitializer : IWorkflowStateInitializer
+    {
+        public ValueTask<WorkflowStateInitializationResult> InitializeAsync(WorkflowStateInitializationContext context, CancellationToken cancellationToken) => ValueTask.FromResult(new WorkflowStateInitializationResult(context.Submission));
+    }
+
     private sealed class Handler : IHumanTaskCompletionHandler
     {
         public ValueTask<HumanTaskCompletionResult> CompleteAsync(HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(HumanTaskCompletionResult.Success(context.ActionId));
+            ValueTask.FromResult(HumanTaskCompletionResult.Success());
     }
 }

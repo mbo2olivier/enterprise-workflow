@@ -23,7 +23,8 @@ public interface IWorkflowStartService
 
 internal sealed class WorkflowStartService(
     IWorkflowStore store,
-    IWorkflowAuthorizationService authorization) : IWorkflowStartService
+    IWorkflowAuthorizationService authorization,
+    IWorkflowStateValidationService? stateValidation = null, EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer? serializer = null) : IWorkflowStartService
 {
     public async ValueTask<WorkflowStartResult> StartAsync(
         WorkflowDefinition definition,
@@ -32,6 +33,7 @@ internal sealed class WorkflowStartService(
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(command);
+        if (!(serializer ?? new EnterpriseWorkflow.Core.Serialization.WorkflowSerializer()).IsValidState(command.InitialState.Value)) return new(false, false, null, null, "runtime.state-invalid");
         if (command.Definition.DefinitionId != definition.Id ||
             command.Definition.Version != definition.Version ||
             !string.Equals(command.Definition.Sha256, definition.Sha256, StringComparison.Ordinal))
@@ -55,6 +57,11 @@ internal sealed class WorkflowStartService(
                 return Denied("security.task-assignee-ineligible");
         }
 
+        var stateContract = WorkflowStateContract.From(definition);
+        if (stateContract is not null && (stateContract.Version != command.InitialState.SchemaVersion || stateContract.Validate(command.InitialState.Value).Count > 0))
+            return Denied("runtime.state-invalid");
+        if ((stateContract?.Validators?.Length ?? 0) > 0 && (stateValidation is null || !await stateValidation.ValidateAsync(definition, new(command.InitialState, "start", null, []), cancellationToken)))
+            return Denied("runtime.state-invalid");
         var persisted = await store.StartInstanceAsync(command, cancellationToken).ConfigureAwait(false);
         return persisted.Outcome switch
         {

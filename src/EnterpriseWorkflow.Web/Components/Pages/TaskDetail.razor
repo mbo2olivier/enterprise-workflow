@@ -16,19 +16,15 @@
         @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">L’action n’a pas pu être enregistrée. La tâche a peut-être évolué.</div> }
         @if (_task.CustomComponentType is not null)
         {
-            <div class="panel custom-form-summary"><DynamicComponent Type="_task.CustomComponentType" Parameters="@CustomParameters(_task)" /></div>
+            <WorkflowFormView ComponentType="_task.CustomComponentType" Values="_task.VisibleData" State="_task.VisibleState" />
         }
         @if (_task.Summary is not null)
         {
-            <WorkflowDataTable Data="_task.Summary.ToJsonElement()" Labels="_task.SummaryLabels" />
+            <WorkflowDataTable Data="_task.Summary.ToJsonElement()" Labels="_task.SummaryLabels" InstanceLink="@($"/instances/{_task.InstanceId.Value}")" />
         }
-        @if (_task.CanAssign || _task.Policy?.Actions.Values.Any(action => action.AssigneeTarget is not null) == true)
+        else
         {
-            <form method="get" class="panel candidate-search" role="search">
-                <label for="candidate-query">Rechercher un destinataire éligible</label>
-                <input id="candidate-query" name="candidate" value="@CandidateQuery" minlength="2" maxlength="256" required />
-                <button class="secondary-button" type="submit">Rechercher</button>
-            </form>
+            <section class="panel data-table-panel"><table class="workflow-data-table"><tbody><tr><td colspan="2"><a class="text-button" href="/instances/@_task.InstanceId.Value">Consulter la demande →</a></td></tr></tbody></table></section>
         }
         @if (_task.CanAssign)
         {
@@ -36,15 +32,8 @@
                 <AntiforgeryToken />
                 <input type="hidden" name="revision" value="@_task.Revision" />
                 <p>La tâche attend un destinataire éligible. Aucune personne n’a été substituée automatiquement.</p>
-                <label>Destinataire
-                    <select name="assignee" required>
-                        <option value="">Sélectionner…</option>
-                        @foreach (var candidate in _recoveryCandidates)
-                        {
-                            <option value="@CandidateValue(candidate.Identity)">@candidate.DisplayName · @candidate.Identity.SubjectId</option>
-                        }
-                    </select>
-                </label>
+                <WorkflowCandidatePicker Name="assignee" Endpoint="@($"/workflow/candidates/recovery/{TaskId}")" />
+
                 <button class="primary-button" type="submit">Affecter</button>
             </form>
         }
@@ -59,17 +48,17 @@
                 <input type="hidden" name="revision" value="@_task.Revision" />
                 <input type="hidden" name="idempotencyKey" value="@_idempotencyKey" />
                 <WorkflowFormFields Form="_task.Form" Values="_task.VisibleData" />
-                @foreach (var selection in _candidates)
+                @foreach (var action in _task.Actions)
                 {
-                    <label>Destinataire · @(_task.AssignmentLabels?.GetValueOrDefault(selection.Key) ?? "Étape suivante")
-                        <select name="@($"assignment.{selection.Key}.identity")">
-                            <option value="">Sélectionner pour poursuivre vers cette étape…</option>
-                            @foreach (var candidate in selection.Value)
-                            {
-                                <option value="@CandidateValue(candidate.Identity)">@candidate.DisplayName · @candidate.Identity.ProviderId · @candidate.Identity.SubjectId</option>
-                            }
-                        </select>
-                    </label>
+                    var target = _task.Policy?.Actions.GetValueOrDefault(action.ActionId.Value)?.AssigneeTarget;
+                    if (target is not null)
+                    {
+                        <div data-assignment-action="@action.ActionId.Value">
+                            <WorkflowCandidatePicker Name="@($"assignment.{target}.identity")"
+                                Label="@($"Destinataire · {_task.AssignmentLabels?.GetValueOrDefault(target) ?? "Étape suivante"} · {action.ActionId.Value}")"
+                                Endpoint="@($"/workflow/candidates/task/{TaskId}/{Uri.EscapeDataString(action.ActionId.Value)}")" />
+                        </div>
+                    }
                 }
                 <div class="action-dock">
                     @if (_task.Status is HumanTaskStatus.Claimed)
@@ -95,9 +84,6 @@
     [Parameter] public Guid TaskId { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
     [SupplyParameterFromQuery(Name = "completed")] public string? Completed { get; set; }
-    [SupplyParameterFromQuery(Name = "candidate")] public string? CandidateQuery { get; set; }
-    private readonly Dictionary<string, IReadOnlyList<WorkflowCandidate>> _candidates = new(StringComparer.Ordinal);
-    private IReadOnlyList<WorkflowCandidate> _recoveryCandidates = [];
     private WorkflowTaskView? _task;
     private readonly string _idempotencyKey = $"web-{Guid.NewGuid():N}";
 
@@ -105,21 +91,7 @@
     {
         var actor = await Identity.GetRequiredAsync();
         _task = await Portal.ReadTaskAsync(actor, new(TaskId), CancellationToken.None);
-        _candidates.Clear();
-        _recoveryCandidates = _task?.CanAssign == true && !string.IsNullOrWhiteSpace(CandidateQuery) ?
-            await Portal.SearchRecoveryCandidatesAsync(actor, new(TaskId), CandidateQuery, 20, CancellationToken.None) : [];
-        if (_task?.Policy is null) return;
-        foreach (var action in _task.Actions)
-        {
-            var target = _task.Policy.Actions.GetValueOrDefault(action.ActionId.Value)?.AssigneeTarget;
-            if (target is null) continue;
-            _candidates[target] = string.IsNullOrWhiteSpace(CandidateQuery) ? [] :
-                await Portal.SearchTaskAssignmentCandidatesAsync(actor, new(TaskId), new(action.ActionId.Value), CandidateQuery, 20, CancellationToken.None);
-        }
     }
-
-    private static string CandidateValue(IdentityReference identity) =>
-        $"{Uri.EscapeDataString(identity.ProviderId)}|{Uri.EscapeDataString(identity.SubjectId)}";
 
     private static string ActionLabel(string action) => action switch
     {

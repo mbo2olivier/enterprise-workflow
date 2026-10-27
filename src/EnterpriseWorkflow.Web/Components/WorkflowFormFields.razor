@@ -7,6 +7,12 @@
         <span>@field.Label@if (field.Required) { <span aria-hidden="true"> *</span> }</span>
         @switch (field.Kind)
         {
+            case WorkflowFormFieldKind.File:
+                <input id="@name" type="file" disabled multiple="@(field.FileSpecification?.MaximumFiles > 1)" accept="@string.Join(",", field.FileSpecification?.AllowedExtensions ?? [])"
+                       required="@field.Required" data-media-upload="@field.Id.Value" data-media-max-files="@field.FileSpecification?.MaximumFiles" />
+                <input name="@name" type="hidden" value="[]" data-media-reference="@field.Id.Value" />
+                <small role="status" aria-live="polite" data-media-status="@field.Id.Value">Aucun fichier sélectionné.</small>
+                break;
             case WorkflowFormFieldKind.LongText:
                 <textarea id="@name" name="@name" required="@field.Required" maxlength="@field.MaximumLength" rows="4">@Value(field)</textarea>
                 break;

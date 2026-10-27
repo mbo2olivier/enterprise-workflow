@@ -396,7 +396,7 @@ public sealed class WorkflowRuntimeExecutionTests
             HumanTaskCompletionContext context, CancellationToken cancellationToken)
         {
             state.Invocations++;
-            return ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+            return ValueTask.FromResult(HumanTaskCompletionResult.Success());
         }
     }
 

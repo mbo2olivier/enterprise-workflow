@@ -40,6 +40,9 @@ public sealed class NodeExecutionContext
         Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
+    public TState ReadState<TState>() where TState : class => State.Value.Deserialize<TState>();
+    public WorkflowMediaSession? MediaExecution { get; init; }
+
     /// <summary>Gets the durable workflow instance.</summary>
     public WorkflowInstanceId InstanceId { get; }
 
@@ -69,4 +72,10 @@ public sealed record HumanTaskCompletionContext(
     TechnicalId ActionId,
     CanonicalJson Submission,
     WorkflowState State,
-    CanonicalJson Configuration);
+    CanonicalJson Configuration)
+{
+    public TState ReadState<TState>() where TState : class => State.Value.Deserialize<TState>();
+    public TInput ReadSubmission<TInput>() where TInput : class => Submission.Deserialize<TInput>();
+    public DateTimeOffset CompletionAtUtc { get; init; }
+    public WorkflowMediaSession? MediaExecution { get; init; }
+}

@@ -7,6 +7,9 @@ namespace EnterpriseWorkflow.Persistence;
 /// </summary>
 public interface IWorkflowStore
 {
+    ValueTask<StoreResult<IReadOnlyList<WorkflowAuditRow>>> SearchAuditAsync(WorkflowAuditQuery query, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<IReadOnlyList<WorkflowAuditRow>>("store.audit-unsupported"));
+
     /// <summary>Publishes an immutable definition or returns its identical existing record.</summary>
     ValueTask<StoreResult<DefinitionReference>> PublishDefinitionAsync(
         PublishDefinitionCommand command,
@@ -21,6 +24,33 @@ public interface IWorkflowStore
     ValueTask<StoreResult<IReadOnlyList<WorkflowInstanceSummary>>> ReadWorkflowInstancesAsync(
         ReadWorkflowInstancesCommand command,
         CancellationToken cancellationToken);
+
+    /// <summary>Reads bounded search candidates. Authorization belongs to the application boundary.</summary>
+    ValueTask<StoreResult<IReadOnlyList<WorkflowInstanceCandidate>>> SearchInstancesAsync(WorkflowInstanceSearch query, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<IReadOnlyList<WorkflowInstanceCandidate>>("store.instance-search-not-supported"));
+
+    /// <summary>Internal snapshot. Never expose its raw state without resource and field authorization.</summary>
+    ValueTask<StoreResult<WorkflowInstanceReadSnapshot>> ReadInstanceAsync(WorkflowInstanceId instanceId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<WorkflowInstanceReadSnapshot>("store.instance-read-not-supported"));
+
+    /// <summary>Reads bounded complete-coverage TAT aggregates, without business payloads.</summary>
+    ValueTask<StoreResult<IReadOnlyList<WorkflowTatRow>>> ReadTatAsync(WorkflowTatQuery query, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<IReadOnlyList<WorkflowTatRow>>("store.tat-not-supported"));
+
+    ValueTask<StoreResult<IReadOnlyList<WorkflowMediaRecord>>> ExpireStagedMediaAsync(DateTimeOffset olderThanUtc, int limit, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<IReadOnlyList<WorkflowMediaRecord>>("store.media-not-supported"));
+    ValueTask<StoreResult<bool>> AcknowledgeMediaPurgeAsync(WorkflowMediaReference reference, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<bool>("store.media-not-supported"));
+    ValueTask<StoreResult<bool>> CompleteMediaInspectionAsync(CompleteWorkflowMediaInspectionCommand command, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<bool>("store.media-not-supported"));
+    ValueTask<StoreResult<WorkflowMediaRecord>> StageMediaAsync(StageWorkflowMediaCommand command, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<WorkflowMediaRecord>("store.media-not-supported"));
+    ValueTask<StoreResult<WorkflowMediaRecord>> ReadMediaAsync(WorkflowMediaReference reference, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<WorkflowMediaRecord>("store.media-not-supported"));
+    ValueTask<StoreResult<IReadOnlyList<WorkflowMediaRecord>>> ListMediaAsync(WorkflowInstanceId instanceId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<IReadOnlyList<WorkflowMediaRecord>>("store.media-not-supported"));
+    ValueTask<StoreResult<bool>> DeleteMediaAsync(DeleteWorkflowMediaCommand command, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<bool>("store.media-not-supported"));
 
     /// <summary>Claims at most one due work item and advances its fencing generation atomically.</summary>
     ValueTask<StoreResult<ClaimedWork>> ClaimDueWorkAsync(

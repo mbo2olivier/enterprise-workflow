@@ -46,7 +46,8 @@ internal sealed class HumanTaskService(
     IWorkflowStore store,
     IWorkflowAuthorizationService authorization,
     IScopedWorkflowHandlerResolver resolver,
-    IOptions<WorkflowRuntimeOptions> configuredOptions) : IHumanTaskService
+    IOptions<WorkflowRuntimeOptions> configuredOptions,
+    IWorkflowStateValidationService? stateValidation = null, IIdentityDisplayNameResolver? names = null, EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer? serializer = null) : IHumanTaskService
 {
     private readonly WorkflowRuntimeOptions _options = Validate(configuredOptions.Value);
 
@@ -64,7 +65,7 @@ internal sealed class HumanTaskService(
         if (!await HasAnyTaskActionAsync(assignee, snapshot, cancellationToken).ConfigureAwait(false))
             return Denied("security.task-assignee-ineligible");
         var result = await store.AssignHumanTaskAsync(new AssignHumanTaskCommand(
-            taskId, expectedRevision, ToActor(assignee), ToActor(actor)), cancellationToken).ConfigureAwait(false);
+            taskId, expectedRevision, ToActor(assignee), await AuditActorAsync(actor, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
         return Mutation(result);
     }
 
@@ -77,13 +78,13 @@ internal sealed class HumanTaskService(
             !await HasAnyTaskActionAsync(actor, loaded.Snapshot, cancellationToken).ConfigureAwait(false))
             return Denied("security.task-claim-denied");
         return Mutation(await store.ClaimHumanTaskAsync(
-            new ClaimHumanTaskCommand(taskId, expectedRevision, ToActor(actor)), cancellationToken).ConfigureAwait(false));
+            new ClaimHumanTaskCommand(taskId, expectedRevision, await AuditActorAsync(actor, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false));
     }
 
     public async ValueTask<HumanTaskCommandResult> ReleaseAsync(
         HumanTaskId taskId, long expectedRevision, IdentityReference actor, CancellationToken cancellationToken) =>
         Mutation(await store.ReleaseHumanTaskAsync(
-            new ReleaseHumanTaskCommand(taskId, expectedRevision, ToActor(actor)), cancellationToken).ConfigureAwait(false));
+            new ReleaseHumanTaskCommand(taskId, expectedRevision, await AuditActorAsync(actor, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false));
 
     public async ValueTask<HumanTaskCommandResult> CompleteAsync(
         HumanTaskId taskId, long expectedRevision, IdentityReference actor, WorkflowActionId action,
@@ -92,7 +93,7 @@ internal sealed class HumanTaskService(
         ArgumentNullException.ThrowIfNull(submission);
         if (submission.CanonicalByteCount > _options.HumanTaskMaximumSubmissionBytes)
             return Denied("runtime.human-task-submission-too-large");
-        var actorValue = ToActor(actor);
+        var actorValue = await AuditActorAsync(actor, cancellationToken).ConfigureAwait(false);
         var actionId = new TechnicalId(action.Value);
         var requestHash = ComputeRequestHash(actionId, submission);
         var previous = await store.GetHumanTaskCompletionReceiptAsync(taskId, idempotencyKey, cancellationToken).ConfigureAwait(false);
@@ -152,13 +153,16 @@ internal sealed class HumanTaskService(
         else if (submittedAssignments.Count != 0) return Denied("runtime.undeclared-assignment");
 
         await using var scope = resolver.ResolveHumanTask(contract.CompletionHandler);
-        var handlerResult = await scope.Handler.CompleteAsync(new HumanTaskCompletionContext(
-            taskId, snapshot.InstanceId, snapshot.ActivationId, snapshot.NodeId, actorValue,
-            actionId, businessSubmission, snapshot.State, node.Configuration), cancellationToken).ConfigureAwait(false);
+        var mediaExecution = WorkflowMediaSession.Create(snapshot.Definition, node.Configuration, new(actorValue, snapshot.InstanceId, snapshot.ActivationId), businessSubmission);
+        var handlerContext = new HumanTaskCompletionContext(taskId, snapshot.InstanceId, snapshot.ActivationId, snapshot.NodeId, actorValue,
+            actionId, businessSubmission, snapshot.State, node.Configuration) { MediaExecution = mediaExecution, CompletionAtUtc = MillisecondUtcNow() };
+        HumanTaskCompletionResult handlerResult;
+        try { handlerResult = await scope.Handler.CompleteAsync(handlerContext, cancellationToken).ConfigureAwait(false); }
+        catch (WorkflowMediaInspectionPendingException) { mediaExecution.Seal(); return Denied("runtime.media-inspection-pending"); }
+        catch { mediaExecution.Seal(); throw; }
+        var collectedMedia = mediaExecution.Seal();
         if (!handlerResult.Succeeded)
             return Denied(handlerResult.ErrorCode?.Value ?? "runtime.human-task-submission-rejected");
-        if (handlerResult.Outcome != declaredAction.Outcome)
-            return Denied("runtime.human-task-handler-outcome-mismatch");
         var assignments = policy is null ? handlerResult.DesignatedAssignments.ToArray() : submittedAssignments.ToArray();
         if (policy is not null && handlerResult.DesignatedAssignments.Any(assignment => !assignments.Contains(assignment)))
             return Denied("runtime.handler-assignment-mismatch");
@@ -167,7 +171,7 @@ internal sealed class HumanTaskService(
             var target = snapshot.Definition.Nodes.SingleOrDefault(candidate => candidate.Id == assignment.NodeId);
             if (target?.HumanTask is not { AssignmentMode: HumanTaskAssignmentMode.DesignatedIdentity } ||
                 (policy is not null && (assignment.NodeId.Value != actionPolicy?.AssigneeTarget ||
-                    !snapshot.Definition.Transitions.Any(edge => edge.SourceId == node.Id && edge.Outcome == handlerResult.Outcome && edge.TargetId == assignment.NodeId))))
+                    !snapshot.Definition.Transitions.Any(edge => edge.SourceId == node.Id && edge.Outcome == declaredAction.Outcome && edge.TargetId == assignment.NodeId))))
                 return Denied("runtime.designated-assignment-node-invalid");
             if ((!target.HumanTask.AllowInitiator && assignment.Assignee == snapshot.Initiator) ||
                 target.HumanTask.DistinctFrom.Any(constraint =>
@@ -178,18 +182,28 @@ internal sealed class HumanTaskService(
                 return Denied("security.task-assignee-ineligible");
         }
         var transition = snapshot.Definition.Transitions.SingleOrDefault(item =>
-            item.SourceId == node.Id && item.Outcome == handlerResult.Outcome);
+            item.SourceId == node.Id && item.Outcome == declaredAction.Outcome);
         if (transition is null) return Denied("runtime.human-task-transition-not-found");
 
         WorkflowState? replacement = null;
         if (handlerResult.StateUpdate.ReplacesState)
-            replacement = WorkflowState.Create(handlerResult.StateUpdate.GetReplacement()!.Value.GetRawText(), snapshot.State.SchemaVersion);
+        {
+            try { replacement = WorkflowState.Create(handlerResult.StateUpdate.GetReplacement()!.Value.GetRawText(), snapshot.State.SchemaVersion); }
+            catch (FormatException) { return Denied("runtime.state-invalid"); }
+        }
+        var stateContract = stateValidation?.GetContract(snapshot.Definition, snapshot.State.SchemaVersion) ?? WorkflowStateContract.From(snapshot.Definition);
+        var validationGroups = (policy?.StateValidationGroups ?? []).Concat(actionPolicy?.StateValidationGroups ?? []).ToArray();
+        if (!(serializer ?? new EnterpriseWorkflow.Core.Serialization.WorkflowSerializer(_options.Serialization)).IsValidState((replacement ?? snapshot.State).Value)) return Denied("runtime.state-invalid");
+        if (stateContract is not null && (stateContract.Version != snapshot.State.SchemaVersion || stateContract.Validate((replacement ?? snapshot.State).Value, validationGroups).Count > 0))
+            return Denied("runtime.state-invalid");
+        if ((stateContract?.Validators?.Length ?? 0) > 0 && (stateValidation is null || !await stateValidation.ValidateAsync(snapshot.Definition,
+            new(replacement ?? snapshot.State, node.Id.Value, actionId.Value, validationGroups), cancellationToken))) return Denied("runtime.state-invalid");
         var outbox = handlerResult.Effects.Select(item => new OutboxWrite(
             item.OperationId, item.Destination, item.ContentType, item.Payload.CanonicalText)).ToArray();
         var completed = await store.CompleteHumanTaskAsync(new CompleteHumanTaskCommand(
             taskId, expectedRevision, snapshot.InstanceRevision, actorValue, actionId, idempotencyKey, requestHash,
             replacement, new NextWork(transition.TargetId, MillisecondUtcNow()), outbox,
-            assignments), cancellationToken).ConfigureAwait(false);
+            assignments, HumanTaskSubmission.ReadMedia(submission).Concat(collectedMedia.Attachments).Distinct().ToArray(), collectedMedia.Deletions), cancellationToken).ConfigureAwait(false);
         return completed.Outcome switch
         {
             StoreOutcome.Succeeded => new(true, false, HumanTaskStatus.Completed,
@@ -294,6 +308,8 @@ internal sealed class HumanTaskService(
         return decision.Allowed;
     }
 
+    private async ValueTask<ActorIdentity> AuditActorAsync(IdentityReference actor, CancellationToken token) =>
+        ToActor(actor) with { DisplayName = names is null ? actor.SubjectId : await names.ResolveAsync(actor, token).ConfigureAwait(false) };
     private static ActorIdentity ToActor(IdentityReference identity) =>
         new(new TechnicalId(identity.ProviderId), identity.SubjectId);
     private static IdentityReference ToIdentity(ActorIdentity actor) =>

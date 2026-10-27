@@ -17,6 +17,27 @@ namespace EnterpriseWorkflow.Extensions.Tests;
 public sealed class WorkflowModuleLoaderTests
 {
     [Fact]
+    public async Task CustomMediaValidatorsUseTheExactModuleArtifact()
+    {
+        await using var artifacts = await ModuleArtifacts.CreateAsync();
+        var catalog = WorkflowModuleCatalog.Load([artifacts.VersionA, artifacts.VersionB]);
+        var services = new ServiceCollection(); services.AddEnterpriseWorkflowModules(catalog);
+        await using var provider = services.BuildServiceProvider();
+        var resolver = provider.GetRequiredService<IWorkflowMediaFormatResolver>();
+        var format = new WorkflowMediaFormatDefinition("fixture.approval.note", "application/x-note", [".note"]);
+        foreach (var module in catalog.Modules)
+        {
+            var artifact = new WorkflowArtifactReference(module.Manifest.Id, module.Manifest.Version, module.ArtifactSha256);
+            using var accepted = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(module.Manifest.Version.StartsWith('1') ? "V1:accepted" : "V2:accepted"));
+            Assert.True(await resolver.ValidateAsync(artifact, format, accepted, TestContext.Current.CancellationToken));
+            accepted.Position = 0;
+            Assert.False(await resolver.ValidateAsync(artifact with { Sha256 = new string('0', 64) }, format, accepted, TestContext.Current.CancellationToken));
+            using var rejected = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(module.Manifest.Version.StartsWith('1') ? "V2:wrong" : "V1:wrong"));
+            Assert.False(await resolver.ValidateAsync(artifact, format, rejected, TestContext.Current.CancellationToken));
+        }
+    }
+
+    [Fact]
     public async Task VersionsCoexistWithPrivateDependenciesHandlersComponentsAndResources()
     {
         await using var artifacts = await ModuleArtifacts.CreateAsync();
@@ -137,7 +158,7 @@ public sealed class WorkflowModuleLoaderTests
     {
         public ValueTask<HumanTaskCompletionResult> CompleteAsync(
             HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+            ValueTask.FromResult(HumanTaskCompletionResult.Success());
     }
 
     private sealed class MaintenanceStoreStub(ModuleArtifactReference artifact) : IWorkflowMaintenanceStore

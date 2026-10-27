@@ -1,0 +1,20 @@
+@using System.Reflection
+@if (ComponentType is not null)
+{
+    <section class="panel custom-form-summary" data-form-view="@ComponentType.Name"><DynamicComponent Type="ComponentType" Parameters="@Parameters" /></section>
+}
+@code {
+    [Parameter] public Type? ComponentType { get; set; }
+    [Parameter] public CanonicalJson? Values { get; set; }
+    [Parameter] public CanonicalJson? State { get; set; }
+    private IDictionary<string, object> Parameters
+    {
+        get
+        {
+            var result = new Dictionary<string, object>();
+            if (ComponentType?.GetProperty("Values")?.IsDefined(typeof(ParameterAttribute)) == true) result["Values"] = Values ?? CanonicalJson.CreateObject("{}", 1024);
+            if (ComponentType?.GetProperty("State")?.IsDefined(typeof(ParameterAttribute)) == true) result["State"] = State ?? CanonicalJson.CreateObject("{}", 1024);
+            return result;
+        }
+    }
+}

@@ -159,3 +159,7 @@ Ajouter à la configuration du runtime de développement un bloc SMTP explicite 
 Livrer une stack Docker Compose de capture SMTP et sa procédure : endpoint SMTP réel, consultation des messages, version d’image fixée, disponibilité, ports locaux et nettoyage. Elle reste facultative pour `ew dev` et sert à qualifier notifications, fan-out, retries et panne/reprise durant le parcours navigateur. Aucune livraison Internet ni capacité TLS/authentification de production n’est déduite de cette capture.
 
 Critère supplémentaire de sortie : `ew pack` → `ew verify`, puis parcours LeaveRequest via `ew dev` avec SMTP capturé, scénarios de refus, reprise et anciennes versions ; chargement distinct de l’artefact packagé dans le Kernel. Voir la [procédure intégrée](l8b-validation.md) et le [plan](implementation-plan.md). Les templates et packages ne sont figés qu’après ces preuves.
+
+## Mise à jour du 23 octobre 2026 — pipeline et séquencement
+
+Le porteur confirme la validation de la pipeline L9 sur GitHub. Cette confirmation remplace les mentions ci-dessus de CI non confirmée ; les compléments fonctionnels non explicitement prouvés restent suivis dans la [preuve L9](evidence/l9.md). Un lot intermédiaire [L9b](l9b-spec.md) est introduit avant L10 pour la consultation/recherche autorisée, l’audit filtré/exportable, les médias et les rapports TAT. Le gel final des contrats publics, templates et packages intervient après qualification de L9b ; le périmètre historique de L9 n’est pas réécrit comme si ces capacités étaient déjà livrées.

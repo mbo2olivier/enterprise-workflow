@@ -22,7 +22,10 @@ public sealed class SecuritySessionManager(
             : new(created.Outcome, ErrorCode: created.ErrorCode);
     }
 
-    public async ValueTask<SessionValidationResult> ValidateAsync(string token, CancellationToken cancellationToken)
+    public ValueTask<SessionValidationResult> ValidateAsync(string token, CancellationToken cancellationToken) =>
+        ValidateAsync(token, 3, cancellationToken);
+
+    private async ValueTask<SessionValidationResult> ValidateAsync(string token, int retries, CancellationToken cancellationToken)
     {
         policy.Validate();
         if (string.IsNullOrWhiteSpace(token)) return new(SessionValidationStatus.NotFound, ErrorCode: "security.session-not-found");
@@ -53,6 +56,10 @@ public sealed class SecuritySessionManager(
         }
 
         var updated = await store.UpdateSessionAsync(session with { LastSeenAtUtc = now, RemoteStatusCheckedAtUtc = checkedAt }, cancellationToken).ConfigureAwait(false);
+        // Parallel browser requests can touch the same session revision. Read it
+        // again so revocation/expiry are checked before retrying the heartbeat.
+        if (updated.Outcome is ProviderOutcome.Conflict && retries > 0)
+            return await ValidateAsync(token, retries - 1, cancellationToken).ConfigureAwait(false);
         return updated.Outcome is ProviderOutcome.Succeeded
             ? new(SessionValidationStatus.Valid, session.Identity)
             : new(SessionValidationStatus.Unavailable, ErrorCode: updated.ErrorCode);

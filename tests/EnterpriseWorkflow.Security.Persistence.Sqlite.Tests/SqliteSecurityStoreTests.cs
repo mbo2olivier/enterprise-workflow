@@ -6,6 +6,34 @@ namespace EnterpriseWorkflow.Security.Persistence.Sqlite.Tests;
 public sealed class SqliteSecurityStoreTests
 {
     [Fact]
+    public async Task AuditSearchReadsBeyondLegacyLimitWithStableCursorAndFilters()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "ew-audit-query-" + Guid.NewGuid().ToString("N") + ".db");
+        try
+        {
+            var database = new SqliteSecurityDatabase("Data Source=" + path);
+            await database.MigrateAsync(TestContext.Current.CancellationToken);
+            var store = database.CreateStore();
+            var actor = new IdentityReference("local", "auditor");
+            for (var index = 0; index < 260; index++)
+                await store.RecordAuditAsync(new(DateTimeOffset.UtcNow, actor, "test.audit", "target-" + index, "succeeded"), TestContext.Current.CancellationToken);
+            var first = await store.SearchAuditAsync(new(Action: "test.audit", Limit: 250), TestContext.Current.CancellationToken);
+            Assert.Equal(250, first.Value!.Count);
+            var last = first.Value[^1];
+            var second = await store.SearchAuditAsync(new(Action: "test.audit", Limit: 50,
+                After: new(last.Entry.OccurredAtUtc.ToUnixTimeMilliseconds(), last.Id)), TestContext.Current.CancellationToken);
+            Assert.Equal(10, second.Value!.Count);
+            Assert.Empty(first.Value.Select(row => row.Id).Intersect(second.Value.Select(row => row.Id)));
+            Assert.Empty((await store.SearchAuditAsync(new(Actor: new("local", "other")), TestContext.Current.CancellationToken)).Value!);
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task ProfilesAssignmentsPermissionsAuditAndLastAdministratorAreDurable()
     {
         await using var fixture = new Fixture(); await fixture.Database.MigrateAsync(TestContext.Current.CancellationToken);

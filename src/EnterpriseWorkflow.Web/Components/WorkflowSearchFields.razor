@@ -1,0 +1,43 @@
+@inject IWorkflowPresentationCatalog ProcessCatalog
+@inject IWorkflowAuthorizationService WorkflowAuthorization
+@inject WorkflowWebIdentityAccessor User
+<div class="status-filter"><span class="filter-label">Statut</span><details class="status-dropdown"><summary><span data-status-summary>@StatusSummary</span><span aria-hidden="true">⌄</span></summary><div class="status-options" popover="manual"><input type="search" data-status-search placeholder="Rechercher un statut" aria-label="Rechercher un statut" />
+@foreach (var status in Enum.GetValues<WorkflowInstanceStatus>()) { <label data-status-option><input aria-label="@StatusLabel(status)" type="checkbox" name="status" value="@status" checked="@(Status?.Split(',').Contains(status.ToString(), StringComparer.Ordinal) == true)" /> @StatusLabel(status)</label> }
+<div class="status-menu-footer"><button type="button" class="text-button" data-status-clear>Tout effacer</button><span data-status-count>@SelectedStatuses.Length sélectionné(s)</span></div></div></details></div>
+<label>Créée à partir du<input type="date" name="from" value="@From" /></label>
+<label>Créée jusqu’au<input type="date" name="until" value="@Until" /></label>
+<label>Processus<select name="process"><option value="">Tous les processus accessibles</option>
+@foreach (var process in _processes) { <option value="@process.Key" selected="@(Process == process.Key)">@process.Value</option> }
+</select></label>
+<label>Version<input type="number" name="version" min="1" value="@Version" /></label>
+<label>Identifiant de demande<input name="instance" value="@Instance" /></label>
+<label>Référence métier<input name="reference" maxlength="256" value="@Reference" /></label>
+@if (CanFilterInitiator)
+{
+    <label>Fournisseur de l’initiateur<input name="provider" maxlength="256" value="@Provider" /></label>
+    <label>Identifiant de l’initiateur<input name="initiator" maxlength="256" value="@Initiator" /></label>
+}
+@code {
+    private string[] SelectedStatuses => (Status ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+    private string StatusSummary => SelectedStatuses.Length == 0 ? "Tous les statuts" : string.Join(", ", SelectedStatuses.Take(2).Select(value => Enum.TryParse<WorkflowInstanceStatus>(value, out var status) ? StatusLabel(status) : value)) + (SelectedStatuses.Length > 2 ? $" + {SelectedStatuses.Length - 2}" : "");
+    private static string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Created => "Créée", WorkflowInstanceStatus.Running => "En cours", WorkflowInstanceStatus.Waiting => "En attente", WorkflowInstanceStatus.Completed => "Terminée", WorkflowInstanceStatus.Failed => "En erreur", WorkflowInstanceStatus.Cancelled => "Annulée", _ => status.ToString() };
+    private readonly Dictionary<string, string> _processes = new(StringComparer.Ordinal);
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await User.GetRequiredAsync();
+        foreach (var process in ProcessCatalog.Processes)
+            if ((await WorkflowAuthorization.AuthorizeAsync(new(actor, new(process.Definition.Id.Value, process.Definition.Version, null, WorkflowActions.ReadInstance)), CancellationToken.None)).Allowed)
+                _processes.TryAdd(process.Definition.Id.Value, process.Title);
+    }
+
+    [Parameter] public string? Status { get; set; }
+    [Parameter] public string? From { get; set; }
+    [Parameter] public string? Until { get; set; }
+    [Parameter] public string? Process { get; set; }
+    [Parameter] public string? Version { get; set; }
+    [Parameter] public string? Instance { get; set; }
+    [Parameter] public string? Reference { get; set; }
+    [Parameter] public string? Provider { get; set; }
+    [Parameter] public string? Initiator { get; set; }
+    [Parameter] public bool CanFilterInitiator { get; set; }
+}

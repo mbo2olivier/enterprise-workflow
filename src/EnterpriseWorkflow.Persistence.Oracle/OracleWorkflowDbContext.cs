@@ -30,6 +30,8 @@ public static class OracleWorkflowModelBuilderExtensions
     public static ModelBuilder ConfigureEnterpriseWorkflowOracle(this ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
+        WorkflowMediaModel.Configure(modelBuilder);
+        TatModelBuilder.Configure(modelBuilder);
         ConfigureDefinition(modelBuilder);
         ConfigureInstance(modelBuilder);
         ConfigureActivation(modelBuilder);
@@ -61,6 +63,8 @@ public static class OracleWorkflowModelBuilderExtensions
     private static void ConfigureInstance(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<InstanceRow>();
+        entity.Property(row => row.PublicReference).HasColumnName("PUBLIC_REFERENCE").HasColumnType("VARCHAR2(10 CHAR)").IsRequired();
+        entity.HasIndex(row => row.PublicReference).IsUnique().HasDatabaseName("UX_EW_PUBLIC_REFERENCE");
         entity.ToTable("EW_INSTANCES");
         entity.HasKey(row => row.Id).HasName("PK_EW_INSTANCES");
         Text(entity.Property(row => row.Id), "ID", 32, fixedLength: true);
@@ -77,6 +81,8 @@ public static class OracleWorkflowModelBuilderExtensions
         Text(entity.Property(row => row.CorrelationId), "CORRELATION_ID", 512);
         Number19(entity.Property(row => row.CreatedAtUnixMilliseconds), "CREATED_AT_MS");
         Number19(entity.Property(row => row.UpdatedAtUnixMilliseconds), "UPDATED_AT_MS");
+        entity.HasIndex(row => new { row.CreatedAtUnixMilliseconds, row.Id }).HasDatabaseName("IX_EW_SEARCH_CREATED");
+        entity.HasIndex(row => new { row.InitiatorProviderId, row.InitiatorSubjectId, row.CreatedAtUnixMilliseconds }).HasDatabaseName("IX_EW_SEARCH_INITIATOR");
         entity.HasIndex(row => new { row.DefinitionId, row.DefinitionVersion, row.Status })
             .HasDatabaseName("IX_EW_INSTANCE_DEF_STATUS");
         entity.HasOne<DefinitionRow>().WithMany()
@@ -149,6 +155,11 @@ public static class OracleWorkflowModelBuilderExtensions
     private static void ConfigureAudit(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<AuditRow>();
+        entity.Property(row => row.NodeId).HasColumnName("NODE_ID").HasColumnType("VARCHAR2(128 CHAR)");
+        entity.Property(row => row.ActionId).HasColumnName("ACTION_ID").HasColumnType("VARCHAR2(128 CHAR)");
+        entity.Property(row => row.ActorDisplayName).HasColumnName("ACTOR_DISPLAY_NAME").HasColumnType("VARCHAR2(512 CHAR)");
+        entity.Property(row => row.Outcome).HasColumnName("OUTCOME").HasColumnType("VARCHAR2(32 CHAR)");
+        entity.HasIndex(row => new { row.OccurredAtUnixMilliseconds, row.Sequence }).HasDatabaseName("IX_EW_AUDIT_SEARCH");
         entity.ToTable("EW_AUDITS");
         entity.HasKey(row => row.Sequence).HasName("PK_EW_AUDITS");
         entity.Property(row => row.Sequence).HasColumnName("SEQUENCE").HasColumnType("NUMBER(19)")
@@ -314,6 +325,7 @@ internal sealed class ModuleArtifactRow
 
 internal sealed class InstanceRow
 {
+    public string PublicReference { get; set; } = string.Empty;
     public required string Id { get; set; }
     public required string DefinitionId { get; set; }
     public int DefinitionVersion { get; set; }
@@ -371,6 +383,10 @@ internal sealed class StartReceiptRow
 
 internal sealed class AuditRow
 {
+    public string? NodeId { get; set; }
+    public string? ActionId { get; set; }
+    public string? ActorDisplayName { get; set; }
+    public string Outcome { get; set; } = "succeeded";
     public long Sequence { get; set; }
     public required string InstanceId { get; set; }
     public required string EventType { get; set; }

@@ -38,6 +38,8 @@ public static class SqliteWorkflowModelBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
+        WorkflowMediaModel.Configure(modelBuilder);
+        TatModelBuilder.Configure(modelBuilder);
         ConfigureDefinition(modelBuilder);
         ConfigureInstance(modelBuilder);
         ConfigureActivation(modelBuilder);
@@ -66,6 +68,8 @@ public static class SqliteWorkflowModelBuilderExtensions
     private static void ConfigureInstance(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<InstanceRow>();
+        entity.Property(row => row.PublicReference).HasMaxLength(10).IsRequired();
+        entity.HasIndex(row => row.PublicReference).IsUnique().HasDatabaseName("UX_EW_PUBLIC_REFERENCE");
         entity.ToTable("EwInstances");
         entity.HasKey(row => row.Id);
         entity.Property(row => row.Id).HasMaxLength(32);
@@ -74,6 +78,8 @@ public static class SqliteWorkflowModelBuilderExtensions
         entity.Property(row => row.StateJson).IsRequired();
         entity.Property(row => row.InitiatorProviderId).HasMaxLength(128).UseCollation("BINARY");
         entity.Property(row => row.InitiatorSubjectId).HasMaxLength(512).UseCollation("BINARY");
+        entity.HasIndex(row => new { row.CreatedAtUnixMilliseconds, row.Id }).HasDatabaseName("IX_EW_SEARCH_CREATED");
+        entity.HasIndex(row => new { row.InitiatorProviderId, row.InitiatorSubjectId, row.CreatedAtUnixMilliseconds }).HasDatabaseName("IX_EW_SEARCH_INITIATOR");
         entity.HasIndex(row => new { row.DefinitionId, row.DefinitionVersion, row.Status });
         entity.HasOne<DefinitionRow>()
             .WithMany()
@@ -130,6 +136,11 @@ public static class SqliteWorkflowModelBuilderExtensions
     private static void ConfigureAudit(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<AuditRow>();
+        entity.Property(row => row.NodeId).HasMaxLength(128);
+        entity.Property(row => row.ActionId).HasMaxLength(128);
+        entity.Property(row => row.ActorDisplayName).HasMaxLength(512);
+        entity.Property(row => row.Outcome).HasMaxLength(32);
+        entity.HasIndex(row => new { row.OccurredAtUnixMilliseconds, row.Sequence }).HasDatabaseName("IX_EW_AUDIT_SEARCH");
         entity.ToTable("EwAudits");
         entity.HasKey(row => row.Sequence);
         entity.Property(row => row.InstanceId).HasMaxLength(32);
@@ -257,6 +268,7 @@ internal sealed class ModuleArtifactRow
 
 internal sealed class InstanceRow
 {
+    public string PublicReference { get; set; } = string.Empty;
     public required string Id { get; set; }
     public required string DefinitionId { get; set; }
     public int DefinitionVersion { get; set; }
@@ -314,6 +326,10 @@ internal sealed class StartReceiptRow
 
 internal sealed class AuditRow
 {
+    public string? NodeId { get; set; }
+    public string? ActionId { get; set; }
+    public string? ActorDisplayName { get; set; }
+    public string Outcome { get; set; } = "succeeded";
     public long Sequence { get; set; }
     public required string InstanceId { get; set; }
     public required string EventType { get; set; }

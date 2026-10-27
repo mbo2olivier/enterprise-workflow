@@ -5,13 +5,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="_content/EnterpriseWorkflow.Web/enterprise-workflow.css" />
+    <link rel="stylesheet" href="@Assets["_content/EnterpriseWorkflow.Web/enterprise-workflow.css"]" />
     <HeadOutlet />
 </head>
 <body style="@($"--accent:{_settings.AccentColor}")">
     <Routes />
     <script src="_framework/blazor.web.js"></script>
-    <script src="_content/EnterpriseWorkflow.Web/enterprise-workflow.js"></script>
+    <script src="@Assets["_content/EnterpriseWorkflow.Web/enterprise-workflow.js"]"></script>
 </body>
 </html>
 

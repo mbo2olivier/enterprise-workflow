@@ -18,6 +18,7 @@ public static class WorkflowRuntimeServiceCollectionExtensions
         configure?.Invoke(options);
         options.Validate();
 
+        services.TryAddSingleton<EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer>(new EnterpriseWorkflow.Core.Serialization.WorkflowSerializer(options.Serialization));
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IWorkflowRetryDelayStrategy, FullJitterWorkflowRetryDelayStrategy>();
         services.AddSingleton<IOptions<WorkflowRuntimeOptions>>(Options.Create(options));
@@ -26,12 +27,14 @@ public static class WorkflowRuntimeServiceCollectionExtensions
         services.TryAddSingleton<IWorkflowTimerPump, WorkflowTimerPump>();
         services.TryAddSingleton<IWorkflowStartService>(provider => new WorkflowStartService(
             provider.GetRequiredService<EnterpriseWorkflow.Persistence.IWorkflowStore>(),
-            provider.GetRequiredService<EnterpriseWorkflow.Security.IWorkflowAuthorizationService>()));
+            provider.GetRequiredService<EnterpriseWorkflow.Security.IWorkflowAuthorizationService>(),
+            provider.GetService<IWorkflowStateValidationService>(), provider.GetService<EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer>()));
         services.TryAddSingleton<IHumanTaskService>(provider => new HumanTaskService(
             provider.GetRequiredService<EnterpriseWorkflow.Persistence.IWorkflowStore>(),
             provider.GetRequiredService<EnterpriseWorkflow.Security.IWorkflowAuthorizationService>(),
             provider.GetRequiredService<IScopedWorkflowHandlerResolver>(),
-            provider.GetRequiredService<IOptions<WorkflowRuntimeOptions>>()));
+            provider.GetRequiredService<IOptions<WorkflowRuntimeOptions>>(),
+            provider.GetService<IWorkflowStateValidationService>(), provider.GetService<EnterpriseWorkflow.Security.IIdentityDisplayNameResolver>(), provider.GetService<EnterpriseWorkflow.Core.Serialization.IWorkflowSerializer>()));
         services.TryAddSingleton<IExternalEffectTransport, TTransport>();
         services.AddHostedService<WorkflowWorkerHostedService>();
         services.AddHostedService<WorkflowOutboxHostedService>();

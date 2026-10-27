@@ -17,7 +17,8 @@ public sealed class ApprovalModule : IWorkflowModule
     public void ConfigureStateMigrations(WorkflowStateMigrationRegistryBuilder migrations) =>
         migrations.Add<ApprovalStateMigrator>(1, 2).Add<FailingStateMigrator>(2, 3);
 
-    public void ConfigurePresentation(WorkflowPresentationRegistryBuilder presentation) { }
+    public void ConfigurePresentation(WorkflowPresentationRegistryBuilder presentation) =>
+        presentation.MediaFormats.Add(new(new("fixture.approval.note", "application/x-note", [".note"]), typeof(NoteValidator)));
 }
 
 public sealed class FailingStateMigrator : IWorkflowStateMigrator
@@ -36,5 +37,14 @@ public sealed class ApprovalHandler : IHumanTaskCompletionHandler
 {
     public ValueTask<HumanTaskCompletionResult> CompleteAsync(
         HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+        ValueTask.FromResult(HumanTaskCompletionResult.Success());
+}
+
+public sealed class NoteValidator : IWorkflowMediaFormatValidator
+{
+    public async ValueTask<bool> ValidateAsync(Stream content, CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(content, leaveOpen: true);
+        return (await reader.ReadToEndAsync(cancellationToken)).StartsWith("V1:", StringComparison.Ordinal);
+    }
 }

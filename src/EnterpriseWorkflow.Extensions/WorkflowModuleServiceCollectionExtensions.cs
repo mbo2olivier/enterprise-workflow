@@ -20,6 +20,8 @@ public static class WorkflowModuleServiceCollectionExtensions
         services.AddSingleton(catalog);
         services.AddSingleton<IWorkflowStateMigrationRegistry>(migrations);
         services.AddSingleton<IWorkflowPresentationCatalog>(presentation);
+        services.AddSingleton<IWorkflowMediaFormatResolver, WorkflowMediaFormatResolver>();
+        services.AddSingleton<IWorkflowStateValidationService, WorkflowStateValidationService>();
         services.AddScoped<WorkflowStateMigrationService>();
         return services.AddEnterpriseWorkflowHandlers(handlers =>
         {

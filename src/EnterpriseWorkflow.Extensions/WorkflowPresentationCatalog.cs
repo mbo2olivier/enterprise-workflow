@@ -14,7 +14,9 @@ public sealed record WorkflowFormRegistration(
 public interface IWorkflowPresentationCatalog
 {
     ImmutableArray<WorkflowProcessDescriptor> Processes { get; }
+    ImmutableArray<string> ModuleIds => Processes.SelectMany(process => process.Definition.Artifacts).Select(artifact => artifact.Id.Value).Distinct(StringComparer.Ordinal).ToImmutableArray();
     ImmutableArray<WorkflowPermissionDefinition> Permissions => [];
+    bool TryResolveMediaFormat(WorkflowArtifactReference artifact, string formatId, out Type? validator) { validator = null; return false; }
     bool TryGetProcess(string id, int version, out WorkflowProcessDescriptor? process);
     bool TryResolveForm(WorkflowDefinition definition, WorkflowFormReference reference,
         out WorkflowFormRegistration? registration);
@@ -23,8 +25,12 @@ public interface IWorkflowPresentationCatalog
 /// <summary>Immutable startup catalog of presentation declarations owned by exact module artifacts.</summary>
 public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
 {
+    public ImmutableArray<string> ModuleIds { get; private init; } = [];
     private readonly ImmutableDictionary<ProcessKey, WorkflowProcessDescriptor> _processes;
     private readonly ImmutableDictionary<FormKey, WorkflowFormRegistration> _forms;
+
+    private ImmutableDictionary<(string Module, string Version, string Hash, string Format), Type> MediaFormatValidators { get; init; } = ImmutableDictionary<(string, string, string, string), Type>.Empty;
+    public bool TryResolveMediaFormat(WorkflowArtifactReference artifact, string formatId, out Type? validator) => MediaFormatValidators.TryGetValue((artifact.Id.Value, artifact.Version, artifact.Sha256, formatId), out validator);
 
     public ImmutableArray<WorkflowPermissionDefinition> Permissions { get; private init; } = [];
 
@@ -67,6 +73,7 @@ public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
 
     internal static WorkflowPresentationCatalog Create(WorkflowModuleCatalog catalog)
     {
+        var mediaFormats = ImmutableDictionary.CreateBuilder<(string, string, string, string), Type>();
         var processes = ImmutableDictionary.CreateBuilder<ProcessKey, WorkflowProcessDescriptor>();
         var forms = ImmutableDictionary.CreateBuilder<FormKey, WorkflowFormRegistration>();
         var handlerOwners = new Dictionary<WorkflowHandlerReference, WorkflowArtifactReference>();
@@ -106,6 +113,13 @@ public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
 
             var artifact = new WorkflowArtifactReference(
                 module.Manifest.Id, module.Manifest.Version, module.ArtifactSha256);
+            foreach (var format in builder.MediaFormats)
+            {
+                format.Definition.Validate();
+                if (!typeof(IWorkflowMediaFormatValidator).IsAssignableFrom(format.ValidatorType) || format.ValidatorType.IsAbstract || format.Definition.BuiltIn || !format.Definition.Id.StartsWith(module.Manifest.Id.Value + ".", StringComparison.Ordinal))
+                    throw new WorkflowModuleLoadException("EW7040_INVALID_MEDIA_FORMAT", "Invalid module media format validator.");
+                mediaFormats.Add((artifact.Id.Value, artifact.Version, artifact.Sha256, format.Definition.Id), format.ValidatorType);
+            }
             foreach (var form in builder.Forms)
             {
                 Type? componentType = null;
@@ -148,6 +162,8 @@ public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
                     (!builder.IsReferencedProcess(declaration.Id.Value, declaration.Version) && !definition.Artifacts.Contains(artifact)))
                     throw new WorkflowModuleLoadException("EW7026_PROCESS_DEFINITION_IDENTITY_MISMATCH",
                         $"Process '{declaration.Id.Value}' version {declaration.Version} must build the same definition identity and reference its owning exact artifact.");
+                if (WorkflowStateContract.From(definition) is null || declaration.StateInitializerType is null)
+                    throw new WorkflowModuleLoadException("EW7041_TYPED_STATE_REQUIRED", "Every author-declared process requires a typed state and initializer.");
                 if (WorkflowStagePolicy.Read(definition.Nodes.Single(node => node.Role == WorkflowNodeRole.Start).Configuration) is not null)
                 {
                     WorkflowDefinitionBindingValidator.Validate(definition, handlerRegistry).EnsureValid();
@@ -191,7 +207,7 @@ public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
                     throw new WorkflowModuleLoadException("EW7032_PROCESS_OWNER_MISMATCH", "The reused definition does not reference its original owner.");
                 var descriptor = new WorkflowProcessDescriptor(definition, processOwner, declaration.Title,
                     declaration.Description, declaration.StartForm, declaration.InitialStateSchemaVersion,
-                    declaration.DesignatedAssignmentNodes, declaration.IconResourcePath);
+                    declaration.DesignatedAssignmentNodes, declaration.IconResourcePath, declaration.StateInitializerType, declaration.StateValidatorTypes);
                 var processKey = new ProcessKey(definition.Id.Value, definition.Version);
                 if (processes.TryGetValue(processKey, out var existing) && existing.Definition.Sha256 == definition.Sha256 &&
                     builder.IsReferencedProcess(declaration.Id.Value, declaration.Version)) continue;
@@ -208,6 +224,8 @@ public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
         }
         return new WorkflowPresentationCatalog(processes.ToImmutable(), forms.ToImmutable())
         {
+            ModuleIds = catalog.Modules.Select(module => module.Manifest.Id.Value).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToImmutableArray(),
+            MediaFormatValidators = mediaFormats.ToImmutable(),
             Permissions = permissions.Values.OrderBy(permission => permission.Id.Value, StringComparer.Ordinal).ToImmutableArray(),
         };
     }

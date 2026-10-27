@@ -58,6 +58,7 @@ jobs:
       - name: Test
         run: dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
         env:
+          EW_DEV_LIFECYCLE_TESTS: "1"
           LDAP_TEST_ENABLED: ${{ runner.os == 'Linux' && '1' || '0' }}
           LDAP_TEST_LDAPS: ${{ runner.os == 'Linux' && '1' || '0' }}
           LDAP_TEST_HOST: ${{ runner.os == 'Linux' && '127.0.0.1' || 'localhost' }}

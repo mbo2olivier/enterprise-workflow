@@ -54,6 +54,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
                 CanonicalJson = definition.CanonicalJson,
                 PublishedAtUnixMilliseconds = now,
             });
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(reference);
@@ -61,7 +62,17 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
     }
 
     /// <inheritdoc />
-    public async ValueTask<StoreResult<StartInstanceResult>> StartInstanceAsync(
+    public async ValueTask<StoreResult<StartInstanceResult>> StartInstanceAsync(StartInstanceCommand command, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var result = await StartInstanceCoreAsync(command, cancellationToken).ConfigureAwait(false);
+            if (result.ErrorCode != "store.reference-collision") return result;
+        }
+        return StoreResults.Unavailable<StartInstanceResult>("store.reference-exhausted");
+    }
+
+    private async ValueTask<StoreResult<StartInstanceResult>> StartInstanceCoreAsync(
         StartInstanceCommand command,
         CancellationToken cancellationToken)
     {
@@ -122,6 +133,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             context.Instances.Add(new InstanceRow
             {
                 Id = instanceKey,
+                PublicReference = WorkflowPublicReference.Create(DateTimeOffset.FromUnixTimeMilliseconds(now)),
                 DefinitionId = definition.DefinitionId,
                 DefinitionVersion = definition.Version,
                 DefinitionSha256 = definition.Sha256,
@@ -169,8 +181,10 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
                 CommittedAtUnixMilliseconds = now,
             });
             AddDesignatedAssignments(context, instanceKey, command.DesignatedAssignments);
-            AddAudit(context, instanceKey, "InstanceStarted", 0, now, command.Scope.Actor);
+            await AttachMediaAsync(context, command.Media, instanceKey, null, command.Scope.Actor, command.IdempotencyKey.Value, cancellationToken).ConfigureAwait(false);
+            AddAudit(context, instanceKey, "InstanceStarted", 0, now, command.Scope.Actor, startNodeId);
 
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new StartInstanceResult(new WorkflowInstanceId(instanceId), true, 0));
@@ -192,11 +206,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
                               row.InitiatorSubjectId == command.Initiator.SubjectId)
                 .OrderByDescending(row => row.CreatedAtUnixMilliseconds).ThenByDescending(row => row.Id)
                 .Take(command.Limit).ToListAsync(cancellationToken).ConfigureAwait(false);
-            IReadOnlyList<WorkflowInstanceSummary> items = rows.Select(row => new WorkflowInstanceSummary(
-                new(ParseGuid(row.Id)), new(row.DefinitionId), row.DefinitionVersion,
-                (WorkflowInstanceStatus)row.Status, row.Revision, row.BusinessKey,
-                DateTimeOffset.FromUnixTimeMilliseconds(row.CreatedAtUnixMilliseconds),
-                DateTimeOffset.FromUnixTimeMilliseconds(row.UpdatedAtUnixMilliseconds))).ToList();
+            var items = await SummariesAsync(context, rows, cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(items);
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -261,6 +271,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
                 AddAudit(context, instance.Id, "InstanceRunning", instance.Revision, now);
             }
 
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             var definition = PublishedWorkflowDefinitionReader.Read(
@@ -309,6 +320,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             }
 
             item.LeaseExpiresAtUnixMilliseconds = checked(now + (long)command.LeaseDuration.TotalMilliseconds);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(ToLease(item, instance.Revision, now));
@@ -377,7 +389,10 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
 
             var waits = ApplyCommit(context, command, item, activation, instance, now, designated);
             AddOutbox(context, command, item, now);
-            AddAudit(context, instance.Id, "NodeCommitted", instance.Revision, now);
+            await AttachMediaAsync(context, command.Media, instance.Id, item.ActivationId, null, null, cancellationToken).ConfigureAwait(false);
+            await DeleteCommittedMediaAsync(context, command.MediaDeletes, instance.Id, cancellationToken).ConfigureAwait(false);
+            AddAudit(context, instance.Id, "NodeCommitted", instance.Revision, now, nodeId: item.NodeId, outcome: command.Kind == NodeCommitKind.Fail ? "failed" : "succeeded");
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new CommitNodeResult(
@@ -454,6 +469,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             }
 
             AddAudit(context, instance.Id, "InstanceCancelled", instance.Revision, now, command.Actor);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new CancelInstanceResult(instance.Revision));
@@ -496,6 +512,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             row.Attempt = checked(row.Attempt + 1);
             row.LeaseToken = FormatGuid(token);
             row.LeaseExpiresAtUnixMilliseconds = checked(now + (long)command.LeaseDuration.TotalMilliseconds);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(ToOutboxLease(row, token, now));
@@ -568,6 +585,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             }
 
             ClearOutboxLease(row);
+            await ProjectTatAsync(context, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return StoreResults.Succeeded(new CommitOutboxResult((OutboxMessageStatus)row.Status, row.Attempt));
@@ -727,6 +745,7 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
 
     private static string? ValidateCommitShape(CommitNodeResultCommand command)
     {
+        if ((command.MediaDeletes?.Count ?? 0) > 0 && command.Kind != NodeCommitKind.Continue) return "store.media-delete-requires-success";
         if (command.Kind is NodeCommitKind.Continue or NodeCommitKind.Retry)
         {
             if (command.NextWork is null || !IsUtcMillisecond(command.NextWork.DueAtUtc))
@@ -844,6 +863,10 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
             await using var context = _database.CreateDbContext();
             return await operation(context).ConfigureAwait(false);
         }
+        catch (DbUpdateException exception) when (exception.InnerException is SqliteException { SqliteErrorCode: 19 } unique && unique.Message.Contains("PublicReference", StringComparison.OrdinalIgnoreCase))
+        { return StoreResults.Conflict<T>("store.reference-collision"); }
+        catch (DbUpdateConcurrencyException) { return StoreResults.Conflict<T>("store.concurrent-update"); }
+        catch (WorkflowMediaCommitException) { return StoreResults.Conflict<T>("store.media-attachment-conflict"); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
@@ -921,11 +944,12 @@ public sealed partial class SqliteWorkflowStore : IWorkflowStore
         string eventType,
         long revision,
         long now,
-        ActorIdentity? actor = null) =>
+        ActorIdentity? actor = null, string? nodeId = null, string? actionId = null, string outcome = "succeeded") =>
         context.Audits.Add(new AuditRow
         {
             InstanceId = instanceId,
             EventType = eventType,
+            NodeId = nodeId, ActionId = actionId, Outcome = outcome, ActorDisplayName = actor?.DisplayName,
             Revision = revision,
             OccurredAtUnixMilliseconds = now,
             ActorProviderId = actor?.ProviderId.Value,

@@ -14,6 +14,10 @@ public sealed class LocalSecurityProvisioner(
         {
             WorkflowPermissions.ManageAccess,
             WorkflowPermissions.ReadAudit,
+            WorkflowPermissions.ExportAudit,
+            WorkflowPermissions.ReadTat,
+            WorkflowPermissions.ExportTat,
+            WorkflowPermissions.SearchByInitiator,
             WorkflowPermissions.SearchApprovalCandidates,
         }, GrantsAdministrativeAccess: true);
         return await store.BootstrapAsync(account, profile, cancellationToken).ConfigureAwait(false);

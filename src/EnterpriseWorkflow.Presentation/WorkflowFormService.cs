@@ -116,6 +116,19 @@ public sealed class WorkflowFormService : IWorkflowFormService
                         DateTimeStyles.None, out _))
                     errors.Add(new(field.Id.Value, "presentation.form-field-date-expected"));
                 break;
+            case WorkflowFormFieldKind.File:
+                if (field.FileSpecification is not { } spec || value.ValueKind != JsonValueKind.Array || value.GetArrayLength() > spec.MaximumFiles ||
+                    (field.Required && value.GetArrayLength() == 0)) errors.Add(new(field.Id.Value, "presentation.form-file-invalid"));
+                else
+                {
+                    foreach (var item in value.EnumerateArray())
+                    {
+                        if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("Id", out var id) || id.ValueKind != JsonValueKind.String || !id.TryGetGuid(out var guid) || guid == Guid.Empty ||
+                            !item.TryGetProperty("Revision", out var revision) || !revision.TryGetInt32(out var numberRevision) || numberRevision < 1)
+                            errors.Add(new(field.Id.Value, "presentation.form-file-invalid"));
+                    }
+                }
+                break;
             case WorkflowFormFieldKind.Number:
                 if (value.ValueKind is not JsonValueKind.Number || !value.TryGetDecimal(out var number))
                 {

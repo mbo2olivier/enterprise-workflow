@@ -35,6 +35,7 @@ public static class EnterpriseWorkflowWebExtensions
         endpoints.MapPost("/auth/login", LoginAsync).AllowAnonymous();
         endpoints.MapPost("/auth/logout", LogoutAsync).RequireAuthorization();
         WorkflowWebMutationEndpoints.Map(endpoints);
+        WorkflowWebReadEndpoints.Map(endpoints);
         endpoints.MapRazorComponents<App>().AddInteractiveServerRenderMode();
         return endpoints;
     }

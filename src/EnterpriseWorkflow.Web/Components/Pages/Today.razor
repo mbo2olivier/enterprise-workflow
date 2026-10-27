@@ -24,12 +24,7 @@
                 @foreach (var task in _tasks.Take(2))
                 {
                     var view = _taskViews.GetValueOrDefault(task.TaskId);
-                    <a class="list-row" href="/tasks/@task.TaskId.Value">
-                        <span class="row-icon"><PhosphorIcon Name="calendar" Size="21" /></span>
-                        <span class="row-main"><strong>@(view?.ProcessTitle ?? task.DefinitionId.Value)</strong><small>@(view?.NodeLabel ?? task.NodeId.Value)</small></span>
-                        <span class="row-meta"><span class="status warning"><PhosphorIcon Name="clock" Size="15" />À traiter</span><small>@task.CreatedAtUtc.ToLocalTime().ToString("g", CultureInfo.GetCultureInfo("fr-FR"))</small></span>
-                        <PhosphorIcon Name="arrow-right" Size="17" />
-                    </a>
+                    @if (view?.Request is { } request) { <WorkflowRequestRow Request="request" Href="@($"/tasks/{task.TaskId.Value}")" StageId="@task.NodeId.Value" StageLabel="@view.NodeLabel" /> }
                 }
             </div>
         }
@@ -45,12 +40,7 @@
             <div class="stack-list compact">
                 @foreach (var request in _requests.Take(2))
                 {
-                    <a class="list-row" href="/requests">
-                        <span class="row-icon"><PhosphorIcon Name="clipboard" Size="20" /></span>
-                        <span class="row-main"><strong>@request.ProcessTitle</strong><small>@request.InstanceId.Value · @request.CreatedAtUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))</small></span>
-                        <span class="status @StatusClass(request.Status)">@StatusLabel(request.Status)</span>
-                        <PhosphorIcon Name="arrow-right" Size="17" />
-                    </a>
+                    <WorkflowRequestRow Request="request" Href="@($"/instances/{request.InstanceId.Value}")" />
                 }
             </div>
         }

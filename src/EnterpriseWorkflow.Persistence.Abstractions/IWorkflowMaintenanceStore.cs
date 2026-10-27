@@ -6,6 +6,9 @@ namespace EnterpriseWorkflow.Persistence;
 /// </summary>
 public interface IWorkflowMaintenanceStore
 {
+    ValueTask<StoreResult<bool>> RebuildTatAsync(WorkflowInstanceId instanceId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(StoreResults.Unavailable<bool>("store.tat-rebuild-not-supported"));
+
     /// <summary>
     /// Atomically reconciles the configured immutable module artifacts with the durable inventory.
     /// A persisted definition prevents removal of every exact artifact it references.

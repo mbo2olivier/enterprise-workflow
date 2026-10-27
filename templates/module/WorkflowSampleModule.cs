@@ -1,3 +1,9 @@
+using EnterpriseWorkflow.Core.Serialization;
+using EnterpriseWorkflow.Abstractions;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using EnterpriseWorkflow.Core.Model;
 using EnterpriseWorkflow.Extensions;
 using EnterpriseWorkflow.Presentation;
 using EnterpriseWorkflow.Runtime;
@@ -29,41 +35,67 @@ public sealed class RequestProcess : IWorkflowProcess
 {
     public void Configure(WorkflowProcessBuilder process)
     {
-        process
+        var flow = process
             .WithId("request")
             .WithName("Nouvelle demande")
+            .WithState<RequestState>().InitializedBy<RequestInitializer>()
             .WithStateSchemaVersion(1)
             ;
-        process
+        flow
             .RequiresPermission("request")
             .ReadableByPermission("read")
             ;
-        process.
+        flow.
             StartWithForm("request-form")
             .Then("review");
 
-        process
+        flow
             .Approval("review", "Validation", task => task.RequiresPermission("review")
             .ClaimedByEligibleParticipant().ShowFields("reason").Actions(actions =>
             {
-                actions.Add("approve", "Approuver", action => action.Then("close"));
-                actions.Add("decline", "Refuser", action => action.RequireComment().Then("rejected"));
+                actions.Add("approve", "Approuver", action => action.CommentAt(state => state.Comments).Then("close"));
+                actions.Add("decline", "Refuser", action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
             }));
 
-        process
+        flow
             .Service<CloseHandler>("close")
             .Then("completed");
-        process.End("completed").End("rejected");
+        flow.End("completed", WorkflowCompletionOutcome.Succeeded, "Acceptée").End("rejected", WorkflowCompletionOutcome.Declined, "Refusée");
     }
 }
 
 public sealed class ConfirmHandler : IHumanTaskCompletionHandler
 {
     public ValueTask<HumanTaskCompletionResult> CompleteAsync(HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(HumanTaskCompletionResult.Success(context.ActionId));
+        ValueTask.FromResult(HumanTaskCompletionResult.Success());
 }
 public sealed class CloseHandler : IServiceNodeHandler
 {
-    public ValueTask<ServiceNodeResult> ExecuteAsync(NodeExecutionContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(ServiceNodeResult.Success());
+    public ValueTask<ServiceNodeResult> ExecuteAsync(NodeExecutionContext context, CancellationToken cancellationToken)
+    {
+        var state = context.ReadState<RequestState>();
+        state.Closed = true;
+        return ValueTask.FromResult(ServiceNodeResult.Success(NodeStateUpdate.Replace(state)));
+    }
+}
+
+public sealed class RequestState
+{
+    [JsonPropertyName("closed"), Label("Clôturée")] public bool Closed { get; set; }
+    [CommentState, JsonPropertyName("comments"), Label("Commentaires")] public List<WorkflowComment> Comments { get; init; } = [];
+    [JsonPropertyName("reason"), Label("Motif"), Required, StringLength(200, MinimumLength = 3)]
+    public string Reason { get; init; } = string.Empty;
+}
+public sealed class RequestForm
+{
+    [JsonPropertyName("reason")] public string Reason { get; init; } = "";
+}
+public sealed class RequestInitializer(IWorkflowSerializer serializer) : IWorkflowStateInitializer
+{
+    public ValueTask<WorkflowStateInitializationResult> InitializeAsync(WorkflowStateInitializationContext context, CancellationToken cancellationToken)
+    {
+        var input = context.ReadSubmission<RequestForm>();
+        var state = new RequestState { Reason = input.Reason };
+        return ValueTask.FromResult(new WorkflowStateInitializationResult(serializer.Serialize(state)));
+    }
 }

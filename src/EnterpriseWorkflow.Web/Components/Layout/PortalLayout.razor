@@ -27,6 +27,7 @@
                 <NavItem Href="/admin/workflows" Label="Workflows" Icon="flow-arrow" />
                 <NavItem Href="/admin/operations" Label="Exploitation" Icon="pulse" />
                 <NavItem Href="/admin/audit" Label="Audit" Icon="scroll" />
+                <NavItem Href="/admin/tat" Label="Temps" Icon="clock" />
                 <NavItem Href="/admin/settings" Label="Réglages" Icon="sliders" />
             }
             else
@@ -52,6 +53,8 @@
                     <span aria-current="page">@PageLabel</span>
                 </nav>
             </div>
+            <div class="topbar-actions">
+            <button type="button" class="secondary-button" disabled data-open-search aria-label="Rechercher des demandes"><PhosphorIcon Name="magnifying-glass" Size="20" /></button>
             <details class="top-profile-wrap">
                 <summary class="top-profile-button" aria-label="Ouvrir le menu utilisateur">
                     <span class="avatar">@Initials</span>
@@ -73,6 +76,14 @@
                     </form>
                 </div>
             </details>
+            </div>
+            <dialog data-search-dialog class="admin-modal">
+                <header class="search-modal-header"><h2>Rechercher des demandes</h2><button type="button" class="close-decision" data-close-search aria-label="Fermer la recherche">×</button></header>
+                <form method="get" action="/search" class="search-modal-form" role="search">
+                    <div class="compact-form search-modal-body"><WorkflowSearchFields CanFilterInitiator="@_canSearchInitiator" /></div>
+                    <footer class="admin-modal-actions"><button type="button" class="secondary-button" data-close-search>Annuler</button><button class="primary-button" type="submit">Rechercher</button></footer>
+                </form>
+            </dialog>
         </header>
         <div class="page-stage">@Body</div>
     </main>
@@ -82,11 +93,13 @@
 
 @code {
     private bool _canAdmin;
+    private bool _canSearchInitiator;
     private string _displayName = "Utilisateur";
 
     protected override async Task OnInitializedAsync()
     {
         var identity = await Identity.GetRequiredAsync();
+        _canSearchInitiator = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.SearchByInitiator), CancellationToken.None)).Allowed;
         _canAdmin = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ManageAccess), CancellationToken.None)).Allowed;
         if (string.Equals(identity.ProviderId, SecurityProviderIds.Local, StringComparison.Ordinal))
         {
@@ -115,6 +128,9 @@
         "start" => "Démarrer",
         "inbox" => "À traiter",
         "requests" => "Mes demandes",
+        "search" => "Recherche",
+        "admin/tat" => "Temps de traitement",
+        _ when CurrentPath.StartsWith("instances/", StringComparison.Ordinal) => "Détail de la demande",
         "admin" => "Vue d’ensemble",
         "admin/access" => "Accès",
         "admin/workflows" => "Workflows",

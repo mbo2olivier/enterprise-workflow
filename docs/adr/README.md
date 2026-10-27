@@ -31,3 +31,8 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0023](0023-host-formulaires-et-administration-l8.md) | Host Blazor, formulaires, projections, administration et qualification navigateur | L8-D1-A à L8-D8-A acceptées ; implémentation L8 en cours |
 | [0024](0024-sdk-fluent-permissions-affectation.md) | SDK fluent, révisions héritées, permissions métier, affectation amont et formulaires standard | Principes et D1–D9 acceptés le 20 octobre 2026 ; L8b implémenté, 116 tests légers réussis ; qualification externe restante |
 | [0025](0025-runtime-developpement-l9.md) | `ew dev`, SQLite local, configuration JSON, identités de test et reconstruction contrôlée | Périmètre et orientations acceptés le 20 octobre 2026 ; implémentation locale L9 livrée, qualification finale restante |
+
+| [0026](0026-etat-metier-type-et-validation.md) | DTO d’état annoté, version explicite, mapping des formulaires et validation contextuelle | Acceptée le 25 octobre 2026 ; implémentée localement, qualification L9b restante |
+| [0027](0027-consultation-medias-audit-tat-l9b.md) | Lecture/recherche autorisée, audit/export, médias et projections TAT | A1–A7 acceptés le 25 octobre 2026 ; implémentation locale et limites suivies en L9b |
+
+- [ADR 0028 — État typé obligatoire et commentaires déclaratifs d’approbation](0028-etat-type-obligatoire-et-commentaires-approbation.md) — accepté, implémenté localement, qualification en cours.

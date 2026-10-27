@@ -58,11 +58,20 @@
         {
             <form method="get" action="/admin/access" class="toolbar panel"><input type="hidden" name="tab" value="identities" /><label class="search-field"><PhosphorIcon Name="magnifying-glass" Size="19" /><input name="q" value="@Query" placeholder="Rechercher dans les fournisseurs autorisés" /></label><label class="filter-button"><PhosphorIcon Name="funnel" Size="18" /><select name="provider" aria-label="Fournisseur"><option value="">Tous les fournisseurs</option><option value="local" selected="@(Provider == "local")">Local</option>@foreach (var directory in Directories.Values.OrderBy(item => item.ProviderId)) { <option value="@directory.ProviderId" selected="@(Provider == directory.ProviderId)">@directory.ProviderId</option> }</select></label><button class="secondary-button" type="submit">Filtrer</button></form>
             <section class="panel admin-table identity-table">
-                <div class="admin-table-head"><span>Identité</span><span>Source</span><span>Profil</span><span>État</span></div>
+                <div class="admin-table-head"><span>Identité</span><span>Source</span><span>Profil</span><span>État</span><span>Actions</span></div>
                 @if (VisibleIdentities.Count == 0) { <div class="admin-table-empty"><strong>Aucune identité trouvée</strong><small>Modifiez les critères de recherche ou le fournisseur.</small></div> }
                 @foreach (var item in VisibleIdentities)
                 {
-                    <div class="admin-table-row"><span class="table-primary"><span class="avatar">@Initials(item.Name)</span><span><strong>@item.Name</strong><small>@item.Subject</small></span></span><span><span class="soft-chip">@item.Provider</span></span><span>@item.Profiles</span><span class="status @(item.Enabled ? "success" : "warning")">@(item.Enabled ? "Actif" : "Désactivé")</span></div>
+                    <div class="admin-table-row">
+                        <span class="table-primary"><span class="avatar">@Initials(item.Name)</span><span><strong>@item.Name</strong><small>@item.Subject</small></span></span>
+                        <span><span class="soft-chip">@item.Provider</span></span>
+                        <span>@(string.IsNullOrEmpty(item.Profiles) ? "—" : item.Profiles)</span>
+                        <span class="status @(item.Enabled ? "success" : "warning")">@(item.Enabled ? "Actif" : "Désactivé")</span>
+                        <details class="identity-action-menu"><summary aria-label="Actions pour @item.Name"><span aria-hidden="true">⋯</span></summary><div class="identity-action-options">
+                            <a href="@MembershipUrl(item, "change")">@(string.IsNullOrEmpty(item.Profiles) ? "Associer un profil" : "Changer de profil")</a>
+                            @if (!string.IsNullOrEmpty(item.Profiles)) { <a class="destructive-action" href="@MembershipUrl(item, "remove")">Retirer le profil</a> }
+                        </div></details>
+                    </div>
                 }
             </section>
         }
@@ -75,6 +84,25 @@
                 }
                 <article class="panel provider-card"><div class="provider-card-top"><span class="provider-icon"><PhosphorIcon Name="hard-drives" Size="24" /></span><span class="status success">Actif</span></div><h2>Comptes locaux</h2><p>Fournisseur optionnel pour les comptes administrés dans l’installation.</p><div class="capability-list"><span>Création</span><span>Désactivation</span><span>Verrouillage</span></div><dl><div><dt>Identifiant</dt><dd>local</dd></div><div><dt>Comptes actifs</dt><dd>@_accounts.Count(account => account.Enabled)</dd></div><div><dt>Comptes configurés</dt><dd>@_accounts.Count</dd></div></dl><a class="secondary-button" href="/admin/access?tab=identities&provider=local">Gérer les comptes</a></article>
             </section>
+        }
+
+        @if (ActiveTab == "identities" && SelectedMember is { } member && MembershipAction is "change" or "remove")
+        {
+            var assigned = _assignments.Where(a => a.Identity.ProviderId == member.Provider && a.Identity.SubjectId == member.Subject).ToArray();
+            var removing = MembershipAction == "remove";
+            <div class="admin-modal-backdrop"><section class="admin-modal admin-modal-compact membership-modal" role="dialog" aria-modal="true" aria-labelledby="membership-title">
+                <header class="membership-modal-header"><span class="membership-dialog-icon @(removing ? "warning" : null)"><PhosphorIcon Name="@(removing ? "warning-circle" : "identification-card")" Size="26" /></span><a class="close-decision" aria-label="Fermer la fenêtre" href="/admin/access?tab=identities">×</a></header>
+                <h2 id="membership-title">@(removing ? "Retirer le profil ?" : assigned.Length == 0 ? "Associer un profil" : "Changer de profil")</h2>
+                <p class="membership-description">@if (removing) { <span>Vous allez retirer l’association au profil de <strong>@member.Name</strong>. Les droits accordés par ce profil ne seront plus disponibles pour cette identité.</span> } else { <span>Sélectionnez le profil à attribuer à <strong>@member.Name</strong>.</span> }</p>
+                <form method="post" action="@(removing ? "/admin/access/assignments/remove" : "/admin/access/assignments")"><AntiforgeryToken />
+                    <input type="hidden" name="providerId" value="@member.Provider" /><input type="hidden" name="subjectId" value="@member.Subject" />
+                    @if (assigned.Length == 1) { <input type="hidden" name="@(removing ? "profileId" : "oldProfileId")" value="@assigned[0].ProfileId" /> }
+                    else if (assigned.Length > 1) { <label>Profil à @(removing ? "retirer" : "remplacer")<select name="@(removing ? "profileId" : "oldProfileId")" required><option value="">Choisir un profil</option>@foreach (var assignment in assigned) { <option value="@assignment.ProfileId">@ProfileName(assignment.ProfileId)</option> }</select></label> }
+                    @if (removing && assigned.Length == 1) { <div class="membership-current"><small>Profil actuel</small><strong>@ProfileName(assigned[0].ProfileId)</strong></div> }
+                    @if (!removing) { <label>Nouveau profil<select name="profileId" required><option value="">Sélectionner un profil</option>@foreach (var profile in _profiles.Where(p => !assigned.Any(a => a.ProfileId == p.Id))) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label> }
+                    <footer class="admin-modal-actions"><a class="secondary-button" href="/admin/access?tab=identities">Annuler</a><button class="@(removing ? "danger-button" : "primary-button")" type="submit">@(removing ? "Retirer le profil" : "Valider")</button></footer>
+                </form>
+            </section></div>
         }
 
         @if (ShowProfileDialog)
@@ -141,6 +169,11 @@
     [SupplyParameterFromQuery(Name = "newIdentity")] public string? NewIdentity { get; set; }
     [SupplyParameterFromQuery(Name = "q")] public string? Query { get; set; }
     [SupplyParameterFromQuery(Name = "provider")] public string? Provider { get; set; }
+    [SupplyParameterFromQuery(Name = "member")] public string? Member { get; set; }
+    [SupplyParameterFromQuery(Name = "source")] public string? MemberSource { get; set; }
+    [SupplyParameterFromQuery(Name = "membership")] public string? MembershipAction { get; set; }
+    private IdentityRow? SelectedMember => VisibleIdentities.FirstOrDefault(item => item.Subject == Member && item.Provider == MemberSource);
+    private static string MembershipUrl(IdentityRow item, string action) => $"/admin/access?tab=identities&member={Uri.EscapeDataString(item.Subject)}&source={Uri.EscapeDataString(item.Provider)}&membership={action}";
     private bool Saved => SavedValue == "1";
     private string ActiveTab => Tab is "identities" or "providers" ? Tab : "profiles";
     private bool ShowProfileDialog => ActiveTab == "profiles" && (NewProfile == "1" || SelectedProfile is not null);
@@ -180,8 +213,8 @@
     private string ProfileName(string id) => _profiles.FirstOrDefault(item => item.Id == id)?.DisplayName ?? id;
     private static string ProfileSummary(SecurityProfile profile) => profile.Permissions.Count == 0 ? "Aucune permission" : $"{profile.Permissions.Count} permission{(profile.Permissions.Count > 1 ? "s" : string.Empty)}";
     private static bool HasPermission(SecurityProfile? profile, PermissionId permission) => profile?.Permissions.Contains(permission) == true;
-    private IReadOnlyList<PermissionId> KnownPermissions(SecurityProfile? profile) => new[] { WorkflowPermissions.ManageAccess, WorkflowPermissions.ReadAudit, WorkflowPermissions.ReadInstance, WorkflowPermissions.Start, WorkflowPermissions.CancelInstance }.Concat(WorkflowCatalog.Permissions.Select(permission => new PermissionId(permission.Id.Value))).Concat(profile is null ? Enumerable.Empty<PermissionId>() : profile.Permissions).Distinct().OrderBy(item => item.Value, StringComparer.Ordinal).ToArray();
-    private string PermissionLabel(PermissionId permission) => WorkflowCatalog.Permissions.FirstOrDefault(item => item.Id.Value == permission.Value)?.Label ?? permission.Value switch { "security.access.manage" => "Gérer les accès", "security.audit.read" => "Consulter l’audit", "workflow.instance.read" => "Lire les instances autorisées", "workflow.instance.start" => "Démarrer des workflows", "workflow.instance.cancel" => "Annuler les instances autorisées", _ => permission.Value };
+    private IReadOnlyList<PermissionId> KnownPermissions(SecurityProfile? profile) => new[] { WorkflowPermissions.ManageAccess, WorkflowPermissions.ReadAudit, WorkflowPermissions.ExportAudit, WorkflowPermissions.SearchByInitiator, WorkflowPermissions.ReadTat, WorkflowPermissions.ExportTat, WorkflowPermissions.ReadInstance, WorkflowPermissions.Start, WorkflowPermissions.CancelInstance }.Concat(WorkflowCatalog.Permissions.Select(permission => new PermissionId(permission.Id.Value))).Concat(profile is null ? Enumerable.Empty<PermissionId>() : profile.Permissions).Distinct().OrderBy(item => item.Value, StringComparer.Ordinal).ToArray();
+    private string PermissionLabel(PermissionId permission) => WorkflowCatalog.Permissions.FirstOrDefault(item => item.Id.Value == permission.Value)?.Label ?? permission.Value switch { "security.access.manage" => "Gérer les accès", "security.audit.read" => "Consulter l’audit", "security.audit.export" => "Exporter l’audit", "workflow.approver.search" => "Rechercher les utilisateurs éligibles", "workflow.instance.search.initiator" => "Rechercher par initiateur", "workflow.tat.read" => "Consulter les temps de traitement", "workflow.tat.export" => "Exporter les temps de traitement", "workflow.instance.read" => "Lire les instances autorisées", "workflow.instance.start" => "Démarrer des workflows", "workflow.instance.cancel" => "Annuler les instances autorisées", _ => permission.Value };
     private static string Initials(string value) => string.Concat(value.Split([' ', '.', '-', '_'], StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
     private sealed record IdentityRow(string Name, string Subject, string Provider, string Profiles, bool Enabled);
 }

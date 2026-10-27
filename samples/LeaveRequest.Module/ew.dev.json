@@ -1,10 +1,51 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "seed": {
     "users": [
-      { "id": "alice", "displayName": "Alice — Demandeuse", "permissions": ["sample.leave-request.request", "sample.leave-request.read"] },
-      { "id": "bob", "displayName": "Bob — RH", "permissions": ["sample.leave-request.hr.review", "sample.leave-request.read"] },
-      { "id": "carol", "displayName": "Carol — Manager", "permissions": ["sample.leave-request.manager.approve", "sample.leave-request.read"] }
+      {
+        "id": "alice",
+        "displayName": "Alice — Demandeuse",
+        "permissions": [
+          "sample.leave-request.request",
+          "sample.leave-request.read"
+        ]
+      },
+      {
+        "id": "bob",
+        "displayName": "Bob — RH",
+        "permissions": [
+          "sample.leave-request.hr.review",
+          "sample.leave-request.read"
+        ]
+      },
+      {
+        "id": "carol",
+        "displayName": "Carol — Manager",
+        "permissions": [
+          "sample.leave-request.manager.approve",
+          "sample.leave-request.read"
+        ]
+      }
     ]
+  },
+  "defaultEnvironment": "default",
+  "build": {
+    "configuration": "Debug",
+    "watch": true
+  },
+  "environments": {
+    "recette-rh": {
+      "server": {
+        "url": "http://localhost:5100"
+      }
+    },
+    "qualification": {
+      "build": {
+        "watch": false
+      },
+      "server": {
+        "url": "http://localhost:5101"
+      }
+    }
   }
 }

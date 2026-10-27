@@ -6,6 +6,7 @@ public sealed class WorkflowModuleLoadOptions
     public const int CurrentManifestSchemaVersion = 1;
     public const int CurrentContractVersion = 1;
 
+    public bool AllowDevelopmentGenerations { get; set; }
     public long MaximumManifestBytes { get; set; } = 256 * 1024;
     public long MaximumAssemblyBytes { get; set; } = 128 * 1024 * 1024;
     public long MaximumResourceBytes { get; set; } = 16 * 1024 * 1024;

@@ -118,7 +118,7 @@ internal sealed class ApprovalHandler : IHumanTaskCompletionHandler
 {
     public ValueTask<HumanTaskCompletionResult> CompleteAsync(
         HumanTaskCompletionContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(HumanTaskCompletionResult.Success(new TechnicalId("approved")));
+        ValueTask.FromResult(HumanTaskCompletionResult.Success());
 }
 
 internal sealed class AllowSampleAuthorization : IWorkflowAuthorizationService

@@ -4,12 +4,69 @@ using EnterpriseWorkflow.Persistence;
 using EnterpriseWorkflow.Persistence.Sqlite;
 using EnterpriseWorkflow.Sdk;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Xunit;
 
 namespace EnterpriseWorkflow.Persistence.Sqlite.Tests;
 
 public sealed class SqliteWorkflowStoreTests
 {
+    [Fact]
+    public async Task ExistingInstancesReceiveStableReferencesWithoutReplacingTheirTechnicalIds()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var file = new TemporaryDatabase(); var database = new SqliteWorkflowDatabase(file.ConnectionString);
+        await using (var context = database.CreateDbContext())
+            await context.GetService<IMigrator>().MigrateAsync(context.GetService<IMigrationsIdGenerator>().GetName("202610250008_AddInstanceSearchIndexes"), token);
+        var store = new SqliteWorkflowStore(database); var definition = BuildDefinition();
+        Assert.Equal(StoreOutcome.Succeeded, (await store.PublishDefinitionAsync(new(definition), token)).Outcome);
+        var id = Guid.NewGuid();
+        await using (var connection = new SqliteConnection(file.ConnectionString))
+        {
+            await connection.OpenAsync(token); await using var sql = connection.CreateCommand();
+            sql.CommandText = """INSERT INTO EwInstances (Id,DefinitionId,DefinitionVersion,DefinitionSha256,Status,Revision,StateSchemaVersion,StateJson,InitiatorProviderId,InitiatorSubjectId,CreatedAtUnixMilliseconds,UpdatedAtUnixMilliseconds) VALUES ($id,$definition,1,$hash,0,0,1,'{}','local','alice',0,0)""";
+            sql.Parameters.AddWithValue("$id", id.ToString("N")); sql.Parameters.AddWithValue("$definition", definition.Id.Value); sql.Parameters.AddWithValue("$hash", definition.Sha256);
+            await sql.ExecuteNonQueryAsync(token);
+        }
+        await database.MigrateAsync(token);
+        var read = (await store.ReadInstanceAsync(new(id), token)).Value!;
+        Assert.Equal(id, read.Summary.InstanceId.Value); Assert.Equal("0000000001", read.Summary.PublicReference);
+        await database.MigrateAsync(token);
+        Assert.Equal(read.Summary.PublicReference, (await store.ReadInstanceAsync(new(id), token)).Value!.Summary.PublicReference);
+    }
+
+    [Fact]
+    public async Task PublicReferenceAndAuditSurviveReopenAndEnforceUniqueReferences()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var file = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(file.ConnectionString); await database.MigrateAsync(token);
+        var store = new SqliteWorkflowStore(database); var definition = BuildDefinition();
+        await store.PublishDefinitionAsync(new(definition), token);
+        var command = CreateStartCommand(definition, "reference-audit");
+        command = command with { Scope = command.Scope with { Actor = command.Scope.Actor with { DisplayName = "Alice Test" } } };
+        var started = await store.StartInstanceAsync(command, token);
+        Assert.Equal(StoreOutcome.Succeeded, started.Outcome);
+        var loaded = (await store.ReadInstanceAsync(started.Value!.InstanceId, token)).Value!;
+        Assert.True(WorkflowPublicReference.IsValid(loaded.Summary.PublicReference));
+        var reopened = new SqliteWorkflowStore(new SqliteWorkflowDatabase(file.ConnectionString));
+        Assert.Equal(loaded.Summary.PublicReference, (await reopened.ReadInstanceAsync(started.Value.InstanceId, token)).Value!.Summary.PublicReference);
+        Assert.Single((await reopened.SearchInstancesAsync(new(PublicReference: loaded.Summary.PublicReference), token)).Value!);
+        var audit = Assert.Single((await reopened.SearchAuditAsync(new(ActorId: command.Scope.Actor.SubjectId, Action: "InstanceStarted", ProcessId: definition.Id.Value), token)).Value!);
+        Assert.Equal("Alice Test", audit.Actor!.DisplayName); Assert.Equal("start", audit.StageId); Assert.Equal(loaded.Summary.PublicReference, audit.Reference);
+        Assert.Empty((await reopened.SearchAuditAsync(new(Stage: "does-not-exist"), token)).Value!);
+        var second = await store.StartInstanceAsync(command with { IdempotencyKey = new("second-reference") }, token);
+        Assert.Equal(StoreOutcome.Succeeded, second.Outcome);
+        await using var connection = new SqliteConnection(file.ConnectionString); await connection.OpenAsync(token);
+        await using var sql = connection.CreateCommand();
+        sql.CommandText = "UPDATE EwInstances SET PublicReference = $reference WHERE Id = $id";
+        sql.Parameters.AddWithValue("$reference", loaded.Summary.PublicReference);
+        sql.Parameters.AddWithValue("$id", second.Value!.InstanceId.Value.ToString("N"));
+        var error = await Assert.ThrowsAsync<SqliteException>(() => sql.ExecuteNonQueryAsync(token));
+        Assert.Equal(19, error.SqliteErrorCode);
+    }
+
     [Fact]
     public async Task MigrationAndStartAreDurableAndIdempotent()
     {
@@ -49,6 +106,111 @@ public sealed class SqliteWorkflowStoreTests
         Assert.False(repeatedStart.Value!.WasCreated);
         Assert.Equal(started.Value.InstanceId, repeatedStart.Value.InstanceId);
         Assert.Equal(StoreOutcome.Conflict, conflictingStart.Outcome);
+    }
+
+    [Fact]
+    public async Task SearchUsesStableCursorAndTatWritesShareTheSourceTransaction()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var definition = BuildDefinition();
+        await store.PublishDefinitionAsync(new(definition), TestContext.Current.CancellationToken);
+        var command = CreateStartCommand(definition, "search");
+        var first = await store.StartInstanceAsync(command, TestContext.Current.CancellationToken);
+        await store.StartInstanceAsync(command, TestContext.Current.CancellationToken);
+        var second = await store.StartInstanceAsync(command with { IdempotencyKey = new("search-second") }, TestContext.Current.CancellationToken);
+        var page = await store.SearchInstancesAsync(new(Limit: 1), TestContext.Current.CancellationToken);
+        var candidate = Assert.Single(page.Value!);
+        var next = await store.SearchInstancesAsync(new(Limit: 1, After: new(candidate.Summary.CreatedAtUtc.ToUnixTimeMilliseconds(), candidate.Summary.InstanceId.Value.ToString("N"))), TestContext.Current.CancellationToken);
+        Assert.NotEqual(candidate.Summary.InstanceId, Assert.Single(next.Value!).Summary.InstanceId);
+        var read = await store.ReadInstanceAsync(first.Value!.InstanceId, TestContext.Current.CancellationToken);
+        Assert.Equal(definition.Sha256, read.Value!.Definition.Sha256);
+        Assert.Equal(command.InitialState.Value.CanonicalText, read.Value.State.Value.CanonicalText);
+        await using var connection = new SqliteConnection(databaseFile.ConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var count = connection.CreateCommand();
+        count.CommandText = "SELECT COUNT(*) FROM EW_TAT_INSTANCES";
+        Assert.Equal(2L, await count.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        count.CommandText = "SELECT COUNT(*) FROM EW_TAT_EVENTS WHERE SourceKind = 'instance'";
+        Assert.Equal(2L, await count.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+        Assert.NotEqual(first.Value.InstanceId, second.Value!.InstanceId);
+    }
+
+    [Fact]
+    public async Task MediaAttachmentIsAtomicWithStartAndDeletionHidesAllRevisions()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        await database.MigrateAsync(TestContext.Current.CancellationToken);
+        var store = new SqliteWorkflowStore(database);
+        var definition = BuildDefinition();
+        await store.PublishDefinitionAsync(new(definition), TestContext.Current.CancellationToken);
+        var command = CreateStartCommand(definition, "media-start");
+        var reference = new WorkflowMediaReference(Guid.NewGuid(), 1);
+        var record = new WorkflowMediaRecord(reference, "test.txt", "text/plain", 4, new string('a', 64), "privatekey", command.Scope.Actor,
+            null, null, command.IdempotencyKey.Value, "document", false, [], WorkflowMediaStatus.Staged, UtcNowMilliseconds());
+        record = record with { Status = WorkflowMediaStatus.Quarantined };
+        Assert.Equal(StoreOutcome.Succeeded, (await store.StageMediaAsync(new(record), TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(StoreOutcome.Conflict, (await store.StartInstanceAsync(command with { Media = [reference] }, TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(StoreOutcome.Conflict, (await store.CompleteMediaInspectionAsync(new(reference, new string('b', 64), true), TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.CompleteMediaInspectionAsync(new(reference, record.Sha256, true), TestContext.Current.CancellationToken)).Outcome);
+        var wrong = await store.StartInstanceAsync(command with { IdempotencyKey = new("wrong-submission"), Media = [reference] }, TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Conflict, wrong.Outcome);
+        var failedSearch = await store.SearchInstancesAsync(new(), TestContext.Current.CancellationToken);
+        Assert.Empty(failedSearch.Value!);
+        var started = await store.StartInstanceAsync(command with { Media = [reference] }, TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Succeeded, started.Outcome);
+        var visible = await store.ListMediaAsync(started.Value!.InstanceId, TestContext.Current.CancellationToken);
+        Assert.Equal(reference, Assert.Single(visible.Value!).Reference);
+        var before = await store.ReadTatAsync(new(), TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Succeeded, before.Outcome);
+        Assert.Equal(1, Assert.Single(before.Value!).OpenCount);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.RebuildTatAsync(started.Value.InstanceId, TestContext.Current.CancellationToken)).Outcome);
+        var rebuilt = await store.ReadTatAsync(new(), TestContext.Current.CancellationToken);
+        Assert.Equal(1, Assert.Single(rebuilt.Value!).OpenCount);
+        var claimed = (await store.ClaimDueWorkAsync(new(new("media-worker"), TimeSpan.FromMinutes(1)), TestContext.Current.CancellationToken)).Value!;
+        var replacement = reference with { Revision = 2 };
+        var stagedReplacement = record with { Status = WorkflowMediaStatus.Staged, Reference = replacement, InstanceId = started.Value.InstanceId,
+            ActivationId = claimed.Lease.ActivationId, SubmissionKey = null, ObjectKey = "privatekey2" };
+        Assert.Equal(StoreOutcome.Succeeded, (await store.StageMediaAsync(new(stagedReplacement), TestContext.Current.CancellationToken)).Outcome);
+        var advanced = await store.CommitNodeResultAsync(new(claimed.Lease.WorkItemId, claimed.Lease.Token, claimed.Lease.Generation,
+            claimed.Lease.InstanceRevision, NodeCommitKind.Continue, null, new(new("end"), UtcNowMilliseconds()), null, Media: [replacement]), TestContext.Current.CancellationToken);
+        Assert.Equal(StoreOutcome.Succeeded, advanced.Outcome);
+        Assert.Equal(WorkflowMediaStatus.Superseded, (await store.ReadMediaAsync(reference, TestContext.Current.CancellationToken)).Value!.Status);
+        Assert.Equal(StoreOutcome.Conflict, (await store.DeleteMediaAsync(new(reference, started.Value.InstanceId), TestContext.Current.CancellationToken)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.DeleteMediaAsync(new(replacement, started.Value.InstanceId), TestContext.Current.CancellationToken)).Outcome);
+        Assert.Empty((await store.ListMediaAsync(started.Value.InstanceId, TestContext.Current.CancellationToken)).Value!);
+        Assert.Equal(WorkflowMediaStatus.Deleted, (await store.ReadMediaAsync(reference, TestContext.Current.CancellationToken)).Value!.Status);
+    }
+
+    [Fact]
+    public async Task TatAnalystAverageCountsTasksInsteadOfRepeatedClaims()
+    {
+        await using var databaseFile = new TemporaryDatabase();
+        var database = new SqliteWorkflowDatabase(databaseFile.ConnectionString);
+        var token = TestContext.Current.CancellationToken;
+        await database.MigrateAsync(token);
+        var store = new SqliteWorkflowStore(database);
+        var definition = BuildHumanDefinition(HumanTaskAssignmentMode.EligiblePool);
+        await store.PublishDefinitionAsync(new(definition), token);
+        var started = await store.StartInstanceAsync(CreateStartCommand(definition, "tat-claims"), token);
+        var waiting = await AdvanceToWaitAsync(store, NodeCommitKind.WaitHumanTask, new(HumanTaskAssignmentMode.EligiblePool));
+        var taskId = waiting.Value!.HumanTaskId!.Value;
+        var actor = new ActorIdentity(new("local"), "analyst");
+        Assert.Equal(StoreOutcome.Succeeded, (await store.ClaimHumanTaskAsync(new(taskId, 0, actor), token)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.ReleaseHumanTaskAsync(new(taskId, 1, actor), token)).Outcome);
+        Assert.Equal(StoreOutcome.Succeeded, (await store.ClaimHumanTaskAsync(new(taskId, 2, actor), token)).Outcome);
+        var snapshot = (await store.GetHumanTaskAsync(taskId, token)).Value!;
+        var completed = await store.CompleteHumanTaskAsync(new(taskId, snapshot.Revision, snapshot.InstanceRevision, actor,
+            new("approve"), new("tat-complete"), new string('a', 64), null, new(new("end"), UtcNowMilliseconds())), token);
+        Assert.Equal(StoreOutcome.Succeeded, completed.Outcome);
+        var report = await store.ReadTatAsync(new(ByAnalyst: true), token);
+        Assert.Equal(StoreOutcome.Succeeded, report.Outcome);
+        Assert.Equal(1, Assert.Single(report.Value!).CompletedCount);
+        Assert.Equal(actor, report.Value![0].Analyst);
+        Assert.Equal(StoreOutcome.Succeeded, started.Outcome);
     }
 
     [Fact]

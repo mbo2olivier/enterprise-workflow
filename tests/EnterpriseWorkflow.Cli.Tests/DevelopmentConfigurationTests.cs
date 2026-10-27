@@ -5,6 +5,26 @@ namespace EnterpriseWorkflow.Cli.Tests;
 public sealed class DevelopmentConfigurationTests
 {
     [Fact]
+    public async Task NamedEnvironmentsMergeSettingsAndCliOverridesWithoutUsingTheLegacyWorkspace()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "ew-environment-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(root, "ew.dev.json"), """{"schemaVersion":2,"defaultEnvironment":"rh","build":{"configuration":"Release","watch":true},"server":{"url":"http://localhost:5090"},"environments":{"rh":{"server":{"url":"http://localhost:5091"},"build":{"watch":false}},"other":{"server":{"url":"http://localhost:5092"}}}}""", TestContext.Current.CancellationToken);
+            var project = Path.Combine(root, "module.csproj");
+            var selected = await DevelopmentConfiguration.ReadAsync(project, null, null, false);
+            Assert.Equal("rh", selected.EnvironmentName); Assert.Equal("http://localhost:5091", selected.Server.Url); Assert.False(selected.Watch);
+            Assert.Equal("Release", selected.Build.Configuration);
+            Assert.Equal(Path.Combine(root, ".ew", "environments", "rh", "workflow.db"), selected.Storage.Path);
+            var other = await DevelopmentConfiguration.ReadAsync(project, null, "http://localhost:5093", true, "other", "Debug");
+            Assert.Equal("http://localhost:5093", other.Server.Url); Assert.Equal("Debug", other.Build.Configuration); Assert.False(other.Watch);
+            Assert.NotEqual(other.StateRoot, selected.StateRoot);
+            await Assert.ThrowsAsync<ArgumentException>(() => DevelopmentConfiguration.ReadAsync(project, null, null, false, "../escape"));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public async Task ConfigurationUsesFileRelativePathsAndCliOverridesAndRejectsRemoteOrUnknownSettings()
     {
         var root = Path.Combine(Path.GetTempPath(), "ew-config-" + Guid.NewGuid().ToString("N"));

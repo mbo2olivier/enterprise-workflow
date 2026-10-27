@@ -1,5 +1,10 @@
 namespace EnterpriseWorkflow.Security;
 
+public interface IIdentityDisplayNameResolver
+{
+    ValueTask<string> ResolveAsync(IdentityReference actor, CancellationToken token);
+}
+
 public interface IAuthenticationProvider
 {
     string ProviderId { get; }
@@ -47,16 +52,28 @@ public interface ISecurityProfileStore
     ValueTask<ProviderResult<SecurityProfile>> UpsertProfileAsync(SecurityProfile profile, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> DeleteProfileAsync(string profileId, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> AssignIdentityAsync(IdentityReference identity, string profileId, IdentityReference actor, CancellationToken cancellationToken);
+    ValueTask<ProviderResult<bool>> ReplaceIdentityProfileAsync(IdentityReference identity, string oldProfileId, string newProfileId, IdentityReference actor, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new ProviderResult<bool>(ProviderOutcome.Unavailable, ErrorCode: "security.profile-replacement-unsupported"));
     ValueTask<ProviderResult<bool>> UnassignIdentityAsync(IdentityReference identity, string profileId, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> MapGroupAsync(GroupReference group, string profileId, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<bool>> UnmapGroupAsync(GroupReference group, string profileId, IdentityReference actor, CancellationToken cancellationToken);
     ValueTask<ProviderResult<IReadOnlySet<PermissionId>>> ResolvePermissionsAsync(IdentityReference identity, IReadOnlySet<string>? currentGroupIds, CancellationToken cancellationToken);
     ValueTask<ProviderResult<int>> CountAdministrativeIdentitiesAsync(CancellationToken cancellationToken);
+    ValueTask<ProviderResult<IReadOnlyList<SecurityAuditRecord>>> SearchAuditAsync(SecurityAuditQuery query, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new ProviderResult<IReadOnlyList<SecurityAuditRecord>>(ProviderOutcome.Unavailable));
+    ValueTask<ProviderResult<bool>> RecordAuditAsync(SecurityAuditEntry entry, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new ProviderResult<bool>(ProviderOutcome.Unavailable));
     ValueTask<IReadOnlyList<SecurityAuditEntry>> ReadAuditAsync(int maximumResults, CancellationToken cancellationToken);
 }
 
 public interface ILocalAccountStore
 {
+    async ValueTask<ProviderResult<IReadOnlyList<LocalAccount>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken)
+    {
+        var result = await ListAsync(500, cancellationToken);
+        return result.Outcome == ProviderOutcome.Succeeded && result.Value is not null ? new(ProviderOutcome.Succeeded,
+            result.Value.Where(account => account.Enabled && account.UserName.Contains(query, StringComparison.OrdinalIgnoreCase)).Take(maximumResults).ToArray()) : result;
+    }
     ValueTask<ProviderResult<IReadOnlyList<LocalAccount>>> ListAsync(int maximumResults, CancellationToken cancellationToken);
     ValueTask<ProviderResult<LocalAccount>> FindByNormalizedNameAsync(string normalizedUserName, CancellationToken cancellationToken);
     ValueTask<ProviderResult<LocalAccount>> FindByIdentityAsync(IdentityReference identity, CancellationToken cancellationToken);

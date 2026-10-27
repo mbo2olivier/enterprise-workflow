@@ -1,0 +1,15 @@
+<div class="candidate-picker" data-candidate-endpoint="@Endpoint">
+    <label for="@_id">@Label</label>
+    <input id="@_id" type="search" disabled autocomplete="off" minlength="2" maxlength="256"
+           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="@(_id + "-results")"
+           data-candidate-query placeholder="Saisissez au moins deux lettres du nom" />
+    <input type="hidden" name="@Name" data-candidate-value />
+    <ul id="@(_id + "-results")" role="listbox" data-candidate-results hidden></ul>
+    <p class="field-help" role="status" aria-live="polite" data-candidate-status>Saisissez au moins deux caractères, puis sélectionnez une personne.</p>
+</div>
+@code {
+    [Parameter, EditorRequired] public string Endpoint { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter] public string Label { get; set; } = "Destinataire";
+    private readonly string _id = $"candidate-{Guid.NewGuid():N}";
+}

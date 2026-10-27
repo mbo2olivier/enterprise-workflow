@@ -1,0 +1,15 @@
+<a class="request-card request-card-link unified-request-row" href="@Href" data-instance-id="@Request.InstanceId.Value" data-stage="@(StageId ?? Request.CurrentStageId)">
+    <div class="request-reference"><small>Demande</small><strong>@(Request.PublicReference ?? Request.InstanceId.Value.ToString())</strong></div>
+    <div class="request-process"><strong>@Request.ProcessTitle</strong>@if ((StageLabel ?? Request.CurrentStageLabel) is not null) { <small>@(StageLabel ?? Request.CurrentStageLabel)</small> }</div>
+    <div><small>Créée le</small><span>@Request.CreatedAtUtc.ToLocalTime().ToString("g")</span></div>
+    <div><strong>@(Request.InitiatorDisplayName ?? Request.Initiator?.SubjectId ?? "—")</strong><small>@Request.Initiator?.ProviderId.Value / @Request.Initiator?.SubjectId</small></div>
+    <span class="status @StatusClass">@StatusLabel</span><span aria-hidden="true">→</span>
+</a>
+@code {
+    [Parameter, EditorRequired] public WorkflowRequestView Request { get; set; } = default!;
+    [Parameter, EditorRequired] public string Href { get; set; } = string.Empty;
+    [Parameter] public string? StageId { get; set; }
+    [Parameter] public string? StageLabel { get; set; }
+    private string StatusClass => Request.StatusClass;
+    private string StatusLabel => Request.StatusLabel;
+}

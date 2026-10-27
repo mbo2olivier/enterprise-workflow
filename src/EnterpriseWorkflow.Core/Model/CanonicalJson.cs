@@ -51,6 +51,10 @@ public sealed class CanonicalJson
         return document.RootElement.Clone();
     }
 
+    /// <summary>Reads a detached DTO using the same conventions as typed state replacements.</summary>
+    public T Deserialize<T>() where T : class => JsonSerializer.Deserialize<T>(CanonicalText, EnterpriseWorkflow.Abstractions.WorkflowJson.Options)
+        ?? throw new JsonException("Workflow JSON cannot deserialize to null.");
+
     internal static bool TryCreate(
         string? json,
         int maximumBytes,

@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.DataProtection;
 
 internal static class DevelopmentHost
 {
-    internal static async Task RunAsync(DevelopmentConfiguration configuration, string[] moduleDirectories, string stateRoot)
+    internal static async Task RunAsync(DevelopmentConfiguration configuration, string[] moduleDirectories, string stateRoot, string? primaryArtifact = null, bool allowDevelopment = false)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -38,7 +38,7 @@ internal static class DevelopmentHost
         var timeProvider = TimeProvider.System;
         var securityStore = securityDatabase.CreateStore(timeProvider);
         var localAuthentication = new LocalAuthenticationProvider(securityStore, policy, timeProvider);
-        var moduleCatalog = WorkflowModuleCatalog.Load(moduleDirectories);
+        var moduleCatalog = WorkflowModuleCatalog.Load(moduleDirectories, options => options.AllowDevelopmentGenerations = allowDevelopment);
         await WorkflowModuleKernel.ReconcileAsync(moduleCatalog, workflowStore);
         var configuredDirectories = new Dictionary<string, IIdentityDirectory>(StringComparer.Ordinal);
         IAuthenticationProvider selectedAuthentication = localAuthentication;
@@ -99,9 +99,13 @@ internal static class DevelopmentHost
             services.GetRequiredService<IWorkflowStore>(), services.GetRequiredService<IWorkflowAuthorizationService>(),
             services.GetRequiredService<ISecurityProfileStore>(), services.GetRequiredService<ILocalAccountStore>(),
             directories, smtp, new SmtpWorkflowMailSender(smtp), new DevelopmentExternalEffectTransport()));
-        builder.Services.AddEnterpriseWorkflowRuntime<DevelopmentExternalEffectTransport>(options => options.NotifyHumanTaskPools = smtp.Enabled);
+        builder.Services.AddEnterpriseWorkflowRuntime<DevelopmentExternalEffectTransport>(options => { options.NotifyHumanTaskPools = smtp.Enabled; options.Serialization = configuration.Serialization; });
         builder.Services.AddEnterpriseWorkflowPresentation(options =>
-            options.InstallationId = builder.Configuration["Installation:Id"] ?? "enterprise-workflow");
+        {
+            options.InstallationId = builder.Configuration["Installation:Id"] ?? "enterprise-workflow";
+            if (primaryArtifact is not null) options.StartArtifactSha256 = moduleCatalog.Modules.Single(module => module.RootPath == Path.GetFullPath(primaryArtifact)).ArtifactSha256;
+            options.MediaRoot = Path.Combine(stateRoot, "media");
+        });
         builder.Services.AddEnterpriseWorkflowWeb();
         builder.Services.AddSingleton(new WorkflowDevelopmentEnvironment(string.Join(", ", moduleCatalog.Modules.Select(module =>
             $"{module.Manifest.Id.Value} / {module.Manifest.Version} / {module.ArtifactSha256[..12]}"))));

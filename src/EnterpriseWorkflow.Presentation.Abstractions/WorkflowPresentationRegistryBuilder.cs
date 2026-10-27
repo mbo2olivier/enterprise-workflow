@@ -3,8 +3,11 @@ using EnterpriseWorkflow.Core.Model;
 namespace EnterpriseWorkflow.Presentation;
 
 /// <summary>Collects one trusted module's immutable presentation declarations at startup.</summary>
+public sealed record WorkflowMediaFormatDeclaration(WorkflowMediaFormatDefinition Definition, Type ValidatorType);
+
 public sealed class WorkflowPresentationRegistryBuilder
 {
+    public List<WorkflowMediaFormatDeclaration> MediaFormats { get; } = [];
     private readonly Dictionary<(string Id, int Version), WorkflowFormDefinition> _forms = [];
     private readonly Dictionary<(string Id, int Version), WorkflowProcessDeclaration> _processes = [];
 
@@ -78,6 +81,16 @@ public sealed class WorkflowPresentationRegistryBuilder
 
         foreach (var field in form.Fields)
         {
+            if (field.Kind == WorkflowFormFieldKind.File && (field.FileSpecification is not { } spec || spec.MaximumBytes is < 1 or > 100 * 1024 * 1024 || spec.MaximumFiles is < 1 or > 8 ||
+                spec.AllowedContentTypes.Length is 0 or > 16 || spec.AllowedExtensions.Length is 0 or > 16))
+                throw new ArgumentException("A file field requires bounded type, size and count constraints.", nameof(form));
+            if (field.FileSpecification is { Policy: { } mediaPolicy } materialized)
+            {
+                mediaPolicy.Validate();
+                if (materialized.PolicyId != mediaPolicy.Id || materialized.MaximumBytes != mediaPolicy.MaximumBytes ||
+                    !materialized.AllowedContentTypes.SequenceEqual(mediaPolicy.AllowedContentTypes) || !materialized.AllowedExtensions.SequenceEqual(mediaPolicy.AllowedExtensions))
+                    throw new ArgumentException("A form cannot override its module media policy.", nameof(form));
+            }
             RequiredText(field.Label, 200, $"Field '{field.Id.Value}' label");
             if (field.ReadableBy is WorkflowFieldAudience.None ||
                 (field.ReadableBy & ~(WorkflowFieldAudience.Initiator | WorkflowFieldAudience.TaskParticipant |

@@ -1,36 +1,38 @@
+using EnterpriseWorkflow.Extensions;
 using System.Diagnostics;
 using System.Text.Json;
 
 internal static class DevelopmentRunner
 {
-    internal static async Task RunAsync(string project, string? configFile, string? url, bool noWatch, string configuration, bool reset, string[] additionalModules)
+    internal static async Task RunAsync(string project, string? configFile, string? url, bool noWatch, string? configuration, bool reset, string[] additionalModules, string? environment = null, string? artifact = null)
     {
-        var config = await DevelopmentConfiguration.ReadAsync(project, configFile, url, noWatch);
+        var sourceMode = artifact is null;
+        var root = sourceMode ? Path.GetDirectoryName(project)! : configFile is null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(configFile))!;
+        var config = await DevelopmentConfiguration.ReadAsync(sourceMode ? project : Path.Combine(root, "artifact.csproj"), configFile, url, noWatch, environment, configuration);
+        if (!sourceMode) config.Watch = false;
         config.ModuleDirectories = config.ModuleDirectories.Concat(additionalModules).Distinct(StringComparer.Ordinal).ToArray();
-        var projectRoot = Path.GetDirectoryName(project)!;
-        var stateRoot = Path.Combine(projectRoot, ".ew", "dev");
+        var stateRoot = config.StateRoot;
+        DevelopmentArtifacts.EnsureOwnedPath(stateRoot);
         Directory.CreateDirectory(Path.GetDirectoryName(stateRoot)!);
-        if (new DirectoryInfo(Path.Combine(projectRoot, ".ew")).Attributes.HasFlag(FileAttributes.ReparsePoint))
-            throw new ArgumentException("The development workspace must not be a symbolic link.");
-        // Hold an OS-level exclusive handle for the entire supervisor lifetime.
-        using var sessionLock = new FileStream(Path.Combine(projectRoot, ".ew", "dev.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        using var sessionLock = new FileStream(stateRoot + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         if (reset && Directory.Exists(stateRoot))
         {
-            var relativeDatabase = Path.GetRelativePath(stateRoot, config.Storage.Path);
-            if (relativeDatabase.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relativeDatabase) ||
-                new DirectoryInfo(stateRoot).Attributes.HasFlag(FileAttributes.ReparsePoint))
-                throw new ArgumentException("Reset is limited to an owned .ew/dev directory with its database inside it.");
-            var archive = Path.Combine(projectRoot, ".ew", "archives", DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(Path.GetDirectoryName(archive)!);
-            Directory.Move(stateRoot, archive);
+            var relativeDatabase = Path.GetRelativePath(stateRoot, config.Storage.Path!);
+            if (relativeDatabase.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relativeDatabase))
+                throw new ArgumentException("Reset is limited to an owned environment with its database inside it.");
+            var archive = Path.Combine(root, ".ew", "archives", config.EnvironmentName + "-" + Guid.NewGuid().ToString("N"));
+            DevelopmentArtifacts.EnsureOwnedPath(archive);
+            Directory.CreateDirectory(Path.GetDirectoryName(archive)!); Directory.Move(stateRoot, archive);
             Console.WriteLine($"Ancien environnement conservé : {archive}");
         }
         Directory.CreateDirectory(stateRoot);
-        Directory.CreateDirectory(Path.GetDirectoryName(config.Storage.Path)!);
-        var artifacts = Path.Combine(stateRoot, "artifacts");
-        Directory.CreateDirectory(artifacts);
+        Directory.CreateDirectory(Path.GetDirectoryName(config.Storage.Path!)!);
+        var artifacts = Path.Combine(stateRoot, "artifacts"); Directory.CreateDirectory(artifacts);
         var runtimeConfig = Path.Combine(stateRoot, "runtime.json");
         await File.WriteAllTextAsync(runtimeConfig, JsonSerializer.Serialize(config));
+        Console.WriteLine($"Environnement : {config.EnvironmentName} — {stateRoot}");
+        if (Directory.Exists(Path.Combine(root, ".ew", "dev"))) Console.WriteLine("Ancien espace .ew/dev conservé ; il n’est ni importé ni réinitialisé automatiquement.");
+        var projectRoot = root;
         using var stop = new CancellationTokenSource();
         ConsoleCancelEventHandler handler = (_, eventArgs) => { eventArgs.Cancel = true; stop.Cancel(); };
         Console.CancelKeyPress += handler;
@@ -73,47 +75,54 @@ internal static class DevelopmentRunner
 
         async Task<Process> RebuildAsync()
         {
-            var staging = Path.Combine(stateRoot, "build-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(staging);
+            string primary;
+            string? staging = null;
             try
             {
-                await WorkflowCli.BuildArtifactAsync(project, staging, configuration, prepareOnly: true);
-                using var preview = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(staging, "resolved-module.json")));
-                var candidate = preview.RootElement.GetProperty("modules")[0];
-                var id = candidate.GetProperty("id").GetString()!;
-                var release = candidate.GetProperty("release").GetString()!;
-                if (id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || release.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
-                    Path.IsPathRooted(id) || Path.IsPathRooted(release) ||
-                    id.Contains('/') || id.Contains('\\') || release.Contains('/') || release.Contains('\\') || id is "." or ".." || release is "." or "..")
-                    throw new InvalidOperationException("Invalid artifact directory name.");
-                var destination = Path.Combine(artifacts, id, release);
-                var previousDirectories = Directory.GetFiles(artifacts, "module.json", SearchOption.AllDirectories).Select(path => Path.GetDirectoryName(path)!).Concat(config.ModuleDirectories).Distinct(StringComparer.Ordinal).ToArray();
-                if (Directory.Exists(destination))
+                if (sourceMode)
                 {
-                    using var old = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(destination, "resolved-module.json")));
-                    if (old.RootElement.GetProperty("modules")[0].GetProperty("sha256").GetString() != candidate.GetProperty("sha256").GetString())
-                        throw new InvalidOperationException("Release already used with another hash. Change the module release (and contract revision when necessary), or explicitly reset the local environment.");
+                    var generations = DevelopmentArtifacts.ReadGenerations(stateRoot);
+                    var occupied = Directory.GetDirectories(artifacts).Select(Path.GetFileName).Where(name => name?.StartsWith('g') == true)
+                        .Select(name => int.TryParse(name.AsSpan(1), out var number) ? number : 0).DefaultIfEmpty().Max();
+                    var next = checked(Math.Max(generations.Select(item => item.Number).DefaultIfEmpty().Max(), occupied) + 1);
+                    staging = Path.Combine(stateRoot, "build-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(staging);
+                    await WorkflowCli.BuildArtifactAsync(project, staging, config.Build.Configuration, config.ModuleDirectories, prepareOnly: true, developmentGeneration: next);
+                    var fingerprint = DevelopmentArtifacts.Fingerprint(staging);
+                    var existing = generations.SingleOrDefault(item => item.Fingerprint == fingerprint);
+                    if (existing is not null)
+                    {
+                        primary = Path.Combine(artifacts, "g" + existing.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        if (DevelopmentArtifacts.Fingerprint(primary) != fingerprint) throw new InvalidOperationException("The generation registry does not match its immutable artifact.");
+                    }
+                    else
+                    {
+                        primary = Path.Combine(artifacts, "g" + next.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        await WorkflowCli.RunDotnetAsync(new[] { typeof(DevelopmentRunner).Assembly.Location, "__verify-dev-set" }.Concat(config.ModuleDirectories).Append(staging).ToArray());
+                        Directory.Move(staging, primary);
+                        generations.Add(new(next, fingerprint));
+                        var index = Path.Combine(stateRoot, "generations.json");
+                        await File.WriteAllTextAsync(index + ".tmp", JsonSerializer.Serialize(generations)); File.Move(index + ".tmp", index, true);
+                    }
                 }
                 else
                 {
-                    await WorkflowCli.RunDotnetAsync(new[] { typeof(DevelopmentRunner).Assembly.Location, "__verify-set" }.Concat(previousDirectories).Append(staging).ToArray());
-                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                    Directory.Move(staging, destination);
+                    primary = Path.GetFullPath(artifact!);
+                    WorkflowModuleCatalog.InspectArtifact(primary);
                 }
-                var modules = Directory.GetFiles(artifacts, "module.json", SearchOption.AllDirectories).Select(path => Path.GetDirectoryName(path)!)
-                    .Concat(config.ModuleDirectories).Distinct(StringComparer.Ordinal).ToArray();
-                await WorkflowCli.RunDotnetAsync(new[] { typeof(DevelopmentRunner).Assembly.Location, "__verify-set" }.Concat(modules).ToArray());
+                if (!sourceMode) primary = DevelopmentArtifacts.CacheArtifact(stateRoot, primary, allowDevelopment: false);
+                var dependencies = config.ModuleDirectories.Select(path => DevelopmentArtifacts.CacheArtifact(stateRoot, path, allowDevelopment: true)).ToArray();
+                var modules = await DevelopmentArtifacts.RequiredAsync(stateRoot, config.Storage.Path!, primary, dependencies, allowDevelopment: true);
+                try { await WorkflowCli.RunDotnetAsync(new[] { typeof(DevelopmentRunner).Assembly.Location, "__verify-dev-set" }.Concat(modules).ToArray()); }
+                catch (InvalidOperationException exception) { var requirements = await DevelopmentArtifacts.DescribeRequirementsAsync(config.Storage.Path!); throw new InvalidOperationException($"Environment {config.EnvironmentName}: required artifacts cannot be loaded ({string.Join(", ", modules)}). Instances: {requirements}. {exception.Message}", exception); }
                 Stop(host);
                 var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardInput = true };
-                foreach (var argument in new[] { typeof(DevelopmentRunner).Assembly.Location, "__host", runtimeConfig, stateRoot }.Concat(modules!))
-                    start.ArgumentList.Add(argument!);
+                foreach (var argument in new[] { typeof(DevelopmentRunner).Assembly.Location, "__host-session", runtimeConfig, stateRoot, bool.TrueString, primary }.Concat(modules)) start.ArgumentList.Add(argument);
                 var nextHost = Process.Start(start) ?? throw new InvalidOperationException("Could not start development host.");
-                host?.Dispose();
-                return nextHost;
+                host?.Dispose(); return nextHost;
             }
             finally
             {
-                try { if (Directory.Exists(staging)) Directory.Delete(staging, true); }
+                try { if (staging is not null && Directory.Exists(staging)) Directory.Delete(staging, true); }
                 catch (IOException) when (OperatingSystem.IsWindows()) { }
                 catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows()) { }
             }

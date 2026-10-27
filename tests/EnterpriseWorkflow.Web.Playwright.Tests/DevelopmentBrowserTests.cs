@@ -9,6 +9,49 @@ namespace EnterpriseWorkflow.Web.Playwright.Tests;
 public sealed class DevelopmentBrowserTests
 {
     [Fact]
+    public async Task SearchMultiselectAndAdministrativeEditorsRemainUsable()
+    {
+        var address = Environment.GetEnvironmentVariable("EW_DEV_TEST_URL");
+        if (string.IsNullOrWhiteSpace(address)) Assert.Skip("Set EW_DEV_TEST_URL to the sample development runtime.");
+        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        var page = await browser.NewPageAsync(new() { ViewportSize = new() { Width = 1046, Height = 783 } });
+        await Select("Alice — Demandeuse");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Rechercher des demandes", Exact = true }).ClickAsync();
+        var search = page.Locator("dialog[data-search-dialog]");
+        await search.Locator(".status-dropdown summary").ClickAsync();
+        await search.GetByRole(AriaRole.Checkbox, new() { Name = "En attente", Exact = true }).CheckAsync();
+        await search.GetByRole(AriaRole.Checkbox, new() { Name = "Terminée", Exact = true }).CheckAsync();
+        await search.Locator(".status-dropdown summary").ClickAsync();
+        await Expect(search.Locator("[data-status-summary]")).ToHaveTextAsync("En attente, Terminée");
+        await search.GetByRole(AriaRole.Button, new() { Name = "Rechercher", Exact = true }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("status=Waiting.*status=Completed"));
+        await Select("Administration locale");
+        await page.GotoAsync(address + "/admin/access?tab=identities");
+        Assert.True(await page.Locator(".identity-action-menu summary").CountAsync() >= 4);
+        await page.GotoAsync(address + "/admin/access?tab=profiles&profile=administrators");
+        var editor = page.Locator("dialog[data-promoted]");
+        await Expect(editor).ToBeVisibleAsync();
+        Assert.True(await editor.EvaluateAsync<bool>("element => element.matches(':modal')"));
+        var heading = await page.GetByRole(AriaRole.Heading, new() { Name = "Administrateurs", Exact = true }).BoundingBoxAsync();
+        Assert.NotNull(heading);
+        Assert.InRange(heading.Y, 0, 783);
+        await page.ScreenshotAsync(new() { Path = "/private/tmp/ew-l9b-profile-modal.png" });
+        await page.GetByRole(AriaRole.Link, new() { Name = "Fermer la fenêtre", Exact = true }).ClickAsync();
+        await page.GotoAsync(address + "/admin/audit");
+        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Exporter les résultats CSV", Exact = true })).ToBeEnabledAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Rechercher des demandes", Exact = true }).ClickAsync();
+        await page.ScreenshotAsync(new() { Path = "/private/tmp/ew-l9b-search-modal.png" });
+        async Task Select(string label)
+        {
+            await page.GotoAsync(address + "/__ew/dev?switch=" + Guid.NewGuid().ToString("N"));
+            await page.Locator("select[name=identity]").SelectOptionAsync(new SelectOptionValue { Label = label });
+            await page.GetByRole(AriaRole.Button, new() { Name = "Explorer le module", Exact = true }).ClickAsync();
+            await Expect(page.GetByRole(AriaRole.Complementary, new() { Name = "Environnement de développement" })).ToBeVisibleAsync();
+        }
+    }
+
+    [Fact]
     public async Task DevelopmentMenuReflectsAdministrativePermission()
     {
         var address = Environment.GetEnvironmentVariable("EW_DEV_TEST_URL");
@@ -18,7 +61,7 @@ public sealed class DevelopmentBrowserTests
         var page = await browser.NewPageAsync();
         foreach (var identity in new[] { "ew-dev-alice", "ew-admin" })
         {
-            await page.GotoAsync(address + "/__ew/dev");
+            await page.GotoAsync(address + "/__ew/dev?switch=" + Guid.NewGuid().ToString("N"));
             await Expect(page.Locator(".login-panel")).ToBeVisibleAsync();
             await page.Locator("select[name=identity]").SelectOptionAsync(new SelectOptionValue { Label = identity == "ew-admin" ? "Administration locale" : "Alice — Demandeuse" });
             await page.GetByRole(AriaRole.Button, new() { Name = "Explorer le module" }).ClickAsync();
@@ -42,17 +85,21 @@ public sealed class DevelopmentBrowserTests
         Assert.Equal(200, stylesheet.Status);
         Assert.Contains(".app-shell", await stylesheet.TextAsync(), StringComparison.Ordinal);
         await SelectAsync("ew-dev-alice");
-        await page.GotoAsync(address + "/start/sample.leave-request.leave-request/1");
+        await page.GotoAsync(address + "/start");
+        await page.Locator("a.catalog-card").Filter(new() { HasText = "Demande de congé" }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Demande de congé", Exact = true })).ToBeVisibleAsync();
         await page.Locator("input[name='field.startDate']").FillAsync("2026-11-02");
         await page.Locator("input[name='field.endDate']").FillAsync("2026-11-04");
         await page.Locator("select[name='field.leaveType']").SelectOptionAsync("paid");
         await page.Locator("textarea[name='field.reason']").FillAsync(reason);
         await page.Locator("textarea[name='field.privateNote']").FillAsync("SECRET-L9-NOTE");
+        await page.Locator("input[data-media-upload='documents']").SetInputFilesAsync(new FilePayload { Name = "justificatif.txt", MimeType = "text/plain", Buffer = System.Text.Encoding.UTF8.GetBytes("Preuve L9b") });
+        await Expect(page.Locator("[data-media-status='documents']")).ToContainTextAsync("validé");
         await page.GetByRole(AriaRole.Button, new() { Name = "Envoyer la demande" }).ClickAsync();
         var instanceId = new Uri(page.Url).Query.Split("started=", StringSplitOptions.None).Last().Split('&')[0];
         Assert.True(Guid.TryParse(instanceId, out _), $"Instance was not created: {page.Url}");
         await OpenTaskAsync("Confirmation du demandeur");
+        await Expect(page.Locator("[data-form-view=LeaveRequestSummary]")).ToContainTextAsync(reason);
         var compose = Environment.GetEnvironmentVariable("EW_SMTP_COMPOSE_FILE");
         var testDatabase = Environment.GetEnvironmentVariable("EW_DEV_TEST_DB");
         if (!string.IsNullOrWhiteSpace(compose))
@@ -108,9 +155,10 @@ public sealed class DevelopmentBrowserTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Valider et désigner le responsable" }).ClickAsync();
         Assert.Contains("error=", page.Url, StringComparison.Ordinal);
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Validation RH", Exact = true })).ToBeVisibleAsync();
-        await page.GetByLabel("Rechercher un destinataire éligible").FillAsync("carol");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Rechercher", Exact = true }).ClickAsync();
-        await page.Locator("select[name='assignment.validation-manager.identity']").SelectOptionAsync("local|ew-dev-carol");
+        var picker = page.Locator(".candidate-picker").Filter(new() { Has = page.Locator("input[name='assignment.validation-manager.identity']") });
+        await picker.GetByRole(AriaRole.Combobox).FillAsync("car");
+        await picker.GetByRole(AriaRole.Option).Filter(new() { HasText = "carol" }).ClickAsync();
+        await Expect(picker.Locator("input[data-candidate-value]")).ToHaveValueAsync("local|ew-dev-carol");
         await page.GetByRole(AriaRole.Button, new() { Name = "Valider et désigner le responsable" }).ClickAsync();
 
         await SelectAsync("ew-dev-carol");
@@ -119,13 +167,56 @@ public sealed class DevelopmentBrowserTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Approuver", Exact = true }).ClickAsync();
         await SelectAsync("ew-dev-alice");
         await page.GotoAsync(address + "/requests");
-        var completedRequest = page.Locator("article.request-card").Filter(new() { HasText = instanceId }).GetByText("Terminée", new() { Exact = true });
+        var completedRequest = page.Locator("a.request-card[data-instance-id='" + instanceId + "']").GetByText("Terminée", new() { Exact = true });
         for (var attempt = 0; attempt < 20 && await completedRequest.CountAsync() == 0; attempt++)
         {
             await Task.Delay(250, TestContext.Current.CancellationToken);
             await page.ReloadAsync();
         }
         await Expect(completedRequest).ToBeVisibleAsync();
+        await page.Locator("a.request-card[data-instance-id='" + instanceId + "']").ClickAsync();
+        await Expect(page).ToHaveURLAsync(address + "/instances/" + instanceId);
+        Assert.DoesNotContain("SECRET-L9-NOTE", await page.Locator("main").InnerTextAsync(), StringComparison.Ordinal);
+        await Expect(page.Locator("#instance-reference")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^[0-9A-Z]{10}$"));
+        var publicReference = await page.Locator("#instance-reference").InnerTextAsync();
+        await Expect(page.GetByRole(AriaRole.Navigation, new() { Name = "Onglets de la demande" }).GetByRole(AriaRole.Link)).ToHaveCountAsync(5);
+        await Expect(page.GetByRole(AriaRole.Rowheader, new() { Name = "Commentaires", Exact = true })).ToHaveCountAsync(0);
+        await Expect(page.GetByRole(AriaRole.Rowheader, new() { Name = "Justificatifs", Exact = true })).ToHaveCountAsync(0);
+        await page.GetByRole(AriaRole.Link, new() { Name = "Bibliothèque", Exact = true }).ClickAsync();
+        var upload = page.GetByRole(AriaRole.Link, new() { Name = "justificatif.txt", Exact = true });
+        await Expect(upload).ToBeVisibleAsync();
+        var uploadPath = await upload.GetAttributeAsync("href");
+        var download = await page.APIRequest.GetAsync(address + uploadPath);
+        Assert.Equal("Preuve L9b", await download.TextAsync());
+        await Expect(page.GetByRole(AriaRole.Link, new() { Name = "cloture.txt", Exact = true })).ToBeVisibleAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Rechercher des demandes", Exact = true }).ClickAsync();
+        var dialog = page.Locator("dialog[data-search-dialog]");
+        await Expect(dialog).ToBeVisibleAsync();
+        await dialog.Locator("input[name=instance]").FillAsync(publicReference);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Rechercher", Exact = true }).ClickAsync();
+        await Expect(page.Locator("a.request-card")).ToHaveCountAsync(1);
+        await page.GotoAsync(address + "/search?provider=local&initiator=ew-dev-bob");
+        await Expect(page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Recherche impossible");
+        await SelectAsync("ew-admin");
+        await page.GotoAsync(address + "/instances/" + instanceId);
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Demande indisponible", Exact = true })).ToBeVisibleAsync();
+        var deniedDownload = await page.APIRequest.GetAsync(address + uploadPath);
+        Assert.Equal(404, deniedDownload.Status);
+        await page.GotoAsync(address + "/admin/audit");
+        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Exporter les résultats CSV", Exact = true })).ToBeVisibleAsync();
+        var auditExport = await page.APIRequest.GetAsync(address + "/admin/audit/export?action=security.profile.upsert");
+        Assert.Equal(200, auditExport.Status);
+        Assert.Contains("text/csv", auditExport.Headers["content-type"], StringComparison.Ordinal);
+        await page.GotoAsync(address + "/admin/audit?module=sample.leave-request&process=sample.leave-request.leave-request&action=validate");
+        await Expect(page.Locator(".data-panel table")).ToContainTextAsync(publicReference);
+        var businessAuditExport = await page.APIRequest.GetAsync(address + "/admin/audit/export?module=sample.leave-request&process=sample.leave-request.leave-request&action=validate");
+        Assert.Equal(200, businessAuditExport.Status);
+        Assert.Contains(publicReference, await businessAuditExport.TextAsync(), StringComparison.Ordinal);
+        await page.GotoAsync(address + "/admin/tat");
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Temps de traitement", Exact = true })).ToBeVisibleAsync();
+        var tatExport = await page.APIRequest.GetAsync(address + "/admin/tat/export");
+        Assert.Equal(200, tatExport.Status);
+        Assert.Contains("validation-rh", await tatExport.TextAsync(), StringComparison.Ordinal);
 
         var smtp = Environment.GetEnvironmentVariable("EW_SMTP_TEST_URL");
         if (!string.IsNullOrWhiteSpace(smtp))
@@ -156,10 +247,11 @@ public sealed class DevelopmentBrowserTests
 
         async Task SelectAsync(string identity)
         {
-            await page.GotoAsync(address + "/__ew/dev");
-            await page.Locator("select[name=identity]").SelectOptionAsync(identity);
+            await page.GotoAsync(address + "/__ew/dev?switch=" + Guid.NewGuid().ToString("N"));
+            await page.Locator("select[name=identity]").SelectOptionAsync(identity == "ew-admin" ? new SelectOptionValue { Label = "Administration locale" } : new SelectOptionValue { Value = identity });
             await page.GetByRole(AriaRole.Button, new() { Name = "Explorer le module" }).ClickAsync();
             await Expect(page).ToHaveURLAsync(address + "/");
+            await Expect(page.GetByRole(AriaRole.Complementary, new() { Name = "Environnement de développement" })).ToContainTextAsync(identity);
         }
         async Task OpenTaskAsync(string label)
         {
@@ -167,7 +259,7 @@ public sealed class DevelopmentBrowserTests
             var nodeId = label switch { "Confirmation du demandeur" => "draft", "Validation RH" => "validation-rh", _ => "validation-manager" };
             for (var attempt = 0; attempt < 20; attempt++)
             {
-                var links = await page.Locator("article.request-card").Filter(new() { HasText = nodeId }).GetByRole(AriaRole.Link, new() { Name = "Consulter →" }).EvaluateAllAsync<string[]>("links => links.map(link => link.href)");
+                var links = await page.Locator("a.request-card[data-stage='" + nodeId + "']").EvaluateAllAsync<string[]>("links => links.map(link => link.href)");
                 foreach (var link in links)
                 {
                     await page.GotoAsync(link);
@@ -196,7 +288,8 @@ public sealed class DevelopmentBrowserTests
         var page = await browser.NewPageAsync();
         var reason = "Branch " + Guid.NewGuid().ToString("N");
         await SelectAsync("ew-dev-alice");
-        await page.GotoAsync(address + "/start/sample.leave-request.leave-request/1");
+        await page.GotoAsync(address + "/start");
+        await page.Locator("a.catalog-card").Filter(new() { HasText = "Demande de congé" }).ClickAsync();
         await page.Locator("input[name='field.startDate']").FillAsync("2026-11-02");
         await page.Locator("input[name='field.endDate']").FillAsync("2026-11-04");
         await page.Locator("select[name='field.leaveType']").SelectOptionAsync("paid");
@@ -215,9 +308,10 @@ public sealed class DevelopmentBrowserTests
             await page.GetByRole(AriaRole.Button, new() { Name = "Prendre en charge" }).ClickAsync();
             if (branch == "manager")
             {
-                await page.GetByLabel("Rechercher un destinataire éligible").FillAsync("carol");
-                await page.GetByRole(AriaRole.Button, new() { Name = "Rechercher", Exact = true }).ClickAsync();
-                await page.Locator("select[name='assignment.validation-manager.identity']").SelectOptionAsync("local|ew-dev-carol");
+                var picker = page.Locator(".candidate-picker").Filter(new() { Has = page.Locator("input[name='assignment.validation-manager.identity']") });
+                await picker.GetByRole(AriaRole.Combobox).FillAsync("car");
+                await picker.GetByRole(AriaRole.Option).Filter(new() { HasText = "carol" }).ClickAsync();
+                await Expect(picker.Locator("input[data-candidate-value]")).ToHaveValueAsync("local|ew-dev-carol");
                 await page.GetByRole(AriaRole.Button, new() { Name = "Valider et désigner le responsable" }).ClickAsync();
                 await SelectAsync("ew-dev-carol");
                 await OpenAsync("validation-manager");
@@ -231,26 +325,30 @@ public sealed class DevelopmentBrowserTests
         }
         await SelectAsync("ew-dev-alice");
         await page.GotoAsync(address + "/requests");
-        var completed = page.Locator("article.request-card").Filter(new() { HasText = instanceId }).GetByText("Terminée", new() { Exact = true });
+        var completed = page.Locator("a.request-card[data-instance-id='" + instanceId + "']").GetByText(branch == "cancel" ? "Annulée" : "Refusée", new() { Exact = true });
         for (var attempt = 0; attempt < 20 && await completed.CountAsync() == 0; attempt++)
         {
             await Task.Delay(250, TestContext.Current.CancellationToken);
             await page.ReloadAsync();
         }
         await Expect(completed).ToBeVisibleAsync();
+        await page.Locator("a.request-card[data-instance-id='" + instanceId + "']").ClickAsync();
+        if (branch is "rh" or "manager") { await page.GetByRole(AriaRole.Link, new() { Name = "Commentaires", Exact = true }).ClickAsync(); await Expect(page.Locator("main")).ToContainTextAsync("Refus motivé de qualification"); }
 
         async Task SelectAsync(string id)
         {
-            await page.GotoAsync(address + "/__ew/dev");
+            await page.GotoAsync(address + "/__ew/dev?switch=" + Guid.NewGuid().ToString("N"));
             await page.Locator("select[name=identity]").SelectOptionAsync(id);
             await page.GetByRole(AriaRole.Button, new() { Name = "Explorer le module" }).ClickAsync();
+            await Expect(page).ToHaveURLAsync(address + "/");
+            await Expect(page.GetByRole(AriaRole.Complementary, new() { Name = "Environnement de développement" })).ToContainTextAsync(id);
         }
         async Task OpenAsync(string node)
         {
             for (var attempt = 0; attempt < 30; attempt++)
             {
                 await page.GotoAsync(address + "/inbox");
-                var links = await page.Locator("article.request-card").Filter(new() { HasText = node }).GetByRole(AriaRole.Link, new() { Name = "Consulter →" }).EvaluateAllAsync<string[]>("links => links.map(link => link.href)");
+                var links = await page.Locator("a.request-card[data-stage='" + node + "']").EvaluateAllAsync<string[]>("links => links.map(link => link.href)");
                 foreach (var link in links)
                 {
                     await page.GotoAsync(link);

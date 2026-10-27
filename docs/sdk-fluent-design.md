@@ -70,3 +70,7 @@ Ce format ne modifie pas les octets ou hashes des anciennes définitions. Le JSO
 ## Boucle de développement L9
 
 `ew dev` compile le module et prépare un artefact local pour un hôte de développement avec SQLite et UI, sans projet Kernel à écrire. Il partage les règles de manifeste et de validation de `ew pack`, préserve les artefacts exacts et permet de tester les identités et parcours L8b. `--module-directory` fournit explicitement les propriétaires de contrats externes réutilisés. Voir le [guide CLI](l9-cli.md), la [spécification L9](l9-spec.md) et la [preuve locale](evidence/l9.md) ; aucune qualification CI L9 n’est présumée.
+
+## Complément accepté le 25 octobre 2026 — state DTO en L9b
+
+L’[ADR 0026](adr/0026-etat-metier-type-et-validation.md) complète cette conception : le processus déclare un DTO d’état métier annoté via une façade de type `WithState<TState>()`, tout en conservant la version explicite et les migrations actuelles. Les attributs portent libellés, visibilité du détail et validation permanente/contextuelle ; les permissions des champs complètent l’accès à l’instance. Les formulaires restent indépendants : leurs handlers réalisent explicitement le mapping vers le state, y compris au démarrage. Aucune copie implicite des entrées ni seconde projection métier persistée. Les signatures restent à stabiliser ; voir la [spécification L9b, §1.1–1.3](l9b-spec.md) pour les règles et critères de qualification. Ce complément est implémenté localement en L9b ; voir le [guide des API effectives](l9b-sdk.md) et la [qualification](evidence/l9b.md).

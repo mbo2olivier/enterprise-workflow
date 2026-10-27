@@ -1,22 +1,126 @@
 @page "/admin/audit"
 @attribute [Authorize]
-@inject ISecurityProfileStore Profiles
+@inject WorkflowAuditService Audit
+@inject IWorkflowPresentationCatalog Catalog
 @inject IAuthorizationProvider Authorization
 @inject WorkflowWebIdentityAccessor Identity
-
+@inject IPresentationSettingsStore Settings
+@inject NavigationManager Navigation
 <PageTitle>Audit · Enterprise Workflow</PageTitle>
-<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Audit de sécurité</h1><p>Les opérations critiques sont présentées dans l’ordre antéchronologique.</p></div>
-@if (!_allowed) { <section class="panel empty-state"><h2>Accès refusé</h2><p>La permission de lecture de l’audit est requise.</p></section> }
-else { <section class="panel data-panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Acteur</th><th>Action</th><th>Cible</th><th>Résultat</th></tr></thead><tbody>@foreach (var entry in _entries) { <tr><td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td><td>@entry.Actor.ProviderId / @entry.Actor.SubjectId</td><td>@entry.Action</td><td><code>@entry.Target</code></td><td><span class="status success">@entry.Outcome</span></td></tr> }</tbody></table></div></section> }
+<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Audit</h1><p>Recherchez et extrayez les opérations métier et de sécurité autorisées.</p></div>
+<form method="get" class="panel compact-form" role="search">
+    <label>Depuis<input type="date" name="from" value="@From" /></label>
+    <label>Jusqu’au<input type="date" name="until" value="@Until" /></label>
+    <label>Fournisseur de l’acteur<input name="provider" value="@Provider" maxlength="256" /></label>
+    <label>Identifiant utilisateur<input name="actor" value="@Actor" maxlength="256" /></label>
+    <label>Module<select name="module"><option value="">Tous les modules</option>@foreach (var module in Modules) { <option value="@module" selected="@(Module == module)">@module</option> }</select></label>
+    <label>Processus<select name="process"><option value="">Tous les processus</option>@foreach (var process in Processes) { <option value="@process.Key" selected="@(Process == process.Key)">@process.Value</option> }</select></label>
+    <label>Action<select name="action"><option value="">Toutes les actions</option>@foreach (var action in Actions) { <option value="@action.Key" selected="@(Action == action.Key)">@action.Value</option> }</select></label>
+    <label>Étape<select name="stage"><option value="">Toutes les étapes</option>@foreach (var stage in Stages) { <option value="@stage.Key" selected="@(Stage == stage.Key)">@stage.Value</option> }</select></label>
+    <label>Cible<input name="target" value="@Target" maxlength="1024" /></label>
+    <label>Résultat<input name="outcome" value="@Outcome" maxlength="64" /></label>
+    <button class="primary-button" type="submit">Rechercher</button>
+    <button class="secondary-button" type="submit" formaction="/admin/audit/export" disabled="@(!_canExport)">Exporter les résultats CSV</button>
+    @if (!_canExport) { <p class="field-help wide-field">L’export nécessite la permission « Exporter l’audit ». Vous pouvez l’attribuer au profil concerné dans <a href="/admin/access?tab=profiles">Accès · Profils</a>.</p> }
+</form>
+@if (_error) { <section class="panel empty-state" role="alert"><h2>Audit indisponible</h2><p>Vérifiez les filtres et vos permissions.</p></section> }
+else
+{
+    <section class="panel data-panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Acteur</th><th>Module</th><th>Action</th><th>Processus</th><th>Étape</th><th>Cible / identifiant</th><th>Résultat</th></tr></thead><tbody>
+    @foreach (var row in _entries) { var entry = row.Entry; <tr><td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td><td>@row.ActorDisplayName<small>@entry.Actor.ProviderId / @entry.Actor.SubjectId</small></td><td>@(row.Module ?? "—")</td><td>@(row.ActionLabel ?? ActionLabel(entry.Action))<small>@entry.Action</small></td><td>@(row.ProcessTitle ?? ProcessContext(entry).Process)</td><td>@(row.StageLabel ?? row.Stage ?? ProcessContext(entry).Stage)</td><td><strong>@TargetLabel(entry)</strong><details><summary>Identifiant technique</summary><code>@entry.Target</code></details></td><td><span class="status @(entry.Outcome == "succeeded" ? "success" : "warning")">@(entry.Outcome == "succeeded" ? "Réussite" : entry.Outcome == "forbidden" ? "Refusé" : entry.Outcome == "unknown" ? "Non renseigné (historique)" : entry.Outcome)</span></td></tr> }
+    </tbody></table></div>@if (_entries.Count == 0) { <p>Aucune entrée correspondante.</p> }</section>
+    @if (_entries.Count == 50) { <a class="secondary-button" href="@Next()">Page suivante</a> }
+}
 </div>
-
 @code {
-    private bool _allowed;
-    private IReadOnlyList<SecurityAuditEntry> _entries = [];
-    protected override async Task OnInitializedAsync()
+    [SupplyParameterFromQuery(Name = "module")] public string? Module { get; set; }
+    [SupplyParameterFromQuery(Name = "process")] public string? Process { get; set; }
+    [SupplyParameterFromQuery(Name = "stage")] public string? Stage { get; set; }
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+    [SupplyParameterFromQuery(Name = "until")] public string? Until { get; set; }
+    [SupplyParameterFromQuery(Name = "provider")] public string? Provider { get; set; }
+    [SupplyParameterFromQuery(Name = "actor")] public string? Actor { get; set; }
+    [SupplyParameterFromQuery(Name = "action")] public string? Action { get; set; }
+    [SupplyParameterFromQuery(Name = "target")] public string? Target { get; set; }
+    [SupplyParameterFromQuery(Name = "outcome")] public string? Outcome { get; set; }
+    [SupplyParameterFromQuery(Name = "before")] public string? Before { get; set; }
+    [SupplyParameterFromQuery(Name = "afterId")] public string? AfterId { get; set; }
+    private bool _error;
+    private bool _canExport;
+    private IReadOnlyList<SecurityAuditRecord> _entries = [];
+    protected override async Task OnParametersSetAsync()
     {
-        var actor = await Identity.GetRequiredAsync();
-        _allowed = (await Authorization.AuthorizeAsync(new(actor, WorkflowPermissions.ReadAudit), CancellationToken.None)).Allowed;
-        if (_allowed) _entries = await Profiles.ReadAuditAsync(250, CancellationToken.None);
+        var identity = await Identity.GetRequiredAsync();
+        _canExport = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ReadAudit), CancellationToken.None)).Allowed &&
+            (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ExportAudit), CancellationToken.None)).Allowed;
+        _error = false;
+        _entries = [];
+        try
+        {
+            var zone = (await Settings.ReadAsync(CancellationToken.None)).Value?.TimeZoneId ?? "UTC";
+            var query = WorkflowAuditFilters.Create(From, Until, Provider, Actor, Action, Target, Outcome, Before, AfterId, zone, Module, Process, Stage);
+            var result = await Audit.SearchAsync(identity, query, CancellationToken.None);
+            _error = result.Outcome != ProviderOutcome.Succeeded;
+            _entries = result.Value ?? [];
+        }
+        catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException) { _error = true; }
+    }
+    private IEnumerable<string> Modules => Catalog.ModuleIds.Order(StringComparer.Ordinal);
+    private Dictionary<string, string> Processes => Catalog.Processes.Where(process => string.IsNullOrEmpty(Module) || process.Definition.Artifacts.Any(artifact => artifact.Id.Value == Module)).GroupBy(process => process.Definition.Id.Value).ToDictionary(group => group.Key, group => group.First().Title, StringComparer.Ordinal);
+    private Dictionary<string, string> Stages => Catalog.Processes.Where(process => string.IsNullOrEmpty(Process) || process.Definition.Id.Value == Process).SelectMany(process => process.Definition.Nodes).GroupBy(node => node.Id.Value).ToDictionary(group => group.Key, group => group.First().DisplayLabel ?? group.Key, StringComparer.Ordinal);
+    private Dictionary<string, string> Actions
+    {
+        get
+        {
+            var actions = Catalog.Processes.Where(process => string.IsNullOrEmpty(Process) || process.Definition.Id.Value == Process).SelectMany(process => process.Definition.Nodes).Where(node => node.HumanTask is not null)
+                .SelectMany(node => node.HumanTask!.Actions).GroupBy(action => action.ActionId.Value).ToDictionary(group => group.Key, group => group.Key, StringComparer.Ordinal);
+            foreach (var process in Catalog.Processes.Where(process => string.IsNullOrEmpty(Process) || process.Definition.Id.Value == Process))
+                foreach (var node in process.Definition.Nodes)
+                    foreach (var action in WorkflowStagePolicy.Read(node.Configuration)?.Actions ?? []) actions[action.Key] = action.Value.Label;
+            foreach (var action in new[] { "InstanceStarted", "InstanceRunning", "InstanceCancelled", "NodeCommitted", "HumanTaskClaimed", "HumanTaskReleased", "HumanTaskAssigned", "HumanTaskCompleted", "TimerFired", "security.session.revoke", "security.profile.upsert", "security.profile.delete", "security.workflow-grant.add", "security.workflow-grant.revoke", "security.audit.export", "security.identity.assign", "security.identity.unassign", "security.account.create", "security.bootstrap", "presentation.settings.update", "workflow.tat.export" }) actions.TryAdd(action, ActionLabel(action));
+            return actions;
+        }
+    }
+    private static string ActionLabel(string action) => action switch
+    {
+        "security.session.revoke" => "Déconnexion de session",
+        "security.profile.upsert" => "Enregistrement d’un profil",
+        "security.profile.delete" => "Suppression d’un profil",
+        "security.workflow-grant.add" => "Attribution d’un droit workflow",
+        "security.workflow-grant.revoke" => "Retrait d’un droit workflow",
+        "security.audit.export" => "Export de l’audit",
+        "security.identity.assign" => "Association à un profil",
+        "security.identity.unassign" => "Retrait d’un profil",
+        "workflow.tat.export" => "Export des temps de traitement",
+        "security.account.create" => "Création d’un compte",
+        "security.bootstrap" => "Initialisation de l’administration",
+        "presentation.settings.update" => "Modification des réglages",
+        _ => action
+    };
+    private (string Process, string Stage) ProcessContext(SecurityAuditEntry entry)
+    {
+        if (!entry.Action.StartsWith("security.workflow-grant.", StringComparison.Ordinal)) return ("—", "—");
+        var parts = entry.Target.Split(':');
+        if (parts.Length < 3 || !int.TryParse(parts[1], out var version)) return ("—", "—");
+        Catalog.TryGetProcess(parts[0], version, out var process);
+        return ($"{process?.Title ?? parts[0]} · v{version}", parts[2] == "_" ? "Toutes les étapes" : process?.Definition.Nodes.FirstOrDefault(node => node.Id.Value == parts[2])?.DisplayLabel ?? parts[2]);
+    }
+    private string TargetLabel(SecurityAuditEntry entry)
+    {
+        if (entry.Action.StartsWith("security.session.", StringComparison.Ordinal)) return "Session utilisateur";
+        if (entry.Action.StartsWith("security.workflow-grant.", StringComparison.Ordinal))
+        {
+            var parts = entry.Target.Split(':');
+            if (parts.Length >= 3 && int.TryParse(parts[1], out var version) && Catalog.TryGetProcess(parts[0], version, out var process) && process is not null)
+                return "Autorisation workflow";
+        }
+        if (entry.Action.StartsWith("security.profile.", StringComparison.Ordinal)) return "Profil : " + entry.Target;
+        if (entry.Action == "security.audit.export") return "Extraction des journaux de sécurité";
+        return entry.Target;
+    }
+    private string Next()
+    {
+        var row = _entries[^1];
+        return Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> { ["before"] = row.Entry.OccurredAtUtc.ToUnixTimeMilliseconds(), ["afterId"] = row.Id });
     }
 }

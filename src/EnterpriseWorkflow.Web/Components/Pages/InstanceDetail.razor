@@ -1,0 +1,78 @@
+@page "/instances/{InstanceId:guid}"
+@attribute [Authorize]
+@inject IWorkflowPortalService Portal
+@inject WorkflowWebIdentityAccessor Identity
+@inject WorkflowMediaPortalService Media
+<PageTitle>Détail de la demande · Enterprise Workflow</PageTitle>
+<div class="content content-medium instance-detail">
+@if (_detail is null)
+{
+    <section class="panel empty-state"><h1>Demande indisponible</h1><p>Cette demande n’existe pas ou ne vous est pas accessible.</p></section>
+}
+else
+{
+    <div class="page-intro"><p class="eyebrow instance-reference">No.<span id="instance-reference">@_detail.Instance.PublicReference</span> <button type="button" class="icon-button" title="Copier la référence" data-copy-target="instance-reference" aria-label="Copier la référence"><PhosphorIcon Name="copy" Size="18" /></button><span id="copy-feedback" class="visually-hidden" role="status"></span></p><h1>@_detail.Instance.ProcessTitle</h1></div>
+    <nav class="segmented-control instance-tabs" aria-label="Onglets de la demande">
+    @foreach (var tab in Tabs) { <a class="@(ActiveTab == tab.Key ? "active" : null)" aria-current="@(ActiveTab == tab.Key ? "page" : null)" href="@($"/instances/{InstanceId}?tab={tab.Key}")">@tab.Value</a> }
+    </nav>
+    @if (ActiveTab == "library")
+    {
+        <section class="panel library-panel"><h2>Bibliothèque</h2><div class="attachment-grid">
+        @foreach (var item in _media)
+        {
+            <a class="attachment-card" aria-label="@item.Name" href="/workflow/media/@item.Reference.Id/@item.Reference.Revision"><span class="row-icon large">▤</span><strong>@item.Name</strong><small>@item.Length octets · @item.CreatedAtUtc.ToLocalTime().ToString("g")</small><span>Télécharger ↓</span></a>
+        }
+        @if (_media.Count == 0) { <div class="library-empty"><h3>Aucune pièce jointe</h3><p>Les fichiers attachés ou générés apparaîtront ici, selon vos droits.</p></div> }
+        </div></section>
+    }
+    else if (ActiveTab == "progress")
+    {
+        <section class="panel data-panel"><h2>Progression</h2><div class="table-wrap"><table><thead><tr><th>Étape</th><th>État</th><th>Tentative</th></tr></thead><tbody>
+        @foreach (var step in _detail.Steps ?? []) { <tr><td>@step.Label</td><td>@step.Status</td><td>@step.Attempt</td></tr> }
+        </tbody></table></div></section>
+    }
+    else if (ActiveTab == "history")
+    {
+        <section class="panel data-panel"><h2>Historique récent</h2><p class="field-help">Les 100 dernières opérations au maximum, dans l’ordre antéchronologique.</p><div class="table-wrap"><table><thead><tr><th>Date</th><th>Opération</th><th>Acteur</th></tr></thead><tbody>
+        @foreach (var entry in _detail.RecentHistory ?? []) { <tr><td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td><td>@entry.EventType</td><td>@(entry.Actor?.SubjectId ?? "Système")</td></tr> }
+        </tbody></table></div></section>
+    }
+    else if (ActiveTab == "comments")
+    {
+        @foreach (var group in _detail.CommentGroups ?? [])
+        {
+            <section class="panel data-panel"><h2>@group.Label</h2><div class="table-wrap"><table><thead><tr><th>Auteur</th><th>Date</th><th>Commentaire</th><th>Étape</th></tr></thead><tbody>
+            @foreach (var item in group.Comments) { <tr><td>@item.ActorName<small>@item.ActorId</small></td><td>@(DateTimeOffset.TryParse(item.Date, out var date) ? date.ToLocalTime().ToString("g") : "—")</td><td class="comment-text">@item.Text</td><td>@item.Stage</td></tr> }
+            </tbody></table></div>@if (group.Comments.Count == 0) { <p class="comment-empty">Aucun commentaire.</p> }</section>
+        }
+        @if ((_detail.CommentGroups?.Count ?? 0) == 0) { <section class="panel empty-state comment-empty"><h2>Aucun commentaire accessible</h2></section> }
+    }
+    else
+    {
+        <section class="panel data-table-panel"><table class="workflow-data-table"><caption>Détails de la demande</caption><tbody>
+            <tr><th scope="row">Statut</th><td><span class="status @_detail.Instance.StatusClass">@_detail.Instance.StatusLabel</span></td></tr>
+            <tr><th scope="row">Processus</th><td>@_detail.Instance.ProcessTitle · @_detail.Instance.VersionLabel</td></tr>
+            <tr><th scope="row">Initiateur</th><td>@_detail.Instance.InitiatorDisplayName<small>@_detail.Initiator?.ProviderId.Value / @_detail.Initiator?.SubjectId</small></td></tr>
+            <tr><th scope="row">Créée le</th><td>@_detail.Instance.CreatedAtUtc.ToLocalTime().ToString("g")</td></tr>
+            <tr><th scope="row">Dernière mise à jour</th><td>@_detail.Instance.UpdatedAtUtc.ToLocalTime().ToString("g")</td></tr>
+            @if (_detail.Instance.BusinessKey is not null) { <tr><th scope="row">Référence métier</th><td>@_detail.Instance.BusinessKey</td></tr> }
+            @foreach (var field in _detail.VisibleState.ToJsonElement().EnumerateObject()) { <tr><th scope="row">@_detail.Labels.GetValueOrDefault(field.Name, field.Name)</th><td>@WorkflowDataTable.DisplayValue(field.Value)</td></tr> }
+        </tbody></table></section>
+    }
+}
+</div>
+@code {
+    [Parameter] public Guid InstanceId { get; set; }
+    [SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
+    private static readonly Dictionary<string, string> Tabs = new() { ["details"] = "Détails", ["library"] = "Bibliothèque", ["progress"] = "Progression", ["history"] = "Historique", ["comments"] = "Commentaires" };
+    private string ActiveTab => Tab is not null && Tabs.ContainsKey(Tab) ? Tab : "details";
+    private IReadOnlyList<WorkflowMediaItem> _media = [];
+    private WorkflowInstanceDetail? _detail;
+    private static string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Completed => "Terminée", WorkflowInstanceStatus.Waiting => "En attente", WorkflowInstanceStatus.Cancelled => "Annulée", WorkflowInstanceStatus.Failed => "En erreur", _ => "En cours" };
+    protected override async Task OnParametersSetAsync()
+    {
+        var actor = await Identity.GetRequiredAsync();
+        _detail = await Portal.ReadInstanceAsync(actor, new(InstanceId), CancellationToken.None);
+        _media = _detail is not null && ActiveTab == "library" ? await Media.ListAsync(actor, new(InstanceId), CancellationToken.None) : [];
+    }
+}

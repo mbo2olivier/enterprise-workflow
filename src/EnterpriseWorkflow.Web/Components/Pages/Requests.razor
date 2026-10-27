@@ -7,7 +7,7 @@
 <div class="content content-medium"><div class="page-intro"><p class="eyebrow">Suivi</p><h1>Mes demandes</h1><p>Retrouvez les processus que vous avez démarrés.</p></div>
 @if (_requests is null) { <p class="loading">Chargement…</p> }
 else if (_requests.Count == 0) { <section class="panel empty-state"><h2>Aucune demande à afficher</h2><p>Les demandes que vous êtes autorisé à relire apparaîtront ici.</p><a class="primary-button" href="/start">Démarrer une demande</a></section> }
-else { <section class="panel request-list">@foreach (var request in _requests) { <article class="request-card"><div class="request-leading"><span class="row-icon large">▤</span><div><small class="request-id">@request.InstanceId.Value</small><h3>@request.ProcessTitle</h3><p>Version @request.ProcessVersion · créée le @request.CreatedAtUtc.ToLocalTime().ToString("g")</p></div></div><div class="request-trailing"><span class="status @StatusClass(request.Status)">@StatusLabel(request.Status)</span></div></article> }</section> }
+else { <section class="panel request-list">@foreach (var request in _requests) { <WorkflowRequestRow Request="request" Href="@($"/instances/{request.InstanceId.Value}")" /> }</section> }
 </div>
 
 @code {

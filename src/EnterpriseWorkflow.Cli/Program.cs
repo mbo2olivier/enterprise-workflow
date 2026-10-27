@@ -13,10 +13,16 @@ Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false
 try
 {
     if (args.Length >= 4 && args[0] is "__prepare" or "__prepare-dev")
-        return await WorkflowCli.PrepareAsync(args[1], args[2], args[3], args[4..], args[0] == "__prepare-dev");
-    if (args.Length >= 2 && args[0] == "__verify-set")
+        return await WorkflowCli.PrepareAsync(args[1], args[2], args[3], args[(args[0] == "__prepare-dev" ? 5 : 4)..], args[0] == "__prepare-dev", args[0] == "__prepare-dev" && int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture) is > 0 and var generation ? generation : null);
+    if (args.Length >= 2 && args[0] is "__verify-set" or "__verify-dev-set")
     {
-        await WorkflowCli.VerifySetAsync(args[1..]);
+        await WorkflowCli.VerifySetAsync(args[1..], allowDevelopment: args[0] == "__verify-dev-set");
+        return 0;
+    }
+    if (args.Length >= 6 && args[0] == "__host-session")
+    {
+        var hostConfig = JsonSerializer.Deserialize<DevelopmentConfiguration>(await File.ReadAllTextAsync(args[1]))!;
+        await DevelopmentHost.RunAsync(hostConfig, args[5..], args[2], args[4], bool.Parse(args[3]));
         return 0;
     }
     if (args.Length >= 4 && args[0] == "__host")
@@ -26,6 +32,13 @@ try
         return 0;
     }
     return await WorkflowCli.RunAsync(args);
+}
+catch (MemberAccessException exception)
+{
+    Console.Error.WriteLine("EW7050_INCOMPATIBLE_MODULE_API: Un artefact requis a été compilé avec une autre API du SDK. " +
+        "Utilisez un environnement neuf avec ew dev --environment <nom>, ou un runtime compatible pour reprendre les instances conservées. " +
+        "Aucun artefact n'a été remplacé. " + exception.Message);
+    return 1;
 }
 catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or JsonException or ReflectionTypeLoadException or System.Security.VerificationException or NotSupportedException)
 {
@@ -43,7 +56,7 @@ internal static class WorkflowCli
         {
             if (args.Length == 0 || args[0] is "--help" or "-h")
             {
-                Console.WriteLine("ew validate|inspect|pack <project-or-directory> [--configuration Debug|Release] [--output path]\new dev [project] [--config file] [--url http://localhost:5080] [--no-watch] [--reset]\new verify <artifact-directory>\new inspect <project> --format json");
+                Console.WriteLine("ew validate|inspect|pack <project-or-directory> [--configuration Debug|Release] [--output path]\new dev [project | --artifact directory] [--environment name] [--config file] [--url http://localhost:5080] [--no-watch] [--reset]\new verify <artifact-directory>\new inspect <project> --format json");
                 return 0;
             }
             if (args[0] == "--version")
@@ -55,7 +68,7 @@ internal static class WorkflowCli
             if (command is not ("validate" or "inspect" or "pack" or "verify" or "dev"))
                 throw new ArgumentException($"Unknown command '{command}'. Use ew --help.");
             var options = Parse(args[1..]);
-            if (command != "dev" && (options.Config is not null || options.Url is not null || options.NoWatch || options.Reset))
+            if (command != "dev" && (options.Config is not null || options.Url is not null || options.NoWatch || options.Reset || options.Environment is not null || options.Artifact is not null))
                 throw new ArgumentException("--config, --url, --no-watch and --reset are development-only options.");
             if (command is "verify" or "validate" && options.Output is not null)
                 throw new ArgumentException("--output is supported by inspect and pack only.");
@@ -65,18 +78,20 @@ internal static class WorkflowCli
                 Console.WriteLine("Artifact verified.");
                 return 0;
             }
-            var project = ResolveProject(options.Project);
             if (command == "dev")
             {
-                await DevelopmentRunner.RunAsync(project, options.Config, options.Url, options.NoWatch, options.Configuration, options.Reset, options.ModuleDirectories);
+                if (options.Artifact is not null && (options.HasProject || options.Configuration is not null || options.NoWatch))
+                    throw new ArgumentException("--artifact cannot be combined with a source project, --configuration or --no-watch.");
+                await DevelopmentRunner.RunAsync(options.Artifact is null ? ResolveProject(options.Project) : string.Empty, options.Config, options.Url, options.NoWatch, options.Configuration, options.Reset, options.ModuleDirectories, options.Environment, options.Artifact);
                 return 0;
             }
+            var project = ResolveProject(options.Project);
             var staging = Path.Combine(Path.GetDirectoryName(project)!, ".ew", "build", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(staging);
             // An isolated child prepares and validates the package. Its exit releases DLLs on Windows.
             try
             {
-                await BuildArtifactAsync(project, staging, options.Configuration, options.ModuleDirectories);
+                await BuildArtifactAsync(project, staging, options.Configuration ?? "Debug", options.ModuleDirectories);
                 if (command == "pack")
                 {
                     using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(staging, "module.json")));
@@ -122,20 +137,22 @@ internal static class WorkflowCli
 
     private static Options Parse(string[] args)
     {
-        string? project = null, output = null, config = null, url = null;
+        string? project = null, output = null, config = null, url = null, environment = null, artifact = null;
         var noWatch = false;
         var reset = false;
         var json = false;
-        var configuration = "Debug";
+        string? configuration = null;
         var moduleDirectories = new List<string>();
         for (var index = 0; index < args.Length; index++)
         {
             var argument = args[index];
-            if (argument is "--configuration" or "--output" or "--project" or "--format" or "--config" or "--url" or "--module-directory")
+            if (argument is "--configuration" or "--output" or "--project" or "--format" or "--config" or "--url" or "--module-directory" or "--environment" or "--artifact")
             {
                 if (++index >= args.Length) throw new ArgumentException($"Missing value for {argument}.");
                 switch (argument)
                 {
+                    case "--environment": environment = args[index]; break;
+                    case "--artifact": artifact = Path.GetFullPath(args[index]); break;
                     case "--module-directory": moduleDirectories.Add(Path.GetFullPath(args[index])); break;
                     case "--config": config = args[index]; break;
                     case "--url": url = args[index]; break;
@@ -156,8 +173,8 @@ internal static class WorkflowCli
             else if (project is not null) throw new ArgumentException("Only one project/directory is supported.");
             else project = argument;
         }
-        if (configuration is not ("Debug" or "Release")) throw new ArgumentException("Configuration must be Debug or Release.");
-        return new(project ?? ".", configuration, output, config, url, noWatch, reset, json, moduleDirectories.ToArray());
+        if (configuration is not (null or "Debug" or "Release")) throw new ArgumentException("Configuration must be Debug or Release.");
+        return new(project ?? ".", configuration, output, config, url, noWatch, reset, json, moduleDirectories.ToArray(), environment, artifact, project is not null);
     }
 
     private static string RenderPreview(string preview)
@@ -186,17 +203,19 @@ internal static class WorkflowCli
         return projects.Length == 1 ? projects[0] : throw new ArgumentException("Expected exactly one project. Use --project <file.csproj>.");
     }
 
-    internal static async Task BuildArtifactAsync(string project, string staging, string configuration, string[]? moduleDirectories = null, bool prepareOnly = false)
+    internal static async Task BuildArtifactAsync(string project, string staging, string configuration, string[]? moduleDirectories = null, bool prepareOnly = false, int? developmentGeneration = null)
     {
         var entryFile = await ReadTargetFileNameAsync(project, configuration);
         var output = Path.Combine(staging, "publish");
         await RunDotnetAsync(["publish", project, "--configuration", configuration, "--output", output,
             "--nologo", "-p:UseSharedCompilation=false", "-p:GenerateDependencyFile=false", "-m:1"]);
-        await RunDotnetAsync(new[] { typeof(WorkflowCli).Assembly.Location, prepareOnly ? "__prepare-dev" : "__prepare", output, staging, entryFile }.Concat(moduleDirectories ?? []).ToArray());
+        var prepareArguments = new List<string> { typeof(WorkflowCli).Assembly.Location, prepareOnly ? "__prepare-dev" : "__prepare", output, staging, entryFile };
+        if (prepareOnly) prepareArguments.Add((developmentGeneration ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        await RunDotnetAsync(prepareArguments.Concat(moduleDirectories ?? []).ToArray());
         Directory.Delete(output, recursive: true);
     }
 
-    internal static async Task<int> PrepareAsync(string output, string staging, string entryFile, string[] moduleDirectories, bool prepareOnly)
+    internal static async Task<int> PrepareAsync(string output, string staging, string entryFile, string[] moduleDirectories, bool prepareOnly, int? developmentGeneration = null)
     {
         // Resolve dependencies from the publish directory, retaining shared framework contracts.
         AssemblyLoadContext.Default.Resolving += (_, name) =>
@@ -249,10 +268,10 @@ internal static class WorkflowCli
             }
         }
         await File.WriteAllTextAsync(Path.Combine(staging, "module.json"),
-            WorkflowModuleManifestWriter.Create(module, assemblyPath, dependencies, resources));
+            WorkflowModuleManifestWriter.Create(module, assemblyPath, dependencies, resources, developmentGeneration));
         if (prepareOnly)
         {
-            var metadata = WorkflowModuleCatalog.Load([staging]);
+            var metadata = WorkflowModuleCatalog.Load([staging], options => options.AllowDevelopmentGenerations = developmentGeneration is not null);
             await File.WriteAllTextAsync(Path.Combine(staging, "resolved-module.json"), JsonSerializer.Serialize(new
             {
                 modules = metadata.Modules.Select(item => new { id = item.Manifest.Id.Value, release = item.Manifest.Version, sha256 = item.ArtifactSha256 }),
@@ -262,9 +281,9 @@ internal static class WorkflowCli
         return 0;
     }
 
-    internal static async Task VerifySetAsync(string[] directories, string? previewDirectory = null)
+    internal static async Task VerifySetAsync(string[] directories, string? previewDirectory = null, bool allowDevelopment = false)
     {
-        var catalog = WorkflowModuleCatalog.Load(directories);
+        var catalog = WorkflowModuleCatalog.Load(directories, options => options.AllowDevelopmentGenerations = allowDevelopment);
         var services = new ServiceCollection();
         services.AddEnterpriseWorkflowModules(catalog);
         await using var provider = services.BuildServiceProvider();
@@ -308,5 +327,5 @@ internal static class WorkflowCli
         if (process.ExitCode != 0) throw new InvalidOperationException($"dotnet subprocess failed (exit {process.ExitCode}).");
     }
 
-    private sealed record Options(string Project, string Configuration, string? Output, string? Config, string? Url, bool NoWatch, bool Reset, bool Json, string[] ModuleDirectories);
+    private sealed record Options(string Project, string? Configuration, string? Output, string? Config, string? Url, bool NoWatch, bool Reset, bool Json, string[] ModuleDirectories, string? Environment, string? Artifact, bool HasProject);
 }

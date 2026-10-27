@@ -55,6 +55,8 @@ internal static partial class WorkflowModuleManifestReader
                 $"Manifest '{manifestPath}' is not valid strict JSON.", exception);
         }
 
+        if (dto.DevelopmentGeneration is { } generation && (generation is < 1 or > 1000000000 || !options.AllowDevelopmentGenerations))
+            Fail("EW7051_DEVELOPMENT_ARTIFACT_FORBIDDEN", "Development generations can only be loaded by an explicitly enabled development host.");
         if (dto.SchemaVersion != WorkflowModuleLoadOptions.CurrentManifestSchemaVersion)
             Fail("EW7004_UNSUPPORTED_MANIFEST_SCHEMA", $"Manifest schema {dto.SchemaVersion} is not supported.");
         if (dto.ContractVersion != WorkflowModuleLoadOptions.CurrentContractVersion)
@@ -114,7 +116,7 @@ internal static partial class WorkflowModuleManifestReader
         var manifest = new WorkflowModuleManifest(dto.SchemaVersion, new TechnicalId(dto.Id!), dto.Version,
             dto.ContractVersion, entryRelativePath, dto.EntryType!, expectedEntryHash,
             parsedDependencies.Select(item => item.Model).ToImmutableArray(),
-            parsedResources.Select(item => item.Model).ToImmutableArray(), parsedComponents);
+            parsedResources.Select(item => item.Model).ToImmutableArray(), parsedComponents, dto.DevelopmentGeneration);
         return new ParsedModuleArtifact(root, manifest, entryPath, parsedDependencies, parsedResources,
             ComputeArtifactHash(manifest));
     }
@@ -220,6 +222,7 @@ internal static partial class WorkflowModuleManifestReader
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed class ManifestDto
     {
+        [JsonPropertyName("developmentGeneration")] public int? DevelopmentGeneration { get; set; }
         [JsonPropertyName("schemaVersion")] public int SchemaVersion { get; set; }
         [JsonPropertyName("id")] public string? Id { get; set; }
         [JsonPropertyName("version")] public string? Version { get; set; }

@@ -65,6 +65,7 @@ internal static class DevelopmentSeed
         });
         app.MapGet("/__ew/dev", async (HttpContext context, IAntiforgery antiforgery, ILocalAccountStore accounts) =>
         {
+            context.Response.Headers.CacheControl = "no-store, private";
             var token = antiforgery.GetAndStoreTokens(context);
             var admin = (await accounts.FindByNormalizedNameAsync("EW-ADMIN", context.RequestAborted)).Value;
             var choices = config.Seed.Users.Select(user => (Id: "ew-dev-" + user.Id, Label: user.DisplayName)).ToList();

@@ -3,6 +3,7 @@ namespace EnterpriseWorkflow.Runtime;
 /// <summary>Enterprise-configurable worker, lease, polling, timeout and retry policy.</summary>
 public sealed class WorkflowRuntimeOptions
 {
+    public EnterpriseWorkflow.Core.Serialization.WorkflowSerializationOptions Serialization { get; set; } = new();
     public bool NotifyHumanTaskPools { get; set; }
 
     public int WorkerConcurrency { get; set; } = 1;
@@ -26,6 +27,7 @@ public sealed class WorkflowRuntimeOptions
 
     internal void Validate()
     {
+        ArgumentNullException.ThrowIfNull(Serialization); Serialization.Validate();
         Positive(WorkerConcurrency, nameof(WorkerConcurrency));
         Positive(OutboxConcurrency, nameof(OutboxConcurrency));
         Positive(MaximumAttempts, nameof(MaximumAttempts));
