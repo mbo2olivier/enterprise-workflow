@@ -173,3 +173,18 @@ Le sample déclare maintenant release 1.5.0 / contrat 6 / schéma d’état 4. L
 - Journaux locaux : `/private/tmp/l9b-annotations-{build,presentation,sqlite,oracle,browser-2}.log`. Navigateur exécuté sur une copie temporaire isolée au port 5098 ; base utilisateur conservée.
 
 Relancer le serveur `ew dev` existant pour charger le framework recompilé ; une actualisation seule ne remplace pas les assemblies du serveur en cours. Le résultat métier des anciennes définitions sans métadonnée n’est pas réinterprété rétroactivement.
+
+## Validation de formulaires et correctifs CI — 27 octobre 2026
+
+- Audit : grille de champs et pied d’actions séparés.
+- Erreurs structurées `WorkflowValidationError` dans les handlers, initialisateurs et validateurs d’état ; conservation des erreurs lors du passage runtime / portail / redirection ; résumé et messages de champs accessibles, texte HTML encodé.
+- Feedback serveur temporaire lié à l’identité et à la page, jeton opaque, usage unique, dix minutes, capacité bornée. Saisies, identités sélectionnées, clé d’idempotence et références média conservées ; antiforgery exclu. Les messages des pannes techniques ne sont pas exposés ; une référence est corrélée aux logs.
+- Le validateur de dates du sample fournit désormais son message explicite (release 1.7.0 / contrat 8). Les validateurs d’anciennes générations locales restent chargeables.
+- CI : suppression des chemins/version figés dans `qualify-dev.py`, migration des assertions au cycle g1/g2 et aux environnements nommés ; attente bornée de la tâche après restauration dans le test CLI natif.
+- Vérifications exécutées : compilation Release sans erreur/avertissement ; Core 68, Runtime 47, Présentation 20, Extensions 9, Web 5 = 149 tests rapides réussis. Syntaxe Python et `git diff --check` valides.
+- Journaux : `/private/tmp/l9b-validation-{build,core,runtime,presentation,extensions,web}.log`.
+- Non exécutés dans cette itération : cycle natif CLI complet, qualification des packages/projets générés, Chromium et Oracle. Recette : `docs/validation/l9b-validation-ci-recette.md`. Les correctifs CI restent à confirmer par leur exécution et la matrice GitHub sur les trois OS.
+
+## Fond quadrillé — 27 octobre 2026
+
+La page autonome de choix du profil charge désormais le script partagé, déjà présent sur la connexion. La grille de base reste visible au repos (contraste augmenté), et le survol ajoute une accentuation locale plus légère sur un rayon réduit. Les coordonnées sont calculées par rapport au calque fixe, pour conserver l’alignement avec le pointeur après défilement et en présence du bandeau de développement. Vérifications : syntaxe JavaScript (`node --check`) et compilation CLI Release.

@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
+@inject WorkflowFormFeedbackStore FeedbackStore
 
 <PageTitle>Tâche · Enterprise Workflow</PageTitle>
 <div class="content content-small">
@@ -13,7 +14,7 @@
     {
         <div class="page-intro"><p class="eyebrow">@_task.ProcessTitle</p><h1>@_task.NodeLabel</h1><p>Créée le @_task.CreatedAtUtc.ToLocalTime().ToString("g") · révision @_task.Revision</p></div>
         @if (Completed is not null) { <div class="notice success" role="status">L’action a été enregistrée.</div> }
-        @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">L’action n’a pas pu être enregistrée. La tâche a peut-être évolué.</div> }
+        <WorkflowValidationSummary Form="_task.Form" Errors="ValidationErrors" />
         @if (_task.CustomComponentType is not null)
         {
             <WorkflowFormView ComponentType="_task.CustomComponentType" Values="_task.VisibleData" State="_task.VisibleState" />
@@ -47,7 +48,7 @@
                 <AntiforgeryToken />
                 <input type="hidden" name="revision" value="@_task.Revision" />
                 <input type="hidden" name="idempotencyKey" value="@_idempotencyKey" />
-                <WorkflowFormFields Form="_task.Form" Values="_task.VisibleData" />
+                <WorkflowFormFields Form="_task.Form" Values="_task.VisibleData" Errors="ValidationErrors" SubmittedValues="_feedback?.Values" />
                 @foreach (var action in _task.Actions)
                 {
                     var target = _task.Policy?.Actions.GetValueOrDefault(action.ActionId.Value)?.AssigneeTarget;
@@ -55,6 +56,7 @@
                     {
                         <div data-assignment-action="@action.ActionId.Value">
                             <WorkflowCandidatePicker Name="@($"assignment.{target}.identity")"
+                                Value="@_feedback?.Values.GetValueOrDefault($"assignment.{target}.identity")"
                                 Label="@($"Destinataire · {_task.AssignmentLabels?.GetValueOrDefault(target) ?? "Étape suivante"} · {action.ActionId.Value}")"
                                 Endpoint="@($"/workflow/candidates/task/{TaskId}/{Uri.EscapeDataString(action.ActionId.Value)}")" />
                         </div>
@@ -85,11 +87,17 @@
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
     [SupplyParameterFromQuery(Name = "completed")] public string? Completed { get; set; }
     private WorkflowTaskView? _task;
-    private readonly string _idempotencyKey = $"web-{Guid.NewGuid():N}";
+    private string _idempotencyKey = $"web-{Guid.NewGuid():N}";
+
+    [SupplyParameterFromQuery(Name = "feedback")] public string? FeedbackKey { get; set; }
+    private WorkflowFormFeedback? _feedback;
+    private IReadOnlyList<WorkflowFormError> ValidationErrors => _feedback?.Errors ?? (string.IsNullOrWhiteSpace(Error) ? [] : [new("$", Error)]);
 
     protected override async Task OnParametersSetAsync()
     {
         var actor = await Identity.GetRequiredAsync();
+        _feedback = FeedbackStore.Take(FeedbackKey, actor, $"/tasks/{TaskId:D}");
+        if (_feedback?.Values.GetValueOrDefault("idempotencyKey") is { Length: > 0 } key) _idempotencyKey = key;
         _task = await Portal.ReadTaskAsync(actor, new(TaskId), CancellationToken.None);
     }
 

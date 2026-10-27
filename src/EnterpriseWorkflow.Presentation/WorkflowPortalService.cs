@@ -212,6 +212,7 @@ public sealed partial class WorkflowPortalService(
             var mediaExecution = WorkflowMediaSession.Create(process.Definition, startNode.Configuration, new(new(new(actor.ProviderId), actor.SubjectId), null, null, request.IdempotencyKey.Value), validation.Submission!);
             WorkflowStateInitializationResult initialized;
             try { initialized = await initializer.InitializeAsync(new(new(new(actor.ProviderId), actor.SubjectId), validation.Submission!, request.IdempotencyKey.Value) { MediaExecution = mediaExecution }, cancellationToken); }
+            catch (WorkflowValidationException exception) { mediaExecution.Seal(); return new(false, null, false, exception.Errors.Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message)).ToArray(), "runtime.validation-failed"); }
             catch (WorkflowMediaInspectionPendingException) { mediaExecution.Seal(); return Failed("runtime.media-inspection-pending"); }
             catch (FormatException) { mediaExecution.Seal(); return Failed("presentation.state-invalid"); }
             catch { mediaExecution.Seal(); throw; }
@@ -235,7 +236,7 @@ public sealed partial class WorkflowPortalService(
         var started = await starts.StartAsync(process.Definition, command, cancellationToken).ConfigureAwait(false);
         return started.Succeeded
             ? new(true, started.InstanceId, started.WasReplay, [])
-            : Failed(started.ErrorCode ?? "presentation.workflow-start-failed");
+            : new(false, null, false, (started.Errors ?? []).Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message)).ToArray(), started.ErrorCode);
     }
 
     public ValueTask<HumanTaskInboxPage> ReadInboxAsync(
@@ -487,7 +488,7 @@ public sealed partial class WorkflowPortalService(
     private static WorkflowPortalTaskActionResult ToPortalResult(HumanTaskCommandResult result) =>
         result.Succeeded
             ? new(true, result.WasReplay, [])
-            : FailedTask(result.ErrorCode ?? "presentation.task-action-failed");
+            : new(false, false, (result.Errors ?? (result.ErrorCode == "runtime.comment-required" ? [new WorkflowValidationError("runtime.comment-required", "Un commentaire est obligatoire pour cette action.", "comment")] : [])).Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message)).ToArray(), result.ErrorCode);
 
     private static WorkflowPortalOptions Validate(WorkflowPortalOptions options)
     {

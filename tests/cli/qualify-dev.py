@@ -14,7 +14,7 @@ with socket.socket() as reservation:
  reservation.bind(('127.0.0.1',0))
  port=reservation.getsockname()[1]
 base=f'http://127.0.0.1:{port}'
-process=subprocess.Popen([cli,'dev',str(project),'--url',base],stdin=subprocess.PIPE,stdout=log,stderr=log,text=True)
+process=subprocess.Popen([cli,'dev',str(project),'--environment','qualification','--url',base],stdin=subprocess.PIPE,stdout=log,stderr=log,text=True)
 jar=http.cookiejar.CookieJar();opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 def wait(check,message,timeout=45):
  deadline=time.monotonic()+timeout
@@ -33,23 +33,27 @@ def post(path,data):
 try:
  wait(lambda:'Développement' in get('/__ew/dev'),'Initial runtime ready')
  fields=form_fields(get('/__ew/dev'));fields['identity']='ew-dev-alice';post('/__ew/dev/identity',fields)
- fields=form_fields(get('/start/acme.leave.request/1'));fields['field.reason']='Persisted before watch rebuild'
- response=post('/workflow/start/acme.leave.request/1',fields)
+ start_path=re.search(r'href="(/start/acme\.leave\.request/\d+)"',get('/start')).group(1)
+ first_version=int(start_path.rsplit('/',1)[1])
+ fields=form_fields(get(start_path));fields['field.reason']='Persisted before watch rebuild'
+ response=post('/workflow'+start_path,fields)
  assert 'started=' in response.url,response.url
- db=project/'.ew/dev/workflow.db'
+ db=project/'.ew/environments/qualification/workflow.db'
  wait(lambda:sqlite3.connect(db).execute('select count(*) from EwHumanTasks').fetchone()[0]==1,'Durable task created')
  source.write_text(original+'\nBROKEN CSHARP\n',encoding='utf-8')
  wait(lambda:'Ancienne génération toujours active' in read_log(),'Compilation failure retained old runtime')
  assert 'Développement' in get('/__ew/dev')
+ # Source changes create a new immutable generation without a manual release bump.
  source.write_text(original.replace('.WithName("Acme.Leave")','.WithName("Changed preview")'),encoding='utf-8')
- wait(lambda:'Release already used with another hash' in read_log(),'Same-release mutation rejected')
- assert 'Développement' in get('/__ew/dev')
- source.write_text(original.replace('"1.0.0", 1','"1.0.1", 2').replace('.WithName("Acme.Leave")','.WithName("Changed preview")'),encoding='utf-8')
- wait(lambda:'1.0.1' in get('/__ew/dev'),'Versioned restart ready')
- assert '1.0.0' in get('/__ew/dev')
+ def new_generation_ready():
+  links=re.findall(r'href="/start/acme\.leave\.request/(\d+)"',get('/start'))
+  return len(links)==1 and int(links[0])>first_version
+ wait(new_generation_ready,'New source generation ready',timeout=90)
+ banner=get('/__ew/dev')
+ assert 'ewdev.g1' in banner and 'ewdev.g2' in banner,banner
  c=sqlite3.connect(db)
  assert c.execute('select count(*) from EwHumanTasks').fetchone()[0]==1
- assert c.execute('select DefinitionVersion from EwInstances').fetchone()[0]==1
+ assert c.execute('select DefinitionVersion from EwInstances').fetchone()[0]==first_version
  print('Old instance and task preserved with both exact artifacts',flush=True)
  fields=form_fields(get('/__ew/dev'));fields['identity']='ew-dev-bob';post('/__ew/dev/identity',fields)
  task_id=c.execute('select Id from EwHumanTasks').fetchone()[0]

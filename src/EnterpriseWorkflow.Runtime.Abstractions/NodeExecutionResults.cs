@@ -191,6 +191,7 @@ public sealed class HumanTaskCompletionResult
         DesignatedAssignments = designatedAssignments;
     }
 
+    public ImmutableArray<WorkflowValidationError> Errors { get; private init; } = [];
     public bool Succeeded { get; }
     public NodeStateUpdate StateUpdate { get; }
     public TechnicalId? ErrorCode { get; }
@@ -207,6 +208,13 @@ public sealed class HumanTaskCompletionResult
             throw new ArgumentException("Effect operation identifiers must be unique.", nameof(effects));
         return new HumanTaskCompletionResult(true, stateUpdate ?? NodeStateUpdate.Unchanged, null, effectSnapshot,
             designatedAssignments?.ToImmutableArray() ?? []);
+    }
+
+    public static HumanTaskCompletionResult Rejected(params WorkflowValidationError[] errors)
+    {
+        ArgumentNullException.ThrowIfNull(errors);
+        if (errors.Length is < 1 or > 50 || errors.Any(error => error is null)) throw new ArgumentException("Provide 1 to 50 validation errors.", nameof(errors));
+        return new(false, NodeStateUpdate.Unchanged, new TechnicalId("runtime.validation-failed"), [], []) { Errors = errors.ToImmutableArray() };
     }
 
     public static HumanTaskCompletionResult Rejected(TechnicalId errorCode) =>

@@ -26,6 +26,7 @@ public sealed class DevelopmentBrowserTests
         await Expect(search.Locator("[data-status-summary]")).ToHaveTextAsync("En attente, Terminée");
         await search.GetByRole(AriaRole.Button, new() { Name = "Rechercher", Exact = true }).ClickAsync();
         await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("status=Waiting.*status=Completed"));
+        await Expect(page.Locator("form.filter-form > .filter-actions button[type=submit]")).ToBeVisibleAsync();
         await Select("Administration locale");
         await page.GotoAsync(address + "/admin/access?tab=identities");
         Assert.True(await page.Locator(".identity-action-menu summary").CountAsync() >= 4);
@@ -39,7 +40,7 @@ public sealed class DevelopmentBrowserTests
         await page.ScreenshotAsync(new() { Path = "/private/tmp/ew-l9b-profile-modal.png" });
         await page.GetByRole(AriaRole.Link, new() { Name = "Fermer la fenêtre", Exact = true }).ClickAsync();
         await page.GotoAsync(address + "/admin/audit");
-        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Exporter les résultats CSV", Exact = true })).ToBeEnabledAsync();
+        await Expect(page.Locator("form.filter-form > .filter-actions").GetByRole(AriaRole.Button, new() { Name = "Exporter les résultats CSV", Exact = true })).ToBeEnabledAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Rechercher des demandes", Exact = true }).ClickAsync();
         await page.ScreenshotAsync(new() { Path = "/private/tmp/ew-l9b-search-modal.png" });
         async Task Select(string label)
@@ -318,6 +319,8 @@ public sealed class DevelopmentBrowserTests
             }
             await page.GetByRole(AriaRole.Button, new() { Name = "Refuser", Exact = true }).ClickAsync();
             Assert.Contains("error=", page.Url, StringComparison.Ordinal);
+            await Expect(page.Locator(".validation-summary")).ToContainTextAsync("Un commentaire est obligatoire");
+            await Expect(page.Locator("textarea[name='field.comment']")).ToHaveAttributeAsync("aria-invalid", "true");
             await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Refuser", Exact = true })).ToBeVisibleAsync();
             await page.Locator("textarea[name='field.comment']").FillAsync("Refus motivé de qualification");
             await page.GetByRole(AriaRole.Button, new() { Name = "Refuser", Exact = true }).ClickAsync();

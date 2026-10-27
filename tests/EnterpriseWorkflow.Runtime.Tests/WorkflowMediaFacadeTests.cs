@@ -57,6 +57,7 @@ public sealed class WorkflowMediaFacadeTests
             var completed = await provider.GetRequiredService<IHumanTaskService>().CompleteAsync(task.TaskId, task.Revision, new("local", "alice"),
                 new("submit"), new("complete"), CanonicalJson.CreateObject("{}", 100), token);
             Assert.Equal(accept, completed.Succeeded);
+            if (!accept) { Assert.Equal(2, completed.Errors!.Count); Assert.Equal("documents", completed.Errors[0].Field); }
             var active = Assert.Single((await store.ListMediaAsync(started.Value.InstanceId, token)).Value!);
             Assert.Equal(accept ? replace ? "corrected.txt" : "human.txt" : "service.txt", active.Name);
             Assert.Equal(accept ? replace ? WorkflowMediaStatus.Superseded : WorkflowMediaStatus.Deleted : WorkflowMediaStatus.Active, (await store.ReadMediaAsync(state.ServiceFile!, token)).Value!.Status);
@@ -149,7 +150,7 @@ public sealed class WorkflowMediaFacadeTests
                 await files.DeleteAsync(state.ServiceFile!, cancellationToken);
                 await files.StoreAsync("human", "human.txt", input, "documents", cancellationToken);
             }
-            return state.Accept ? HumanTaskCompletionResult.Success() : HumanTaskCompletionResult.Rejected(new("rejected"));
+            return state.Accept ? HumanTaskCompletionResult.Success() : HumanTaskCompletionResult.Rejected(new WorkflowValidationError("sample.invalid-file", "Le document est invalide.", "documents"), new WorkflowValidationError("sample.review", "Une vérification supplémentaire est nécessaire."));
         }
     }
     private sealed class Authorization : IWorkflowAuthorizationService

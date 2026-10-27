@@ -10,7 +10,7 @@ public sealed record WorkflowStartResult(
     bool WasReplay,
     WorkflowInstanceId? InstanceId,
     long? InstanceRevision,
-    string? ErrorCode = null);
+    string? ErrorCode = null, IReadOnlyList<WorkflowValidationError>? Errors = null);
 
 /// <summary>Authorizes a start and validates every prepared designated assignment before persistence.</summary>
 public interface IWorkflowStartService
@@ -58,10 +58,18 @@ internal sealed class WorkflowStartService(
         }
 
         var stateContract = WorkflowStateContract.From(definition);
-        if (stateContract is not null && (stateContract.Version != command.InitialState.SchemaVersion || stateContract.Validate(command.InitialState.Value).Count > 0))
-            return Denied("runtime.state-invalid");
-        if ((stateContract?.Validators?.Length ?? 0) > 0 && (stateValidation is null || !await stateValidation.ValidateAsync(definition, new(command.InitialState, "start", null, []), cancellationToken)))
-            return Denied("runtime.state-invalid");
+        if (stateContract is not null)
+        {
+            if (stateContract.Version != command.InitialState.SchemaVersion) return Denied("runtime.state-invalid");
+            var contractErrors = stateContract.ValidateErrors(command.InitialState.Value);
+            if (contractErrors.Count > 0) return Denied("runtime.state-invalid") with { Errors = contractErrors };
+        }
+        if ((stateContract?.Validators?.Length ?? 0) > 0)
+        {
+            if (stateValidation is null) return Denied("runtime.state-invalid");
+            var errors = await stateValidation.ValidateErrorsAsync(definition, new(command.InitialState, "start", null, []), cancellationToken);
+            if (errors.Count > 0) return Denied("runtime.validation-failed") with { Errors = errors };
+        }
         var persisted = await store.StartInstanceAsync(command, cancellationToken).ConfigureAwait(false);
         return persisted.Outcome switch
         {

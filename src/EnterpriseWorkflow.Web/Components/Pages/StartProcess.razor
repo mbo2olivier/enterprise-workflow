@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
+@inject WorkflowFormFeedbackStore FeedbackStore
 
 <PageTitle>@(_process?.Title ?? "Démarrer") · Enterprise Workflow</PageTitle>
 <div class="content content-small">
@@ -12,18 +13,16 @@
     else
     {
         <div class="page-intro"><p class="eyebrow">Nouveau dossier</p><h1>@_process.Title</h1><p>@_process.Description</p></div>
-        @if (!string.IsNullOrWhiteSpace(Error))
-        {
-            <div class="form-error" role="alert">La demande n’a pas pu être enregistrée. Vérifiez les champs et les identités désignées.</div>
-        }
+        <WorkflowValidationSummary Form="_process.StartForm" Errors="ValidationErrors" />
         <WorkflowFormView ComponentType="_process.CustomComponentType" />
         <form method="post" action="/workflow/start/@_process.Id/@_process.Version" class="panel request-form workflow-form">
             <AntiforgeryToken />
             <input type="hidden" name="idempotencyKey" value="@_idempotencyKey" />
-            <WorkflowFormFields Form="_process.StartForm" />
+            <WorkflowFormFields Form="_process.StartForm" Errors="ValidationErrors" SubmittedValues="_feedback?.Values" />
             @foreach (var node in _process.DesignatedAssignmentNodes)
             {
                 <WorkflowCandidatePicker Name="@($"assignment.{node.Value}.identity")"
+                    Value="@_feedback?.Values.GetValueOrDefault($"assignment.{node.Value}.identity")"
                     Label="Responsable désigné"
                     Endpoint="@($"/workflow/candidates/start/{Uri.EscapeDataString(_process.Id)}/{_process.Version}/{Uri.EscapeDataString(node.Value)}")" />
 
@@ -38,11 +37,17 @@
     [Parameter] public int Version { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
     private WorkflowProcessCard? _process;
-    private readonly string _idempotencyKey = $"web-{Guid.NewGuid():N}";
+    private string _idempotencyKey = $"web-{Guid.NewGuid():N}";
+
+    [SupplyParameterFromQuery(Name = "feedback")] public string? FeedbackKey { get; set; }
+    private WorkflowFormFeedback? _feedback;
+    private IReadOnlyList<WorkflowFormError> ValidationErrors => _feedback?.Errors ?? (string.IsNullOrWhiteSpace(Error) ? [] : [new("$", Error)]);
 
     protected override async Task OnParametersSetAsync()
     {
         var actor = await Identity.GetRequiredAsync();
+        _feedback = FeedbackStore.Take(FeedbackKey, actor, $"/start/{Uri.EscapeDataString(ProcessId)}/{Version}");
+        if (_feedback?.Values.GetValueOrDefault("idempotencyKey") is { Length: > 0 } key) _idempotencyKey = key;
         _process = (await Portal.ListStartableProcessesAsync(actor, CancellationToken.None))
             .SingleOrDefault(item => item.Id == ProcessId && item.Version == Version);
     }

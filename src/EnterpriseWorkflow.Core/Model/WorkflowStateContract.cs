@@ -43,6 +43,40 @@ public sealed record WorkflowStateContract(int Version, WorkflowStateField Root,
         return errors;
     }
 
+    /// <summary>Describes state violations without assuming any mapping to form fields or exposing protected state names.</summary>
+    public IReadOnlyList<WorkflowValidationError> ValidateErrors(CanonicalJson state, IReadOnlyCollection<string>? groups = null)
+    {
+        var result = new List<WorkflowValidationError>();
+        foreach (var path in Validate(state, groups).Distinct(StringComparer.Ordinal).Take(50))
+        {
+            var field = Root;
+            var value = state.ToJsonElement();
+            var readable = true;
+            foreach (var segment in path.Split('.').Skip(1))
+            {
+                var next = field.Fields.FirstOrDefault(item => item.Name == segment);
+                if (next is null || next.Hidden || next.PermissionGroups.Length > 0) { readable = false; break; }
+                field = next;
+                value = value.ValueKind == JsonValueKind.Object && value.TryGetProperty(segment, out var property) ? property : default;
+            }
+            var message = "L’état de la demande ne respecte pas les règles du processus.";
+            if (readable && path != "$")
+            {
+                var reason = value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? "une valeur est obligatoire."
+                    : field.Kind == "string" && value.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(value.GetString()) ? "une valeur est obligatoire."
+                    : field.Kind == "string" && value.ValueKind == JsonValueKind.String && field.MinimumLength is { } min && value.GetString()!.Length < min ? $"saisissez au moins {min} caractères."
+                    : field.Kind == "string" && value.ValueKind == JsonValueKind.String && field.MaximumLength is { } max && value.GetString()!.Length > max ? $"saisissez au maximum {max} caractères."
+                    : (field.Kind is "number" or "integer") && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number) && field.Minimum is { } lower && number < lower ? $"la valeur minimale est {lower}."
+                    : (field.Kind is "number" or "integer") && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out number) && field.Maximum is { } upper && number > upper ? $"la valeur maximale est {upper}."
+                    : field.Kind == "date" ? "la date est invalide."
+                    : "la valeur ne respecte pas le format attendu.";
+                message = $"{field.Label} : {reason}";
+            }
+            result.Add(new("runtime.state-invalid", message));
+        }
+        return result;
+    }
+
     private static void ValidateField(WorkflowStateField field, JsonElement value, string path,
         IReadOnlyCollection<string> groups, List<string> errors)
     {

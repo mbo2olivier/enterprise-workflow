@@ -8,7 +8,8 @@
 @inject NavigationManager Navigation
 <PageTitle>Audit · Enterprise Workflow</PageTitle>
 <div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Audit</h1><p>Recherchez et extrayez les opérations métier et de sécurité autorisées.</p></div>
-<form method="get" class="panel compact-form" role="search">
+<form method="get" class="panel filter-form" role="search">
+<div class="compact-form filter-fields">
     <label>Depuis<input type="date" name="from" value="@From" /></label>
     <label>Jusqu’au<input type="date" name="until" value="@Until" /></label>
     <label>Fournisseur de l’acteur<input name="provider" value="@Provider" maxlength="256" /></label>
@@ -19,10 +20,11 @@
     <label>Étape<select name="stage"><option value="">Toutes les étapes</option>@foreach (var stage in Stages) { <option value="@stage.Key" selected="@(Stage == stage.Key)">@stage.Value</option> }</select></label>
     <label>Cible<input name="target" value="@Target" maxlength="1024" /></label>
     <label>Résultat<input name="outcome" value="@Outcome" maxlength="64" /></label>
+</div><footer class="filter-actions">
     <button class="primary-button" type="submit">Rechercher</button>
     <button class="secondary-button" type="submit" formaction="/admin/audit/export" disabled="@(!_canExport)">Exporter les résultats CSV</button>
     @if (!_canExport) { <p class="field-help wide-field">L’export nécessite la permission « Exporter l’audit ». Vous pouvez l’attribuer au profil concerné dans <a href="/admin/access?tab=profiles">Accès · Profils</a>.</p> }
-</form>
+</footer></form>
 @if (_error) { <section class="panel empty-state" role="alert"><h2>Audit indisponible</h2><p>Vérifiez les filtres et vos permissions.</p></section> }
 else
 {

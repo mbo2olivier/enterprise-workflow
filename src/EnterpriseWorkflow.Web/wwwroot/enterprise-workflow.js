@@ -2,7 +2,10 @@
     const updatePointer = event => {
         const surface = event.target.closest?.('.workspace, .login-page');
         if (!surface) return;
-        const rect = surface.getBoundingClientRect();
+        const layer = surface.querySelector('.grid-reveal');
+        if (!layer) return;
+        // The reveal is fixed to the viewport, independently of the scrolling content.
+        const rect = layer.getBoundingClientRect();
         surface.style.setProperty('--pointer-x', `${event.clientX - rect.left}px`);
         surface.style.setProperty('--pointer-y', `${event.clientY - rect.top}px`);
     };

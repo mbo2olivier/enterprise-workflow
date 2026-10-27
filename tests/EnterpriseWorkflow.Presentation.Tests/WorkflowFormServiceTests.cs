@@ -26,6 +26,15 @@ public sealed class WorkflowFormServiceTests
         ]);
 
     [Fact]
+    public void WhitespaceCannotBypassRequiredTextValidation()
+    {
+        var form = Form with { Fields = [new(new("reason"), "Motif", WorkflowFormFieldKind.ShortText, true, WorkflowFieldAudience.Initiator)] };
+        var result = new WorkflowFormService().Validate(form, "{\"reason\":\"   \"}");
+        Assert.False(result.Succeeded);
+        Assert.Equal("presentation.form-field-required", Assert.Single(result.Errors).Code);
+    }
+
+    [Fact]
     public void ValidSubmissionIsCanonicalAndUnknownFieldsAreRejected()
     {
         var service = new WorkflowFormService();

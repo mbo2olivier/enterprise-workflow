@@ -6,7 +6,7 @@ using EnterpriseWorkflow.Core.Model;
 
 namespace EnterpriseWorkflow.Presentation;
 
-public sealed record WorkflowFormError(string FieldId, string Code);
+public sealed record WorkflowFormError(string FieldId, string Code, string? Message = null);
 
 public sealed record WorkflowFormValidationResult(
     bool Succeeded,
@@ -102,6 +102,7 @@ public sealed class WorkflowFormService : IWorkflowFormService
                     return;
                 }
                 var text = value.GetString()!;
+                if (field.Required && string.IsNullOrWhiteSpace(text)) { errors.Add(new(field.Id.Value, "presentation.form-field-required")); return; }
                 if (field.MinimumLength is { } minimumLength && text.Length < minimumLength)
                     errors.Add(new(field.Id.Value, "presentation.form-field-too-short"));
                 if (field.MaximumLength is { } maximumLength && text.Length > maximumLength)

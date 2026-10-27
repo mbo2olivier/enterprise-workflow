@@ -37,5 +37,5 @@ public sealed class StandardHumanTaskHandler : IHumanTaskCompletionHandler
         comments.Add(commentNode);
         return ValueTask.FromResult(HumanTaskCompletionResult.Success(NodeStateUpdate.Replace(JsonSerializer.SerializeToElement(root))));
     }
-    private static ValueTask<HumanTaskCompletionResult> Reject(string code) => ValueTask.FromResult(HumanTaskCompletionResult.Rejected(new(code)));
+    private static ValueTask<HumanTaskCompletionResult> Reject(string code) => ValueTask.FromResult(HumanTaskCompletionResult.Rejected(new EnterpriseWorkflow.Abstractions.TechnicalId(code)));
 }

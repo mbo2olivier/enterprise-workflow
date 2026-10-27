@@ -52,7 +52,14 @@ public sealed partial class DevelopmentLifecycleTests
         {
             await Login(); Assert.NotEqual(version, await Version());
             var detail = await client.GetStringAsync("/instances/" + instance, token); Assert.Contains("Native lifecycle", detail, StringComparison.Ordinal);
-            var inbox = await client.GetStringAsync("/inbox", token); var task = TaskLink().Match(inbox).Groups[1].Value; Assert.NotEmpty(task);
+            var inbox = string.Empty; var task = string.Empty;
+            for (var attempt = 0; attempt < 120; attempt++)
+            {
+                inbox = await client.GetStringAsync("/inbox", token); task = TaskLink().Match(inbox).Groups[1].Value;
+                if (task.Length > 0) break;
+                await Task.Delay(250, token);
+            }
+            Assert.True(task.Length > 0, "The restored instance did not expose its task within 30 seconds. Inbox: " + inbox);
             var taskHtml = await client.GetStringAsync("/tasks/" + task, token); var fields = Hidden(taskHtml); fields["action"] = "cancel";
             using var complete = await client.PostAsync("/workflow/tasks/" + task + "/action", new FormUrlEncodedContent(fields), token);
             complete.EnsureSuccessStatusCode(); Assert.Contains("completed=1", complete.RequestMessage!.RequestUri!.Query, StringComparison.Ordinal);

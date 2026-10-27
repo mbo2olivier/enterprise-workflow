@@ -18,21 +18,22 @@ internal sealed class WorkflowStateValidationService(IWorkflowPresentationCatalo
         var declared = WorkflowStateContract.From(definition);
         return declared?.Version == schemaVersion ? declared : Target(definition, schemaVersion)?.TargetContract;
     }
-    public async ValueTask<bool> ValidateAsync(WorkflowDefinition definition, WorkflowStateValidationContext context, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<WorkflowValidationError>> ValidateErrorsAsync(WorkflowDefinition definition, WorkflowStateValidationContext context, CancellationToken cancellationToken)
     {
         var contract = GetContract(definition, context.State.SchemaVersion);
-        if (contract is null) return false;
-        if (contract.Version != context.State.SchemaVersion || contract.Validate(context.State.Value, context.Groups).Count > 0) return false;
-        if (!catalog.TryGetProcess(definition.Id.Value, definition.Version, out var process) || process is null || process.Definition.Sha256 != definition.Sha256) return false;
+        if (contract is null) return [new("runtime.state-invalid", "L’état de la demande ne respecte pas les règles du processus.")];
+        if (contract.Version != context.State.SchemaVersion) return [new("runtime.state-invalid", "L’état de la demande ne respecte pas les règles du processus.")];
+        if (!catalog.TryGetProcess(definition.Id.Value, definition.Version, out var process) || process is null || process.Definition.Sha256 != definition.Sha256) return [new("runtime.state-invalid", "L’état de la demande ne respecte pas les règles du processus.")];
+        var errors = contract.ValidateErrors(context.State.Value, context.Groups).ToList();
         await using var scope = scopes.CreateAsyncScope();
         foreach (var binding in contract.Validators ?? [])
         {
             if (binding.Groups.Length > 0 && !binding.Groups.Any(context.Groups.Contains)) continue;
             var type = (contract.Version == WorkflowStateContract.From(definition)?.Version ? process.StateValidatorTypes : Target(definition, contract.Version)?.TargetValidatorTypes)?.SingleOrDefault(type => type.FullName == binding.Id);
-            if (type is null) return false;
+            if (type is null) return [new("runtime.state-invalid", "L’état de la demande ne respecte pas les règles du processus.")];
             var validator = (IWorkflowStateValidator)ActivatorUtilities.GetServiceOrCreateInstance(scope.ServiceProvider, type);
-            if ((await validator.ValidateAsync(context, cancellationToken)).Count > 0) return false;
+            errors.AddRange((await validator.ValidateErrorsAsync(context, cancellationToken)).Take(50 - errors.Count));
         }
-        return true;
+        return errors;
     }
 }

@@ -17,6 +17,7 @@ public static class EnterpriseWorkflowWebExtensions
         services.AddRazorComponents().AddInteractiveServerComponents();
         services.AddCascadingAuthenticationState();
         services.AddHttpContextAccessor();
+        services.AddSingleton<WorkflowFormFeedbackStore>();
         services.AddScoped<WorkflowWebIdentityAccessor>();
         services.AddAuthentication(options =>
         {

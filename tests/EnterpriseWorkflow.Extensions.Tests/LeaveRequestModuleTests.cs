@@ -58,6 +58,13 @@ public sealed class LeaveRequestModuleTests
             Assert.Empty(contract.Validate(initialized.State));
             Assert.True(await provider.GetRequiredService<IWorkflowStateValidationService>().ValidateAsync(process.Definition,
                 new(WorkflowState.Create(initialized.State.CanonicalText, process.InitialStateSchemaVersion), "start", null, []), TestContext.Current.CancellationToken));
+            var invalid = WorkflowState.Create(initialized.State.CanonicalText.Replace("2026-11-04", "2026-11-01", StringComparison.Ordinal), process.InitialStateSchemaVersion);
+            var errors = await provider.GetRequiredService<IWorkflowStateValidationService>().ValidateErrorsAsync(process.Definition,
+                new(invalid, "start", null, []), TestContext.Current.CancellationToken);
+            var error = Assert.Single(errors);
+            Assert.Equal("leave.invalid-dates", error.Code);
+            Assert.Contains("date de fin", error.Message, StringComparison.Ordinal);
+            Assert.Null(error.Field);
         }
         finally
         {

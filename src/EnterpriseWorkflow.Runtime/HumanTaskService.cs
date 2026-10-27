@@ -16,7 +16,7 @@ public sealed record HumanTaskCommandResult(
     HumanTaskStatus? Status,
     long? TaskRevision,
     long? InstanceRevision,
-    string? ErrorCode = null);
+    string? ErrorCode = null, IReadOnlyList<WorkflowValidationError>? Errors = null);
 
 /// <summary>Authorization-filtered inbox page.</summary>
 public sealed record HumanTaskInboxPage(IReadOnlyList<OpenHumanTask> Tasks, HumanTaskCursor? Next, int Scanned);
@@ -162,7 +162,7 @@ internal sealed class HumanTaskService(
         catch { mediaExecution.Seal(); throw; }
         var collectedMedia = mediaExecution.Seal();
         if (!handlerResult.Succeeded)
-            return Denied(handlerResult.ErrorCode?.Value ?? "runtime.human-task-submission-rejected");
+            return Denied(handlerResult.ErrorCode?.Value ?? "runtime.human-task-submission-rejected") with { Errors = handlerResult.Errors };
         var assignments = policy is null ? handlerResult.DesignatedAssignments.ToArray() : submittedAssignments.ToArray();
         if (policy is not null && handlerResult.DesignatedAssignments.Any(assignment => !assignments.Contains(assignment)))
             return Denied("runtime.handler-assignment-mismatch");
@@ -194,10 +194,19 @@ internal sealed class HumanTaskService(
         var stateContract = stateValidation?.GetContract(snapshot.Definition, snapshot.State.SchemaVersion) ?? WorkflowStateContract.From(snapshot.Definition);
         var validationGroups = (policy?.StateValidationGroups ?? []).Concat(actionPolicy?.StateValidationGroups ?? []).ToArray();
         if (!(serializer ?? new EnterpriseWorkflow.Core.Serialization.WorkflowSerializer(_options.Serialization)).IsValidState((replacement ?? snapshot.State).Value)) return Denied("runtime.state-invalid");
-        if (stateContract is not null && (stateContract.Version != snapshot.State.SchemaVersion || stateContract.Validate((replacement ?? snapshot.State).Value, validationGroups).Count > 0))
-            return Denied("runtime.state-invalid");
-        if ((stateContract?.Validators?.Length ?? 0) > 0 && (stateValidation is null || !await stateValidation.ValidateAsync(snapshot.Definition,
-            new(replacement ?? snapshot.State, node.Id.Value, actionId.Value, validationGroups), cancellationToken))) return Denied("runtime.state-invalid");
+        if (stateContract is not null)
+        {
+            if (stateContract.Version != snapshot.State.SchemaVersion) return Denied("runtime.state-invalid");
+            var contractErrors = stateContract.ValidateErrors((replacement ?? snapshot.State).Value, validationGroups);
+            if (contractErrors.Count > 0) return Denied("runtime.state-invalid") with { Errors = contractErrors };
+        }
+        if ((stateContract?.Validators?.Length ?? 0) > 0)
+        {
+            if (stateValidation is null) return Denied("runtime.state-invalid");
+            var errors = await stateValidation.ValidateErrorsAsync(snapshot.Definition,
+                new(replacement ?? snapshot.State, node.Id.Value, actionId.Value, validationGroups), cancellationToken);
+            if (errors.Count > 0) return Denied("runtime.validation-failed") with { Errors = errors };
+        }
         var outbox = handlerResult.Effects.Select(item => new OutboxWrite(
             item.OperationId, item.Destination, item.ContentType, item.Payload.CanonicalText)).ToArray();
         var completed = await store.CompleteHumanTaskAsync(new CompleteHumanTaskCommand(

@@ -9,11 +9,14 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace EnterpriseWorkflow.Web;
 
 internal static class WorkflowWebMutationEndpoints
 {
+    private static readonly Action<ILogger, string, Exception?> LogSubmissionFailure = LoggerMessage.Define<string>(LogLevel.Error, new EventId(9001, "WorkflowSubmissionFailed"), "Workflow submission failed. Reference {Reference}");
     public static void Map(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost("/workflow/start/{processId}/{version:int}", StartAsync).RequireAuthorization();
@@ -32,12 +35,20 @@ internal static class WorkflowWebMutationEndpoints
         endpoints.MapPost("/admin/settings/update", UpdatePresentationSettingsAsync).RequireAuthorization();
     }
 
+    private static IResult ValidationRedirect(HttpContext context, WorkflowFormFeedbackStore feedback, IdentityReference actor,
+        string path, IReadOnlyList<WorkflowFormError> errors, string? code, IFormCollection form)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        var key = feedback.Save(actor, path, errors, code, form);
+        return Results.Redirect(path + "?error=validation&feedback=" + key);
+    }
+
     private static async Task<IResult> StartAsync(
         HttpContext context,
         string processId,
         int version,
         IAntiforgery antiforgery,
-        IWorkflowPortalService portal)
+        IWorkflowPortalService portal, WorkflowFormFeedbackStore feedback)
     {
         await antiforgery.ValidateRequestAsync(context).ConfigureAwait(false);
         var actor = RequiredIdentity(context);
@@ -67,11 +78,21 @@ internal static class WorkflowWebMutationEndpoints
             var result = await portal.StartAsync(actor, request, context.RequestAborted).ConfigureAwait(false);
             return result.Succeeded
                 ? Results.Redirect($"/requests?started={result.InstanceId!.Value.Value:D}")
-                : Results.Redirect($"/start/{Uri.EscapeDataString(processId)}/{version}?error={Uri.EscapeDataString(result.ErrorCode ?? "invalid")}");
+                : ValidationRedirect(context, feedback, actor, $"/start/{Uri.EscapeDataString(processId)}/{version}", result.Errors, result.ErrorCode, form);
         }
         catch (ArgumentException)
         {
-            return Results.Redirect($"/start/{Uri.EscapeDataString(processId)}/{version}?error=invalid");
+            return ValidationRedirect(context, feedback, actor, $"/start/{Uri.EscapeDataString(processId)}/{version}", [], "invalid", form);
+        }
+        catch (JsonException)
+        {
+            return ValidationRedirect(context, feedback, actor, $"/start/{Uri.EscapeDataString(processId)}/{version}", [], "presentation.form-media-invalid", form);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            var reference = context.TraceIdentifier;
+            LogSubmissionFailure(context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("WorkflowForms"), reference, exception);
+            return ValidationRedirect(context, feedback, actor, $"/start/{Uri.EscapeDataString(processId)}/{version}", [new("$", "unexpected", $"Une erreur technique empêche l’enregistrement. Référence : {reference}")], "unexpected", form);
         }
     }
 
@@ -79,7 +100,7 @@ internal static class WorkflowWebMutationEndpoints
         HttpContext context,
         Guid taskId,
         IAntiforgery antiforgery,
-        IWorkflowPortalService portal)
+        IWorkflowPortalService portal, WorkflowFormFeedbackStore feedback)
     {
         await antiforgery.ValidateRequestAsync(context).ConfigureAwait(false);
         var actor = RequiredIdentity(context);
@@ -101,11 +122,21 @@ internal static class WorkflowWebMutationEndpoints
             var result = await portal.CompleteTaskAsync(actor, request, context.RequestAborted).ConfigureAwait(false);
             return result.Succeeded
                 ? Results.Redirect($"/tasks/{taskId:D}?completed=1")
-                : Results.Redirect($"/tasks/{taskId:D}?error={Uri.EscapeDataString(result.ErrorCode ?? "invalid")}");
+                : ValidationRedirect(context, feedback, actor, $"/tasks/{taskId:D}", result.Errors, result.ErrorCode, form);
         }
         catch (ArgumentException)
         {
-            return Results.Redirect($"/tasks/{taskId:D}?error=invalid");
+            return ValidationRedirect(context, feedback, actor, $"/tasks/{taskId:D}", [], "invalid", form);
+        }
+        catch (JsonException)
+        {
+            return ValidationRedirect(context, feedback, actor, $"/tasks/{taskId:D}", [], "presentation.form-media-invalid", form);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            var reference = context.TraceIdentifier;
+            LogSubmissionFailure(context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("WorkflowForms"), reference, exception);
+            return ValidationRedirect(context, feedback, actor, $"/tasks/{taskId:D}", [new("$", "unexpected", $"Une erreur technique empêche l’enregistrement. Référence : {reference}")], "unexpected", form);
         }
     }
 

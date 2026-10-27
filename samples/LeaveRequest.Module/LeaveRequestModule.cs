@@ -16,7 +16,7 @@ namespace EnterpriseWorkflow.LeaveRequest;
 /// <summary>Complete L8b example; permissions are independent of installation profile names.</summary>
 public sealed class LeaveRequestModule : WorkflowModule
 {
-    public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.leave-request", "1.6.0", 7)
+    public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.leave-request", "1.7.0", 8)
         .WithName("Gestion des congés")
         .WithDescription("Demande, confirmation et validations RH et manager.");
 
@@ -176,10 +176,10 @@ public sealed class LeaveRequestInitializer(IWorkflowMediaService media, IWorkfl
 }
 public sealed class LeaveDatesValidator : IWorkflowStateValidator
 {
-    public ValueTask<IReadOnlyList<string>> ValidateAsync(WorkflowStateValidationContext context, CancellationToken cancellationToken)
+    public ValueTask<IReadOnlyList<WorkflowValidationError>> ValidateErrorsAsync(WorkflowStateValidationContext context, CancellationToken cancellationToken)
     {
         var state = context.State.Value.ToJsonElement();
-        IReadOnlyList<string> errors = state.GetProperty("endDate").Deserialize<DateOnly>() < state.GetProperty("startDate").Deserialize<DateOnly>() ? ["endDate"] : [];
+        IReadOnlyList<WorkflowValidationError> errors = state.GetProperty("endDate").Deserialize<DateOnly>() < state.GetProperty("startDate").Deserialize<DateOnly>() ? [new("leave.invalid-dates", "La date de fin doit être postérieure ou égale à la date de début.")] : [];
         return ValueTask.FromResult(errors);
     }
 }

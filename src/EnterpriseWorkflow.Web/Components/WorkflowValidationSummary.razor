@@ -1,0 +1,18 @@
+@if (Errors.Count > 0)
+{
+    <div class="form-error validation-summary" role="alert" tabindex="-1">
+        <strong>Veuillez corriger les erreurs suivantes :</strong>
+        <ul>
+        @foreach (var error in Errors)
+        {
+            var field = Form.Fields.FirstOrDefault(field => field.Id.Value == error.FieldId);
+            <li>@if (field is not null) { <a href="@($"#field.{field.Id.Value}")">@field.Label : @WorkflowValidationMessages.Message(error, Form)</a> }
+                else { @WorkflowValidationMessages.Message(error, Form) }</li>
+        }
+        </ul>
+    </div>
+}
+@code {
+    [Parameter, EditorRequired] public WorkflowFormDefinition Form { get; set; } = default!;
+    [Parameter] public IReadOnlyList<WorkflowFormError> Errors { get; set; } = [];
+}

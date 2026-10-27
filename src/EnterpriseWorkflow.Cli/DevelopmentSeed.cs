@@ -85,7 +85,8 @@ internal static class DevelopmentSeed
                 <input type="hidden" name="{token.FormFieldName}" value="{WebUtility.HtmlEncode(token.RequestToken)}">
                 <label>Identité<select name="identity">{options}</select></label>
                 <button class="primary-button" type="submit">Explorer le module</button></form>
-                <a class="dev-return-link" href="/">Revenir au portail</a></section></main></body></html>
+                <a class="dev-return-link" href="/">Revenir au portail</a></section></main>
+                <script src="/_content/EnterpriseWorkflow.Web/enterprise-workflow.js" defer></script></body></html>
                 """, "text/html; charset=utf-8");
         }).AllowAnonymous();
         app.MapPost("/__ew/dev/identity", async (HttpContext context, IAntiforgery antiforgery, SecuritySessionManager sessions, ILocalAccountStore accounts) =>
