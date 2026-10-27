@@ -64,7 +64,7 @@ Avant release : Oracle 19c et autres versions revendiquées, LDAP non AD réel (
 
 ## Performance et rapport
 
-Mesurer latence des commandes et timers, débit de travaux, contention, retries, mémoire et croissance du stockage. Rapporter OS/CPU, version de base/provider, nombre de workers, taille d’état et durée des essais. Seuils à convenir via Q06 ; sans eux, rapport descriptif seulement.
+Décision du porteur le 27 octobre 2026 : Q06 est clos sans objectifs chiffrés ni tests de charge/performance obligatoires. Les campagnes de mesure deviennent facultatives et ne bloquent pas L10. Aucune garantie de débit, latence, disponibilité ou RPO/RTO n’est annoncée. Les tests fonctionnels de concurrence, sécurité, migrations et sauvegarde/restauration restent requis.
 
 Chaque preuve de lot comprend commandes, commit, environnement, résultat, limites et tests non exécutés. La couverture de code ne remplace pas les scénarios d’incident.
 
@@ -98,3 +98,14 @@ Les tests locaux rapides couvrent le fluent obligatoire typé, les lectures/remp
 ### Cycle natif `ew dev` (L9b)
 
 Le test `DevelopmentLifecycleTests.SourceGenerationsPreserveInstancesAndNamedEnvironmentsAreIsolated` est opt-in localement via `EW_DEV_LIFECYCLE_TESTS=1`. Il compile une copie du sample en C#, sans Python, et conserve son dossier temporaire comme preuve. Il vérifie changement/réutilisation de génération, instance historique traitable, environnements isolés, reset archivé, release ciblée, cache après déplacement et diagnostic d’artefact requis manquant. La matrice CI active ce test ; une compilation locale ne vaut pas qualification de cette matrice. La [recette N1–N6](validation/l9b-final-recette.md) décrit les parcours longs complémentaires.
+
+### Clôture de qualification L9b — 27 octobre 2026
+
+Le porteur confirme l’exécution réussie des tests lourds locaux et le passage de la pipeline GitHub après les derniers correctifs. Les réserves de recette/CI des campagnes historiques ci-dessus sont levées ; **L9b est terminé**. Les preuves restent dans [evidence/l9b.md](evidence/l9b.md), avec attribution explicite de cette confirmation. Les procédures de [recette finale](validation/l9b-final-recette.md) et de [validation/CI](validation/l9b-validation-ci-recette.md) sont conservées pour reproduction. Aucun test supplémentaire n’est nécessaire pour la seule mise à jour du statut documentaire. L10 conserve sa qualification de distribution et publication publique.
+
+## Démarrage de l’outillage L10 — 27 octobre 2026
+
+La [preuve L10](evidence/l10.md) consigne les vérifications de préparation des
+packages et archives. Le mode `public` de `scripts/qualify-l9.sh` prépare la
+recette depuis NuGet.org ; son exécution reste conditionnée à la publication.
+Ces contrôles ne ferment pas G4 ni la qualification de distribution.

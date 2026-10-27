@@ -1,6 +1,6 @@
 # L9b — consultation, recherche, médias et temps de traitement
 
-Date : 23 octobre 2026 ; décision état métier du 25 octobre 2026. Statut : besoins confirmés ; DTO d’état annoté, version explicite, migrations et mapping des formulaires acceptés (ADR 0026). Les recommandations A1–A7 sont acceptées par le porteur le 25 octobre 2026 (ADR 0027). Les signatures illustratives et détails techniques non arrêtés restent à stabiliser pendant l’implémentation. L’implémentation locale est livrée et sa qualification est en cours : voir le [guide des API effectives](l9b-sdk.md) et la [preuve et ses limites](evidence/l9b.md). Cette spécification ne remplace pas les preuves de qualification. L9b s’intercale entre L9 et L10 ; L10 ne fige ni ne publie les contrats avant sa qualification.
+Date : 23 octobre 2026 ; décisions état métier et A1–A7 acceptées le 25 octobre 2026 (ADR 0026/0027). **Statut : terminé le 27 octobre 2026.** L’implémentation et les corrections des itérations L9b sont livrées ; les tests lourds locaux et la pipeline GitHub sont confirmés réussis par le porteur. Les contrats effectifs figurent dans le [guide SDK](l9b-sdk.md) et la [preuve de clôture](evidence/l9b.md). Les constats et propositions ci-dessous conservent la genèse du lot ; les décisions et compléments ultérieurs précisent le contrat retenu. L9b précède L10, dont la publication publique reste à démarrer.
 
 ## Confrontation à l’existant
 

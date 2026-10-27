@@ -27,7 +27,7 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 | ENF-05 Données/droits | 0003 | L5, L8 | T10, T11, T16, T21 |
 | ENF-06 Utilisabilité | Extensions/UI | L8 | T20 |
 | ENF-07 Exploitabilité | 0009, 0010 ; exploitation | L10 | T13, T14 |
-| ENF-08 Performance | Q06 ; tests | L10 | T21, seuils à fixer |
+| ENF-08 Dimensionnement | Q06 clos sur décision du porteur le 27 octobre 2026 | L10 | Aucun seuil ni test de charge/performance exigé ; aucune garantie chiffrée |
 
 ## Décisions utilisateur
 
@@ -39,7 +39,7 @@ S16 confirme D1-B et D2-A à D7-A. L6 corrige le schéma canonique v1 avant le p
 
 ## Préconditions encore ouvertes
 
-Q06 et Q08 restent ouvertes. Q07 est résolue par la preuve de coexistence L7a et la confirmation de G3-A pour L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
+Q06 est clos sans seuils ni tests de performance requis (décision du porteur le 27 octobre 2026). Q08 est arrêté pour licence, propriétaire NuGet `mukadi.sheba`, IDs et première préversion ; la disponibilité et la publication restent à vérifier. Q07 est résolue par la preuve de coexistence L7a et la confirmation de G3-A pour L7b. Q09b est résolue pour le mode de rendu et les ressources par D1-A/D2-A ; seule la bibliothèque du Studio reste ouverte. Q11 est résolue par l’ADR 0017. Q10 est résolue pour L1 et sera revue à la qualification de distribution. Un lot dépendant ne doit pas choisir silencieusement à la place du porteur.
 
 ## L8b — implémenté, qualification intégrée parcours métier/SMTP restante en sortie L9
 
@@ -58,7 +58,7 @@ EF-12 inclut désormais CLI installable, templates, runtime `ew dev`, packaging 
 
 ## L9b — besoins du 23 octobre, décisions acceptées le 25 octobre 2026
 
-| Exigence | Conception / arbitrage | Sous-lots | Preuve attendue (non acquise) |
+| Exigence | Conception / arbitrage | Sous-lots clôturés | Couverture qualifiée ([preuve L9b](evidence/l9b.md)) |
 | --- | --- | --- | --- |
 | EF-17 Détail universel | [Spécification §1](l9b-spec.md), A1 | L9b-0/1/5 | Liens de tous écrans, instance terminale, projections et accès direct refusé sans droits |
 | EF-18 Recherche autorisée | Spécification §2, A1 | L9b-0/1/5 | Modale/SERP, filtres/dates, curseurs, révocation, absence de fuite dans résultats et compteurs |
@@ -66,11 +66,11 @@ EF-12 inclut désormais CLI installable, templates, runtime `ew dev`, packaging 
 | EF-20 Médias SDK/API/UI | Spécification §4, A4/A5 | L9b-0/3/5 | Upload et génération, validation, révisions, suppression, autorisation, crash/retry, restauration des fichiers et métadonnées |
 | EF-21 TAT | Spécification §5, A6/A7 | L9b-0/4/5 | Transactions et replay sans doublon, intervalles d’affectation, rapports et SQL SQLite/Oracle, historique incomplet marqué |
 
-L9b étend aussi EF-04/09/11/12/14 et ENF-03/05/07/08. Toutes ces preuves sont à acquérir ; la confirmation CI L9 ne couvre pas L9b. L10 dépend de leur qualification et de la stabilisation des contrats publics.
+L9b étend aussi EF-04/09/11/12/14 et ENF-03/05/07/08. L9b est terminé le 27 octobre 2026 : preuves locales consignées, tests lourds locaux et pipeline GitHub confirmés réussis par le porteur. Le prérequis L9b de L10 est satisfait ; la publication publique reste dans L10.
 
 ### Décision état métier — 25 octobre 2026
 
-EF-05/09/11/17 et ENF-04/05 sont complétées par l’[ADR 0026](adr/0026-etat-metier-type-et-validation.md), acceptée : DTO d’état annoté, version explicite/migrations, formulaires indépendants et mapping initial/humain/service, validation permanente et groupes contextuels, filtrage serveur des champs. Implémentation : L9b-0/1/5. Preuves à acquérir : noms formulaire/state différents, état initial produit explicitement, validation avant commit sans effets transactionnels en cas de rejet, contexte serveur, masquage imbriqué et permissions any/all, anciennes versions et migration cible. Aucune preuve de code acquise par cette décision documentaire.
+EF-05/09/11/17 et ENF-04/05 sont complétées par l’[ADR 0026](adr/0026-etat-metier-type-et-validation.md), acceptée : DTO d’état annoté, version explicite/migrations, formulaires indépendants et mapping initial/humain/service, validation permanente et groupes contextuels, filtrage serveur des champs. Implémentation : L9b-0/1/5. Couverture qualifiée à la clôture L9b : noms formulaire/state différents, état initial produit explicitement, validation avant commit sans effets transactionnels en cas de rejet, contexte serveur, masquage imbriqué et permissions any/all, anciennes versions et migration cible. La décision documentaire est complétée par la [preuve d’implémentation et de clôture](evidence/l9b.md).
 
 A1–A7 sont acceptés le 25 octobre 2026 dans l’[ADR 0027](adr/0027-consultation-medias-audit-tat-l9b.md) : lecture sans privilège métier implicite, audit de sécurité, CSV en flux borné, stockage disque privé extensible et révisions immuables, hook antivirus selon installation, TAT calendaire avec historique partiel marqué, projections transactionnelles reconstructibles. Les preuves du tableau restent à acquérir.
 

@@ -75,7 +75,7 @@ Le serveur déduit le nœud actif depuis l’instance durable et contrôle actio
 | ENF-05 | Données et droits protégés | Tests négatifs, absence de secrets dans les logs/artefacts |
 | ENF-06 | Utilisabilité | Clavier, focus, labels et erreurs ; textes français externalisés |
 | ENF-07 | Exploitabilité | Migrations documentées et restauration exécutée |
-| ENF-08 | Performance mesurable | Rapport matériel, données, workers et percentiles ; seuils à fixer via Q06 |
+| ENF-08 | Dimensionnement par les utilisateurs | Q06 clos par le porteur le 27 octobre 2026 : aucune cible chiffrée ni test de charge/performance requis pour la release open source ; aucune garantie de débit, latence ou SLA |
 
 La latence d’un timer se mesure depuis son échéance, sans garantie temps réel. Débit, utilisateurs simultanés, rétention et disponibilité restent non chiffrés ; aucun SLA ne peut être déclaré satisfait avant arbitrage et mesure.
 
@@ -121,7 +121,7 @@ Implémentation L8b livrée, tests légers locaux réussis ; qualification inté
 
 ## Évolution confirmée le 23 octobre 2026 — lot intermédiaire L9b
 
-Les exigences EF-17 à EF-21 entrent dans le périmètre avant publication L10. La [spécification L9b](l9b-spec.md) confronte les besoins au code et propose les contrats, règles de sécurité, cycle des médias, projections TAT, critères de sortie et arbitrages A1–A7. Les recommandations A1–A7 sont acceptées le 25 octobre 2026 dans l’[ADR 0027](adr/0027-consultation-medias-audit-tat-l9b.md) ; leur implémentation et qualification restent à réaliser. La gestion documentaire avancée reste hors périmètre ; les pièces jointes usuelles font désormais partie du socle. Le TAT ne peut être assimilé à du travail humain actif sans instrumentation complémentaire.
+Les exigences EF-17 à EF-21 entrent dans le périmètre avant publication L10. La [spécification L9b](l9b-spec.md) confronte les besoins au code et propose les contrats, règles de sécurité, cycle des médias, projections TAT, critères de sortie et arbitrages A1–A7. Les recommandations A1–A7 sont acceptées le 25 octobre 2026 dans l’[ADR 0027](adr/0027-consultation-medias-audit-tat-l9b.md) ; leur implémentation et qualification sont clôturées le 27 octobre 2026 après validation des tests lourds locaux et de la pipeline GitHub par le porteur. La gestion documentaire avancée reste hors périmètre ; les pièces jointes usuelles font désormais partie du socle. Le TAT ne peut être assimilé à du travail humain actif sans instrumentation complémentaire.
 
 ## Décision du 25 octobre 2026 — état métier du processus
 
@@ -133,4 +133,4 @@ EF-05/09/11 incluent un sélecteur réutilisable avec recherche distante partiel
 
 ## Implémentation locale L9b — 25 octobre 2026
 
-Les exigences EF-17 à EF-21, le state DTO et le sélecteur distant sont implémentés localement. Le [guide SDK/exploitation](l9b-sdk.md) décrit leurs contrats effectifs ; la [preuve L9b](evidence/l9b.md) distingue qualifications locales et limites. Le lot reste soumis à son gate intégré avant L10 ; les résultats L9 ne sont pas étendus par déduction.
+Les exigences EF-17 à EF-21, le state DTO et le sélecteur distant sont implémentés localement. Le [guide SDK/exploitation](l9b-sdk.md) décrit leurs contrats effectifs ; la [preuve L9b](evidence/l9b.md) distingue qualifications locales et limites. Le gate intégré L9b est fermé le 27 octobre 2026 sur confirmation explicite par le porteur des tests lourds locaux et de la pipeline GitHub ; L10 reste à démarrer.

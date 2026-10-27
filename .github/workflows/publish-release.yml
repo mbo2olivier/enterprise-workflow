@@ -1,0 +1,114 @@
+name: publish-release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check tag, version and main ancestry
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/check-release.py --tag "$RELEASE_TAG"
+
+  qualification:
+    needs: check
+    uses: ./.github/workflows/ci.yml
+
+  candidates:
+    needs: check
+    uses: ./.github/workflows/release-candidate.yml
+
+  nuget:
+    needs: [qualification, candidates]
+    runs-on: ubuntu-24.04
+    environment: nuget-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-candidate
+          path: artifacts/release
+      - name: Authenticate to NuGet.org
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: mukadi.sheba
+      - name: Publish verified packages, resuming identical versions only
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: python3 scripts/publish-release.py artifacts/release
+
+  public-consumption:
+    needs: nuget
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Install and exercise published packages with isolated caches
+        shell: bash
+        run: ./scripts/qualify-l9.sh "$RUNNER_TEMP/ew-public" public
+
+  github-release:
+    needs: public-consumption
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: kernel-*-candidate
+          path: artifacts/archives
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-candidate
+          path: artifacts/nuget
+      - name: Publish GitHub Release after successful public consumption
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, subprocess
+          archives = sorted(p for p in Path('artifacts/archives').rglob('*') if p.name.endswith(('.zip', '.tar.gz')))
+          if len(archives) != 6:
+              raise ValueError('Expected six qualified archives')
+          sums = Path('artifacts/SHA256SUMS')
+          sums.write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in archives))
+          tag = os.environ['RELEASE_TAG']
+          command = ['gh', 'release', 'create', tag, '--verify-tag', '--title', tag,
+                     '--notes-file', 'release/NOTES.md']
+          if '-' in tag:
+              command.append('--prerelease')
+          command += [str(p) for p in archives] + [str(sums), 'artifacts/nuget/manifest.json']
+          subprocess.run(command, check=True)
+          PY

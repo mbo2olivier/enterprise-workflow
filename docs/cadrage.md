@@ -82,9 +82,9 @@ Les arbitrages R1–R4 du [recadrage](spec-ldap-stages.md) complètent les quest
 
 | ID | Décision ouverte | Échéance |
 | --- | --- | --- |
-| Q06 | Volumes, latence, disponibilité, durée des instances, rétention et RPO/RTO | Avant dimensionnement et qualification de production |
+| Q06 | Clos par décision du porteur le 27 octobre 2026 : aucun objectif chiffré de charge, performance, disponibilité ou RPO/RTO exigé pour ce framework open source. Aucun test de seuil Q06 ni garantie de capacité ; dimensionnement à la charge des utilisateurs. Les tests fonctionnels de sauvegarde/restauration restent requis. | Ne bloque plus L10 |
 | Q07 | Résolue : G3-A retient la coexistence nominale, la rétention de l'artefact exact et le retrait bloqué s'il reste référencé | Franchie pour L7b ; ADR 0009/0021 |
-| Q08 | Licence, gouvernance et identifiants NuGet/CLI | Avant publication |
+| Q08 | Apache-2.0 ; propriétaire individuel NuGet `mukadi.sheba`, IDs `EnterpriseWorkflow.*`, CLI `ew`, première préversion `1.0.0-rc.1`, tags `v…` et Trusted Publishing acceptés le 27 octobre 2026. Disponibilité effective des IDs et configuration du compte à vérifier. | Avant première publication |
 | Q09b | Mode de rendu résolu par D1-A/D2-A : Blazor Web App, SSR statique par défaut, Interactive Server ciblé et ressources de modules manifestées ; bibliothèque Studio encore ouverte | Rendu franchi pour L7a/L8 ; bibliothèque avant Studio |
 | Q10 | Résolue : SDK `10.0.401` strictement épinglé, car le SDK Web auto-référence des assets ASP.NET versionnés qui doivent rester cohérents avec les lock files ; runners `ubuntu-24.04`, `windows-2025`, `macos-15` ; GitHub Actions | À revoir explicitement, avec régénération des lock files, lors d’une montée de SDK ou de la qualification de distribution L10 |
 | Q11 | Résolue : approbateur explicitement choisi parmi les identités habilitées par profils internes (ADR 0017), sans attribut AD manager obligatoire | Arbitrage responsable franchi ; réalisation L5/L6/L8 |

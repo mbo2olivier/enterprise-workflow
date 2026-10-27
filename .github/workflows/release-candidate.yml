@@ -1,0 +1,82 @@
+name: release-candidate
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  packages:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet restore EnterpriseWorkflow.slnx --locked-mode
+      - run: python3 scripts/check-release.py
+      - run: python3 -m unittest discover -s tests/cli -p 'test*release.py'
+      - run: python3 scripts/prepare-release.py artifacts/release --public
+      - run: python3 scripts/third-party-notices.py artifacts/release/third-party
+      - name: Qualify the exact candidate package set
+        env:
+          EW_QUALIFICATION_FEED: ${{ github.workspace }}/artifacts/release
+        run: ./scripts/qualify-l9.sh "$RUNNER_TEMP/ew-release-candidate" local
+      - name: Verify candidate build did not modify tracked inputs
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-candidate
+          path: artifacts/release
+
+  kernel:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            rid: linux-x64
+          - os: windows-2025
+            rid: win-x64
+          - os: macos-15
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Prepare framework-dependent archive
+        run: python scripts/archive-kernel.py ${{ matrix.rid }} artifacts/kernel
+      - name: Prepare self-contained archive
+        run: python scripts/archive-kernel.py ${{ matrix.rid }} artifacts/kernel-self-contained --self-contained
+      - name: Package external sample
+        shell: bash
+        run: dotnet run --project src/EnterpriseWorkflow.Cli --configuration Release --no-launch-profile -- pack "$GITHUB_WORKSPACE/samples/LeaveRequest.Module" --configuration Release --output "$GITHUB_WORKSPACE/artifacts/sample"
+      - name: Exercise extracted archives and SQLite restoration
+        shell: bash
+        run: |
+          for archive in artifacts/kernel/*.zip artifacts/kernel/*.tar.gz artifacts/kernel-self-contained/*.zip artifacts/kernel-self-contained/*.tar.gz; do
+            if [ -f "$archive" ]; then
+              python scripts/qualify-kernel.py "$archive" --module artifacts/sample/sample.leave-request/1.7.0
+            fi
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: kernel-${{ matrix.rid }}-candidate
+          path: |
+            artifacts/kernel/*.tar.gz
+            artifacts/kernel/*.zip
+            artifacts/kernel/SHA256SUMS
+            artifacts/kernel-self-contained/*.tar.gz
+            artifacts/kernel-self-contained/*.zip
+            artifacts/kernel-self-contained/SHA256SUMS
+          if-no-files-found: error

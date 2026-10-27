@@ -1,6 +1,8 @@
-# Preuve locale L9b — 25 octobre 2026
+# Preuves et clôture L9b — 27 octobre 2026
 
-Statut : implémentation locale et qualification locale avancée, gate CI/exploitation encore ouvert ; aucune CI L9b n’est déduite de la CI L9. Les commandes et limites ci-dessous distinguent preuves acquises et contrôles restant à effectuer.
+Statut : **L9b terminé le 27 octobre 2026**. Le porteur confirme dans la conversation avoir exécuté les tests lourds locaux avec succès et confirme que la pipeline GitHub est passée après les derniers correctifs. Le gate de qualification L9b est fermé sur cette confirmation explicite, distincte de la CI L9.
+
+Les sections ci-dessous conservent la chronologie des campagnes, résultats intermédiaires et contrôles initialement délégués. Leurs mentions de recette ou CI encore attendue décrivent l’état au moment de chaque campagne ; elles sont levées par la confirmation finale ci-dessus. Aucun nouveau lancement de tests ou de pipeline n’a été effectué pour cette mise à jour documentaire ; aucun numéro de run, commit ou résultat chiffré supplémentaire n’est inventé.
 
 ## Livrables
 
@@ -188,3 +190,9 @@ Relancer le serveur `ew dev` existant pour charger le framework recompilé ; une
 ## Fond quadrillé — 27 octobre 2026
 
 La page autonome de choix du profil charge désormais le script partagé, déjà présent sur la connexion. La grille de base reste visible au repos (contraste augmenté), et le survol ajoute une accentuation locale plus légère sur un rayon réduit. Les coordonnées sont calculées par rapport au calque fixe, pour conserver l’alignement avec le pointeur après défilement et en présence du bandeau de développement. Vérifications : syntaxe JavaScript (`node --check`) et compilation CLI Release.
+
+## Confirmation finale du porteur — 27 octobre 2026
+
+Le porteur confirme : « j’ai exécuté le test lourds locaux et la pipeline est également passé sur github ». Cette validation couvre la recette longue déléguée et le passage GitHub après les correctifs CI. Elle complète les preuves locales consignées, notamment les 149 tests rapides de la dernière itération et la compilation du correctif de fond quadrillé.
+
+L9b-0 à L9b-5 sont clôturés. Les recettes restent conservées comme procédures reproductibles : [recette finale](../validation/l9b-final-recette.md) et [validation/CI](../validation/l9b-validation-ci-recette.md). La publication publique relève du prochain lot L10 ; aucune publication NuGet.org n’est revendiquée ici.

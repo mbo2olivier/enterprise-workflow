@@ -7,11 +7,11 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="EnterpriseWorkflow.Persistence.Sqlite" Version="1.0.0" />
-    <PackageReference Include="EnterpriseWorkflow.Presentation" Version="1.0.0" />
-    <PackageReference Include="EnterpriseWorkflow.Security.Persistence.Sqlite" Version="1.0.0" />
-    <PackageReference Include="EnterpriseWorkflow.Security" Version="1.0.0" />
-    <PackageReference Include="EnterpriseWorkflow.Runtime" Version="1.0.0" />
-    <PackageReference Include="EnterpriseWorkflow.Sdk" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Persistence.Sqlite" Version="1.0.0-rc.1" />
+    <PackageReference Include="EnterpriseWorkflow.Presentation" Version="1.0.0-rc.1" />
+    <PackageReference Include="EnterpriseWorkflow.Security.Persistence.Sqlite" Version="1.0.0-rc.1" />
+    <PackageReference Include="EnterpriseWorkflow.Security" Version="1.0.0-rc.1" />
+    <PackageReference Include="EnterpriseWorkflow.Runtime" Version="1.0.0-rc.1" />
+    <PackageReference Include="EnterpriseWorkflow.Sdk" Version="1.0.0-rc.1" />
   </ItemGroup>
 </Project>

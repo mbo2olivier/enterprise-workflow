@@ -13,3 +13,6 @@ tests/oracle/.env
 **/.ew/
 
 /artifacts/
+
+**/__pycache__/
+*.py[cod]

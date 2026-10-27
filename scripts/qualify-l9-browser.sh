@@ -48,7 +48,7 @@ tree=ET.parse(project)
 for reference in tree.findall('.//ProjectReference'):
  reference.tag='PackageReference'
  reference.set('Include',Path(reference.get('Include')).stem)
- reference.set('Version','1.0.0')
+ reference.set('Version',json.loads((Path(repo)/'release/catalog.json').read_text())['version'])
 properties=tree.getroot().find('PropertyGroup')
 for name,value in [('TargetFramework','net10.0'),('ImplicitUsings','enable'),('Nullable','enable')]:
  ET.SubElement(properties,name).text=value
@@ -72,7 +72,8 @@ ET.SubElement(sources,'add',key='local',value=str(root/'tool-feed'))
 ET.SubElement(ET.SubElement(config,'config'),'add',key='globalPackagesFolder',value=str(root/'tool-packages'))
 ET.ElementTree(config).write(root/'Tool.NuGet.Config',encoding='unicode')
 PY
-dotnet tool install EnterpriseWorkflow.Cli --version 1.0.0 --tool-path "$qualification_root/tools" --configfile "$qualification_root/Tool.NuGet.Config"
+release_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$repo_root/release/catalog.json")"
+dotnet tool install EnterpriseWorkflow.Cli --version "$release_version" --tool-path "$qualification_root/tools" --configfile "$qualification_root/Tool.NuGet.Config"
 cli_path="$qualification_root/tools/ew"
 mkfifo "$qualification_root/dev.stdin"
 exec 3<> "$qualification_root/dev.stdin"

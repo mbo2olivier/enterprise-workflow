@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0-rc.1",
+  "status": "candidate",
+  "authors": "mukadi.sheba",
+  "licenseExpression": "Apache-2.0",
+  "repositoryUrl": "https://github.com/mbo2olivier/enterprise-workflow",
+  "projects": [
+    "src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Cli/EnterpriseWorkflow.Cli.csproj",
+    "src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj",
+    "src/EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj",
+    "src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj",
+    "src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj",
+    "src/EnterpriseWorkflow.Presentation.Abstractions/EnterpriseWorkflow.Presentation.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Presentation/EnterpriseWorkflow.Presentation.csproj",
+    "src/EnterpriseWorkflow.Runtime.Abstractions/EnterpriseWorkflow.Runtime.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj",
+    "src/EnterpriseWorkflow.Sdk/EnterpriseWorkflow.Sdk.csproj",
+    "src/EnterpriseWorkflow.Security.Abstractions/EnterpriseWorkflow.Security.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Security.Persistence.Oracle/EnterpriseWorkflow.Security.Persistence.Oracle.csproj",
+    "src/EnterpriseWorkflow.Security.Persistence.Sqlite/EnterpriseWorkflow.Security.Persistence.Sqlite.csproj",
+    "src/EnterpriseWorkflow.Security.Persistence/EnterpriseWorkflow.Security.Persistence.csproj",
+    "src/EnterpriseWorkflow.Security/EnterpriseWorkflow.Security.csproj",
+    "src/EnterpriseWorkflow.Web/EnterpriseWorkflow.Web.csproj",
+    "templates/EnterpriseWorkflow.Templates.csproj"
+  ],
+  "excluded": [
+    "src/EnterpriseWorkflow.Kernel/EnterpriseWorkflow.Kernel.csproj",
+    "samples/**",
+    "tests/**"
+  ],
+  "candidateRids": [
+    "linux-x64",
+    "win-x64",
+    "osx-arm64"
+  ],
+  "nugetOwner": "mukadi.sheba"
+}

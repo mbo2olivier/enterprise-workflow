@@ -2,7 +2,7 @@
 
 Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
 
-**Statut : L9 implémenté localement (CLI, templates, `ew dev`, packaging et embedded), qualification CI L9 restante. L8b est implémenté ; Oracle 19 est confirmé (13 tests réussis), parcours métier et SMTP sont vérifiés localement avec L9. Les lots L1 à L8 sont terminés et qualifiés ; L8 est confirmé sur la solution complète, Playwright Linux, Oracle Enterprise 19.19 et GitHub Actions.** G3-A, M1-A et M2-A sont appliquées au loader définitif. Aucun package public n’est encore livré et la licence open source reste à choisir avant publication.
+**Statut : L9b terminé le 27 octobre 2026 ; L10 démarré (préparation de release et qualification). Aucun package public publié à ce stade.** Licence Apache-2.0 ; voir le [runbook L10](docs/l10-release.md).
 
 Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
 

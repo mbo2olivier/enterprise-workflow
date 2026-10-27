@@ -8,6 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="EnterpriseWorkflow.Extensions.Abstractions" Version="1.0.0" />
+    <PackageReference Include="EnterpriseWorkflow.Extensions.Abstractions" Version="1.0.0-rc.1" />
   </ItemGroup>
 </Project>
