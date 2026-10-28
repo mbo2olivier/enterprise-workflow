@@ -1,0 +1,98 @@
+name: documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - 'README.md'
+      - 'samples/LeaveRequest.Module/**'
+      - 'release/catalog.json'
+      - 'global.json'
+      - 'scripts/qualify-l9.sh'
+      - 'tests/cli/qualify-dev.py'
+      - '.github/workflows/documentation.yml'
+  pull_request:
+    paths:
+      - 'wiki/**'
+      - 'README.md'
+      - 'samples/LeaveRequest.Module/**'
+      - 'release/catalog.json'
+      - 'global.json'
+      - 'scripts/qualify-l9.sh'
+      - 'tests/cli/qualify-dev.py'
+      - '.github/workflows/documentation.yml'
+  workflow_dispatch:
+
+env:
+  ASTRO_TELEMETRY_DISABLED: 1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      pages: read
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: wiki
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: wiki/package-lock.json
+      - run: npm ci
+      - run: node scripts/check-examples.mjs
+      - run: npm run check
+      - run: npm run build
+      - name: Configure Pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - name: Upload public site only
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: wiki/dist
+
+  public-examples:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Qualify published CLI, templates, generated module, embedded host and dev cycle
+        run: ./scripts/qualify-l9.sh "$RUNNER_TEMP/wiki-public-consumption" public
+      - name: Verify standalone LeaveRequest using published packages
+        shell: bash
+        run: |
+          cp -R wiki/examples/LeaveRequest "$RUNNER_TEMP/LeaveRequest.Tutorial"
+          cp global.json "$RUNNER_TEMP/global.json"
+          cp wiki/examples/NuGet.Config "$RUNNER_TEMP/LeaveRequest.Tutorial/NuGet.Config"
+          export NUGET_PACKAGES="$RUNNER_TEMP/wiki-public-consumption/packages"
+          "$RUNNER_TEMP/wiki-public-consumption/tools/ew" pack "$RUNNER_TEMP/LeaveRequest.Tutorial" --configuration Release --output "$RUNNER_TEMP/leave-artifacts"
+          "$RUNNER_TEMP/wiki-public-consumption/tools/ew" verify "$RUNNER_TEMP/leave-artifacts/sample.leave-request/1.7.0"
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [build, public-examples]
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

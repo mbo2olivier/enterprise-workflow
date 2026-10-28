@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "EnterpriseWorkflow.Extensions.Abstractions": {
+        "type": "Direct",
+        "requested": "[1.0.0-rc.1, )",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "YmO9mJbYXcRSAvwYy9kEYbDMJY/IsD/q/UfUAUnwrdoFFXYkldYbk8V7ebJJSQEFc9IVuFfovOw5vDzZWayf0g==",
+        "dependencies": {
+          "EnterpriseWorkflow.Presentation.Abstractions": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Runtime": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Sdk": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Runtime": {
+        "type": "Direct",
+        "requested": "[1.0.0-rc.1, )",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "9MURX3kUFdU2ss8m6Ib/535eLdsCJjxZmDc8wPzM4s3K2TRVBPWQBdARwp+FHVluVKu9x2lrvcM/PxY5rz9/Jw==",
+        "dependencies": {
+          "EnterpriseWorkflow.Core": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Runtime.Abstractions": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Security.Abstractions": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Abstractions": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "3DWv5gh4IQiwG5ECXaqgqBjF0IV+DM3H3bNKMvb55T9LOT+LUY9SbkCu9VOSEYFiJp17FzFVVtzgD/IMdnkvAA=="
+      },
+      "EnterpriseWorkflow.Core": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "2rMAh0+bnbG/QEat1DtF4A4qqhRZQQsA3yz8jbcgEaQH90LVqaAG1/GHgQB46Pei93ZyqsaBQxMQAPmT8kAA7w==",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Persistence.Abstractions": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "VkG2lljjuHj41XvUcCIXAIRAyJIVXF7Fxu4STGNJGfbbR48VoggyDEqJAmPnK2NHifQ9uR/qWd/cAFIbxUUAAQ==",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Core": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Presentation.Abstractions": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "YQ3xbnM7AN8Nj7ZXpgjXSMfRcq9RAwN82kiZDG1OuP84BYl4WyHQoVOy137AYtZVLvDwnGG1muw9Wi48fNukAg==",
+        "dependencies": {
+          "EnterpriseWorkflow.Core": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Runtime.Abstractions": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "JuYzH5t5F/yycLrdHAppmX4uRfcQdws1NOuE9rCCrnjuCdPx1qX/BZl7JayxySRAo42xHwTqjbkaKLBCgya7rw==",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Core": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Persistence.Abstractions": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Sdk": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "eXZSByWs7K2CszRWNMNjnn6zpLlNZHwq/XqUr8vQVMSHWspEYi/olLpZAVLXMHCQwf3et2mCd1oQPqzDH5+3gA==",
+        "dependencies": {
+          "EnterpriseWorkflow.Abstractions": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Core": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Presentation.Abstractions": "1.0.0-rc.1",
+          "EnterpriseWorkflow.Runtime": "1.0.0-rc.1"
+        }
+      },
+      "EnterpriseWorkflow.Security.Abstractions": {
+        "type": "Transitive",
+        "resolved": "1.0.0-rc.1",
+        "contentHash": "Tlw2lA+bPp6lReI62QHlRjNatlYFFzgE1SdL0+VohTsOPvnVc9HGh3fLhL8ufJUkI6fhKUai+ZIFlIOqLAs6sg=="
+      }
+    }
+  }
+}

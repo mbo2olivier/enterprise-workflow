@@ -1,6 +1,6 @@
 # L10 — préparation et exécution d’une release
 
-Statut au 27 octobre 2026 : implémentation démarrée, aucune publication exécutée.
+Statut au 28 octobre 2026 : **L10 clos sur confirmation du porteur**, implémentation réussie, release créée et packages publiés sur NuGet. Voir la [clôture](evidence/l10.md#clôture--28-octobre-2026). Les mentions de préparation ci-dessous décrivent la procédure et les constats historiques du 27 octobre.
 
 Pour créer les comptes, configurer les droits et identifier les décisions attendues
 du porteur, suivre le [guide de première publication](l10-nuget-setup.md).

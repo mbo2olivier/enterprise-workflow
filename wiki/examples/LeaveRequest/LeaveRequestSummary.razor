@@ -1,0 +1,19 @@
+@using EnterpriseWorkflow.Core.Model
+@using Microsoft.AspNetCore.Components
+<section class="leave-request-summary">
+    <p class="eyebrow">Demande de congé</p>
+    @if (State?.ToJsonElement().TryGetProperty("reason", out var reason) == true)
+    {
+        <h2>@reason.GetString()</h2>
+        <p>Cette demande sera examinée par les RH puis par le responsable désigné.</p>
+    }
+    else
+    {
+        <h2>Préparez votre demande</h2>
+        <p>Renseignez les dates, le type de congé et le motif. Vous pouvez joindre des justificatifs.</p>
+    }
+</section>
+@code {
+    [Parameter] public CanonicalJson? Values { get; set; }
+    [Parameter] public CanonicalJson? State { get; set; }
+}

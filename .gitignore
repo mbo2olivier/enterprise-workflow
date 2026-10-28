@@ -16,3 +16,7 @@ tests/oracle/.env
 
 **/__pycache__/
 *.py[cod]
+
+/wiki/node_modules/
+/wiki/dist/
+/wiki/.astro/

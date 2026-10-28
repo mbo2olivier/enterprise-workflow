@@ -1,71 +1,63 @@
 # Enterprise Workflow
 
-Framework de workflows réutilisable en C#/.NET 10 : moteur durable, SDK, application d’accueil modulaire et, dans une livraison suivante, Studio pour développeurs.
+Build durable business workflows in C# and .NET 10. Enterprise Workflow combines a fluent SDK, typed business state, human approvals, service handlers and persistent execution with a modular web host or embedded application hosting.
 
-**Statut : L9b terminé le 27 octobre 2026 ; L10 démarré (préparation de release et qualification). Aucun package public publié à ce stade.** Licence Apache-2.0 ; voir le [runbook L10](docs/l10-release.md).
+**Public release:** [1.0.0-rc.1](https://github.com/mbo2olivier/enterprise-workflow/releases/tag/v1.0.0-rc.1) · **License:** [Apache-2.0](LICENSE)
 
-Le produit vise Windows, Linux et macOS, avec SQLite et Oracle dans le MVP. Chaque organisation possède sa propre installation. Le support sera qualifié par combinaison OS, architecture CPU et adaptateur.
+## Documentation
 
-Le MVP suit un graphe séquentiel à décisions exclusives, sans boucles ni parallélisme. Le projet sera hébergé sur GitHub et utilisera GitHub Actions pour la première CI.
+Visit the [Enterprise Workflow wiki](https://mbo2olivier.github.io/enterprise-workflow/) for tutorials, concepts, integration guides, deployment procedures and reference material.
 
-## Compiler et vérifier le socle
+- [Get started](https://mbo2olivier.github.io/enterprise-workflow/getting-started/overview/) — prerequisites, installation and your first workflow.
+- [Follow LeaveRequest](https://mbo2olivier.github.io/enterprise-workflow/examples/leave-request/) — requester confirmation, HR review, manager assignment, attachments and reporting.
+- [Embed the engine](https://mbo2olivier.github.io/enterprise-workflow/getting-started/embedded/) — compose the runtime inside your application.
+- [Deploy the Kernel](https://mbo2olivier.github.io/enterprise-workflow/operations/install/) — install, configure, back up and maintain the modular host.
+- [Browse packages and CLI reference](https://mbo2olivier.github.io/enterprise-workflow/reference/packages/).
 
-`global.json` épingle le SDK `10.0.401`. Ce verrouillage est volontaire : le SDK Web ajoute des packages ASP.NET implicites dont la version varie avec le feature band et doit rester cohérente avec les `packages.lock.json`. Depuis la racine :
+## Quick start
+
+Install the .NET 10 SDK, then the published CLI and templates:
+
+```bash
+dotnet tool install --global EnterpriseWorkflow.Cli --version 1.0.0-rc.1
+dotnet new install EnterpriseWorkflow.Templates@1.0.0-rc.1 --nuget-source https://api.nuget.org/v3/index.json
+dotnet new ew-module --name Acme.Leave --module-id acme.leave
+cd Acme.Leave
+ew dev .
+```
+
+Open the URL printed by `ew dev`. Select Alice to create a request, then Bob to claim and approve it. See the [first workflow tutorial](https://mbo2olivier.github.io/enterprise-workflow/getting-started/first-workflow/) for the complete walkthrough and expected results.
+
+## Capabilities
+
+- Sequential process graphs with exclusive decisions and durable waiting/recovery.
+- Typed state, explicit validation, versioned handlers and immutable module artifacts.
+- Human tasks, forms, assignment rules, permission checks and approval comments.
+- Private attachments and generated documents, authorized search, audit exports and calendar TAT reports.
+- SQLite and Oracle adapters, local identity and LDAP integration.
+- Modular Kernel archives and embedded application composition.
+
+This release is a prerelease. Loops, parallel branches and the visual Studio are outside its scope. Provider qualification is specific to the tested environments; see [compatibility and limits](https://mbo2olivier.github.io/enterprise-workflow/reference/compatibility/).
+
+## Build from source
+
+The repository pins .NET SDK `10.0.401`. From its root:
 
 ```bash
 dotnet restore EnterpriseWorkflow.slnx --locked-mode
 dotnet build EnterpriseWorkflow.slnx --configuration Release --no-restore
 dotnet test --solution EnterpriseWorkflow.slnx --configuration Release --no-build --no-restore
-dotnet run --project samples/ExecutableWorkflow/ExecutableWorkflow.csproj --configuration Release --no-build --no-restore
 ```
 
-Les versions NuGet sont centralisées et chaque projet possède un fichier de verrouillage. `NuGet.Config` isole la restauration du dépôt sur nuget.org afin de ne pas dépendre de flux privés configurés sur une machine de développement.
+To develop the independent documentation project, use Node.js 22.23.4 or newer:
 
-## Parcours de lecture
+```bash
+cd wiki
+npm ci
+npm run build
+npm run dev
+```
 
-1. [Cadrage et décisions à clarifier](docs/cadrage.md)
-2. [PRD](docs/prd.md)
-3. [Architecture](docs/architecture/overview.md)
-4. [ADR](docs/adr/README.md)
-5. [Plan d’implémentation](docs/implementation-plan.md)
-6. [Prérequis et arbitrages pour L2](docs/l2-readiness.md)
-7. [Preuve du lot L1](docs/evidence/l1.md)
-8. [Preuve du lot L2](docs/evidence/l2.md)
-9. [Preuve du lot L3a](docs/evidence/l3a.md)
-10. [Preuve du lot L3b](docs/evidence/l3b.md)
-11. [Preuve du lot L4a](docs/evidence/l4a.md)
-12. [Preuve du lot L4b](docs/evidence/l4b.md)
-13. [Preuve du lot L5](docs/evidence/l5.md)
-14. [Preuve du lot L5a](docs/evidence/l5a.md)
-15. [Preuve du lot L5b](docs/evidence/l5b.md)
-16. [Preuve du lot L6](docs/evidence/l6.md)
-17. [Preuve du lot L7a](docs/evidence/l7a.md)
-18. [Preuve du lot L7b](docs/evidence/l7b.md)
-19. [Tester l’interface du Kernel](docs/ui-testing.md)
-20. [Preuve du lot L8](docs/evidence/l8.md)
-21. [Guide du SDK fluent L8b](docs/sdk-fluent-design.md)
-22. [Preuve locale L8b](docs/evidence/l8b.md)
-23. [Validation restante L8b](docs/l8b-validation.md)
-24. [Spécification L9 : CLI, templates et `ew dev`](docs/l9-spec.md)
-25. [Utiliser la CLI L9](docs/l9-cli.md)
-26. [Preuve locale L9](docs/evidence/l9.md)
+The wiki is authored in English under `wiki/`. The repository's `docs/` directory remains the working area for maintainers and coding agents: specifications, architecture decisions, plans and qualification evidence. It stays versioned and is not imported or published by the public wiki build.
 
-## Documents de référence
-
-- [Modèle et exécution durable](docs/architecture/runtime.md)
-- [Persistance SQLite et Oracle](docs/architecture/persistence.md)
-- [Dictionnaire du schéma physique SQLite](docs/architecture/sqlite-schema.md)
-- [Dictionnaire du schéma physique Oracle](docs/architecture/oracle-schema.md)
-- [Sécurité et administration](docs/architecture/security.md)
-- [Modules, SDK, formulaires et Studio](docs/architecture/extensions.md)
-- [Compatibilité et distribution](docs/compatibilite.md)
-- [Stratégie de tests](docs/testing.md)
-- [Guide de test de l’interface](docs/ui-testing.md)
-- [Exploitation](docs/operations.md)
-- [Traçabilité](docs/traceability.md)
-- [Conventions proposées](docs/contributing.md)
-- [Glossaire](docs/glossary.md)
-
-Les décisions **acceptées** proviennent des réponses explicites du porteur. Les mécanismes **proposés** restent à valider ; les points **en attente** ne sont pas résolus par défaut.
-
-Le [recadrage LDAP et stages](docs/spec-ldap-stages.md) précise les besoins confirmés. R1 est qualifié par L5a ; R2-A/R3-A/R5-A/R6-A/R7-A sont appliqués par L5b et R4 est concrétisé par D6-A en L6. Les preuves historiques L5 ne sont pas réutilisées comme preuve LDAP L5a.
+Report issues through [GitHub Issues](https://github.com/mbo2olivier/enterprise-workflow/issues). Third-party dependencies retain their own licenses.

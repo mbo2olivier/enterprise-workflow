@@ -1,0 +1,3 @@
+:root { --sl-color-accent-low: #102f3e; --sl-color-accent: #087e96; --sl-color-accent-high: #a6e7ee; }
+:root[data-theme='light'] { --sl-color-accent-low: #d8f3f5; --sl-color-accent: #076f84; --sl-color-accent-high: #134655; }
+.sl-markdown-content pre { border-radius: 0.5rem; }
