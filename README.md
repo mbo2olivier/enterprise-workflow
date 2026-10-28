@@ -18,15 +18,22 @@ Visit the [Enterprise Workflow wiki](https://mbo2olivier.github.io/enterprise-wo
 
 Install the .NET 10 SDK, then the published CLI and templates:
 
-```bash
+Start the precompiled Windows Kernel with an empty module catalogue. In a separate developer project, use the SDK templates and CLI to build a business module:
+
+```powershell
 dotnet tool install --global EnterpriseWorkflow.Cli --version 1.0.0-rc.1
 dotnet new install EnterpriseWorkflow.Templates@1.0.0-rc.1 --nuget-source https://api.nuget.org/v3/index.json
 dotnet new ew-module --name Acme.Leave --module-id acme.leave
-cd Acme.Leave
-ew dev .
+Set-Location Acme.Leave
+ew validate .
+ew inspect .
+ew dev . --environment tutorial --url http://localhost:5101
+# After testing, stop ew dev with Ctrl+C, then package:
+ew pack . --configuration Release --output .\artifacts
+ew verify .\artifacts\acme.leave\1.0.0
 ```
 
-Open the URL printed by `ew dev`. Select Alice to create a request, then Bob to claim and approve it. See the [first workflow tutorial](https://mbo2olivier.github.io/enterprise-workflow/getting-started/first-workflow/) for the complete walkthrough and expected results.
+Stop the Kernel, copy the complete artifact to its own module directory, add that exact path to `Modules:Directories`, and restart `EnterpriseWorkflow.Kernel.exe`. Provision Alice and Bob with the module's business permissions, then create and approve a request. The [first workflow tutorial](https://mbo2olivier.github.io/enterprise-workflow/getting-started/first-workflow/) covers initialization, deployment and permissions. No framework source checkout or rebuild is required. Use `ew dev` for design and iteration; use the compiled Kernel to test the deployed artifact with its own accounts and permissions.
 
 ## Capabilities
 

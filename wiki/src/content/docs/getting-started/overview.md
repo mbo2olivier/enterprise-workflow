@@ -9,13 +9,13 @@ Enterprise Workflow separates the engine, the business module and the applicatio
 
 | Mode | Best starting point | Your responsibility |
 | --- | --- | --- |
-| Module + `ew dev` | Develop and test business processes locally | C# module and explicit demo permissions |
-| Module + Kernel | Use the packaged web host | Installation, identity, configuration and deployment |
+| Module + Windows Kernel | Start with the precompiled executable, then deploy an SDK-built module | Module source, installation, identities and deployment |
+| Module + `ew dev` | Design and test the module before packaging for the Kernel | C# module and explicit demo permissions |
 | Embedded | Integrate into an existing application | Composition, authentication, authorization, workers and UI |
 
 ## Workstation prerequisites
 
-Install the .NET **10.0.401 SDK** used by the release and verify `dotnet --version`. Keep `ew` available on your PATH. Development uses SQLite and a local HTTP loopback address. You do not need Oracle, LDAP, Docker or an SMTP service to complete the first tutorial.
+For the first tutorial, obtain the precompiled **win-x64 self-contained Kernel archive** through your software distribution channel. Install the .NET **10.0.401 SDK** on the developer workstation and verify `dotnet --version`. Keep `ew` available on your PATH. The tutorial uses SQLite and a local HTTP loopback address. You do not need framework sources, Oracle, LDAP, Docker or an SMTP service.
 
 The generated modules use Razor and reference the ASP.NET Core shared framework. A framework-dependent Kernel archive needs ASP.NET Core 10 on its host; a self-contained archive bundles the runtime but still needs the platform's native prerequisites.
 

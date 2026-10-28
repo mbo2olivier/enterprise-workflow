@@ -7,7 +7,7 @@ sidebar:
 
 Enterprise Workflow is a .NET 10 framework for durable business processes. Define a process in C#, persist its execution, coordinate human approvals and service work, and keep each running instance tied to the code that owns it.
 
-This documentation targets **1.0.0-rc.1**, the first public release candidate. Install its libraries, CLI and templates from NuGet; download the modular Kernel from [GitHub Releases](https://github.com/mbo2olivier/enterprise-workflow/releases/tag/v1.0.0-rc.1).
+This documentation targets **1.0.0-rc.1**, the first public release candidate. Obtain the compiled Windows Kernel archive through your software distribution channel, then install the CLI and SDK templates from the approved NuGet package source. The quick start runs that executable first with no processes, develops and tests a business module with `ew dev`, then packages and deploys it to the same executable. No framework source checkout is required.
 
 ## Choose your starting point
 
