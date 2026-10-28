@@ -80,7 +80,7 @@ exec 3<> "$qualification_root/dev.stdin"
 trap cleanup EXIT
 docker compose -f "$compose_path" up -d --wait
 "$cli_path" pack "$qualification_root/LeaveRequest.Module" --configuration Release --output "$qualification_root/leave-artifacts"
-"$cli_path" verify "$qualification_root/leave-artifacts/sample.leave-request/1.7.0"
+"$cli_path" verify "$qualification_root/leave-artifacts/sample.leave-request/1.8.0"
 "$cli_path" dev "$qualification_root/LeaveRequest.Module" --config "$qualification_root/ew.smtp.json" --configuration Release --no-watch --url "$base_url" < "$qualification_root/dev.stdin" > "$qualification_root/dev.log" 2>&1 &
 runtime_pid=$!
 for attempt in {1..60}; do
@@ -91,4 +91,4 @@ done
 EW_DEV_TEST_URL="$base_url" EW_SMTP_TEST_URL="http://127.0.0.1:8025" EW_SMTP_COMPOSE_FILE="$compose_path" EW_DEV_TEST_DB="$qualification_root/LeaveRequest.Module/.ew/environments/default/workflow.db" \
   dotnet test --project "$repo_root/tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj" --configuration Release --no-build --no-restore -- --filter-method '*LeaveRequest*'
 
-python3 "$repo_root/tests/cli/qualify-kernel.py" "$repo_root/src/EnterpriseWorkflow.Kernel/bin/Release/net10.0/EnterpriseWorkflow.Kernel.dll" "$qualification_root/leave-artifacts/sample.leave-request/1.7.0" "$qualification_root/kernel-qualification"
+python3 "$repo_root/tests/cli/qualify-kernel.py" "$repo_root/src/EnterpriseWorkflow.Kernel/bin/Release/net10.0/EnterpriseWorkflow.Kernel.dll" "$qualification_root/leave-artifacts/sample.leave-request/1.8.0" "$qualification_root/kernel-qualification"

@@ -101,6 +101,27 @@ public sealed class DevelopmentBrowserTests
         Assert.True(Guid.TryParse(instanceId, out _), $"Instance was not created: {page.Url}");
         await OpenTaskAsync("Confirmation du demandeur");
         await Expect(page.Locator("[data-form-view=LeaveRequestSummary]")).ToContainTextAsync(reason);
+        // The requester must designate the first approver before submission.
+        await page.GetByRole(AriaRole.Button, new() { Name = "Confirmer", Exact = true }).ClickAsync();
+        Assert.Contains("error=", page.Url, StringComparison.Ordinal);
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Confirmation du demandeur", Exact = true })).ToBeVisibleAsync();
+        var picker = page.Locator(".candidate-picker").Filter(new() { Has = page.Locator("input[name='assignment.validation-manager.identity']") });
+        await picker.GetByRole(AriaRole.Combobox).FillAsync("car");
+        await picker.GetByRole(AriaRole.Option).Filter(new() { HasText = "carol" }).ClickAsync();
+        await Expect(picker.Locator("input[data-candidate-value]")).ToHaveValueAsync("local|ew-dev-carol");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Confirmer", Exact = true }).ClickAsync();
+        await SelectAsync("ew-dev-bob");
+        await page.GotoAsync(address + "/inbox");
+        await Expect(page.Locator("a.request-card[data-stage='validation-rh']")).ToHaveCountAsync(0);
+        await SelectAsync("ew-dev-carol");
+        await OpenTaskAsync("Validation du responsable");
+        Assert.DoesNotContain("SECRET-L9-NOTE", await page.Locator("main").InnerTextAsync(), StringComparison.Ordinal);
+        var managerTaskUrl = page.Url;
+        await SelectAsync("ew-dev-bob");
+        await page.GotoAsync(managerTaskUrl);
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Tâche indisponible", Exact = true })).ToBeVisibleAsync();
+        await SelectAsync("ew-dev-carol");
+        await page.GotoAsync(managerTaskUrl);
         var compose = Environment.GetEnvironmentVariable("EW_SMTP_COMPOSE_FILE");
         var testDatabase = Environment.GetEnvironmentVariable("EW_DEV_TEST_DB");
         if (!string.IsNullOrWhiteSpace(compose))
@@ -110,7 +131,8 @@ public sealed class DevelopmentBrowserTests
         }
         try
         {
-            await page.GetByRole(AriaRole.Button, new() { Name = "Confirmer", Exact = true }).ClickAsync();
+            // HR pool notifications are queued only after manager approval.
+            await page.GetByRole(AriaRole.Button, new() { Name = "Approuver", Exact = true }).ClickAsync();
             await SelectAsync("ew-dev-bob");
             await OpenTaskAsync("Validation RH");
             await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Prendre en charge" })).ToBeVisibleAsync();
@@ -153,19 +175,7 @@ public sealed class DevelopmentBrowserTests
         await SelectAsync("ew-dev-bob");
         await page.GotoAsync(rhTaskUrl);
         await page.GetByRole(AriaRole.Button, new() { Name = "Prendre en charge" }).ClickAsync();
-        await page.GetByRole(AriaRole.Button, new() { Name = "Valider et désigner le responsable" }).ClickAsync();
-        Assert.Contains("error=", page.Url, StringComparison.Ordinal);
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Validation RH", Exact = true })).ToBeVisibleAsync();
-        var picker = page.Locator(".candidate-picker").Filter(new() { Has = page.Locator("input[name='assignment.validation-manager.identity']") });
-        await picker.GetByRole(AriaRole.Combobox).FillAsync("car");
-        await picker.GetByRole(AriaRole.Option).Filter(new() { HasText = "carol" }).ClickAsync();
-        await Expect(picker.Locator("input[data-candidate-value]")).ToHaveValueAsync("local|ew-dev-carol");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Valider et désigner le responsable" }).ClickAsync();
-
-        await SelectAsync("ew-dev-carol");
-        await OpenTaskAsync("Validation du responsable");
-        Assert.DoesNotContain("SECRET-L9-NOTE", await page.Locator("main").InnerTextAsync(), StringComparison.Ordinal);
-        await page.GetByRole(AriaRole.Button, new() { Name = "Approuver", Exact = true }).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Valider", Exact = true }).ClickAsync();
         await SelectAsync("ew-dev-alice");
         await page.GotoAsync(address + "/requests");
         var completedRequest = page.Locator("a.request-card[data-instance-id='" + instanceId + "']").GetByText("Terminée", new() { Exact = true });
@@ -303,19 +313,19 @@ public sealed class DevelopmentBrowserTests
             await page.GetByRole(AriaRole.Button, new() { Name = "Annuler", Exact = true }).ClickAsync();
         else
         {
+            var picker = page.Locator(".candidate-picker").Filter(new() { Has = page.Locator("input[name='assignment.validation-manager.identity']") });
+            await picker.GetByRole(AriaRole.Combobox).FillAsync("car");
+            await picker.GetByRole(AriaRole.Option).Filter(new() { HasText = "carol" }).ClickAsync();
+            await Expect(picker.Locator("input[data-candidate-value]")).ToHaveValueAsync("local|ew-dev-carol");
             await page.GetByRole(AriaRole.Button, new() { Name = "Confirmer", Exact = true }).ClickAsync();
-            await SelectAsync("ew-dev-bob");
-            await OpenAsync("validation-rh");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Prendre en charge" }).ClickAsync();
-            if (branch == "manager")
+            await SelectAsync("ew-dev-carol");
+            await OpenAsync("validation-manager");
+            if (branch == "rh")
             {
-                var picker = page.Locator(".candidate-picker").Filter(new() { Has = page.Locator("input[name='assignment.validation-manager.identity']") });
-                await picker.GetByRole(AriaRole.Combobox).FillAsync("car");
-                await picker.GetByRole(AriaRole.Option).Filter(new() { HasText = "carol" }).ClickAsync();
-                await Expect(picker.Locator("input[data-candidate-value]")).ToHaveValueAsync("local|ew-dev-carol");
-                await page.GetByRole(AriaRole.Button, new() { Name = "Valider et désigner le responsable" }).ClickAsync();
-                await SelectAsync("ew-dev-carol");
-                await OpenAsync("validation-manager");
+                await page.GetByRole(AriaRole.Button, new() { Name = "Approuver", Exact = true }).ClickAsync();
+                await SelectAsync("ew-dev-bob");
+                await OpenAsync("validation-rh");
+                await page.GetByRole(AriaRole.Button, new() { Name = "Prendre en charge" }).ClickAsync();
             }
             await page.GetByRole(AriaRole.Button, new() { Name = "Refuser", Exact = true }).ClickAsync();
             Assert.Contains("error=", page.Url, StringComparison.Ordinal);

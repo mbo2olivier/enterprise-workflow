@@ -43,7 +43,28 @@ public sealed class LeaveRequestModuleTests
             Assert.Equal("sample.leave-request.leave-request", process.Definition.Id.Value);
             Assert.Empty(process.DesignatedAssignmentNodes);
             Assert.Equal(4, catalog.Permissions.Length);
-            Assert.Contains(process.Definition.Nodes, node => node.Id.Value == "validation-manager");
+            Assert.Equal(9, process.Definition.Version);
+            var draft = process.Definition.Nodes.Single(node => node.Id.Value == "draft");
+            var manager = process.Definition.Nodes.Single(node => node.Id.Value == "validation-manager");
+            var hr = process.Definition.Nodes.Single(node => node.Id.Value == "validation-rh");
+            Assert.Equal("validation-manager", WorkflowStagePolicy.Read(draft.Configuration)!.Actions["submit"].AssigneeTarget);
+            Assert.Null(WorkflowStagePolicy.Read(draft.Configuration)!.Actions["cancel"].AssigneeTarget);
+            Assert.True(WorkflowStagePolicy.Read(manager.Configuration)!.AssignedFromPreviousTask);
+            Assert.Equal(HumanTaskAssignmentMode.EligiblePool, hr.HumanTask!.AssignmentMode);
+            Assert.Null(WorkflowStagePolicy.Read(hr.Configuration)!.Actions["validate"].AssigneeTarget);
+            AssertTransition("draft", "submit", "validation-manager");
+            AssertTransition("validation-manager", "validate", "validation-rh");
+            AssertTransition("validation-rh", "validate", "close-request");
+            AssertTransition("validation-manager", "decline", "rejected");
+            AssertTransition("validation-rh", "decline", "rejected");
+            AssertTransition("draft", "cancel", "cancelled");
+
+            void AssertTransition(string source, string action, string target)
+            {
+                var node = process.Definition.Nodes.Single(node => node.Id.Value == source);
+                var outcome = node.HumanTask!.Actions.Single(item => item.ActionId.Value == action).Outcome;
+                Assert.Contains(process.Definition.Transitions, edge => edge.SourceId.Value == source && edge.Outcome == outcome && edge.TargetId.Value == target);
+            }
             Assert.True(catalog.TryResolveForm(process.Definition, process.StartForm, out var form));
             Assert.NotNull(form!.CustomComponentType);
             Assert.Equal("LeaveRequestSummary", form.CustomComponentType.Name);

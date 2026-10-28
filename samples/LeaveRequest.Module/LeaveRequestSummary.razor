@@ -5,7 +5,7 @@
     @if (State?.ToJsonElement().TryGetProperty("reason", out var reason) == true)
     {
         <h2>@reason.GetString()</h2>
-        <p>Cette demande sera examinée par les RH puis par le responsable désigné.</p>
+        <p>Cette demande sera examinée par le responsable désigné puis par les RH.</p>
     }
     else
     {

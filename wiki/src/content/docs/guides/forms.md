@@ -19,6 +19,6 @@ The framework retains generated fields and submission controls. The component is
 
 ## Remote candidate selection
 
-For assignment to a later task, declare `.SelectAssigneeFor("validation-manager")` on the current action and `.AssignedFromPreviousTask()` on the target. Candidates are searched and validated against the target's eligibility. Test an unauthorized candidate and a permission revoked after selection; browser filtering alone is insufficient.
+For assignment to a later task, declare `.SelectAssigneeFor("validation-manager")` on the requester confirmation action and `.AssignedFromPreviousTask()` on the target. Candidates are searched and validated against the target's eligibility. Test an unauthorized candidate and a permission revoked after selection; browser filtering alone is insufficient.
 
-[LeaveRequest](../../examples/leave-request/) demonstrates the view and the HR-to-manager selector.
+[LeaveRequest](../../examples/leave-request/) demonstrates the view and the requester-to-manager selector.

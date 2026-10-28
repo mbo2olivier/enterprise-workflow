@@ -2,7 +2,7 @@
 
 La déclaration complète est dans [LeaveRequestModule.cs](LeaveRequestModule.cs). Elle illustre les métadonnées uniques, le schéma d’état explicite, les champs fluents, les permissions métier, les processus séparés et les formulaires d’approbation intégrés.
 
-Parcours : formulaire initial → confirmation du demandeur → pool RH → manager sélectionné depuis l’action RH → service de clôture → fin. Le refus RH ou manager exige un commentaire ; l’annulation de la confirmation est une branche métier distincte. Le stage `draft` ne crée aucun mécanisme de brouillon avant démarrage. Le handler de clôture est volontairement un service minimal à remplacer par le traitement métier de l’installation.
+Parcours : formulaire initial → confirmation du demandeur avec désignation du responsable → approbation du responsable désigné → pool RH → service de clôture → fin. Le refus RH ou manager exige un commentaire ; l’annulation de la confirmation est une branche métier distincte. Le stage `draft` ne crée aucun mécanisme de brouillon avant démarrage. Le handler de clôture est volontairement un service minimal à remplacer par le traitement métier de l’installation.
 
 Permissions déclarées, attribuables dans l’administration des profils sous les noms de profils choisis par l’installation :
 
@@ -13,11 +13,11 @@ Permissions déclarées, attribuables dans l’administration des profils sous l
 | `sample.leave-request.hr.review` | Prendre puis traiter une tâche RH |
 | `sample.leave-request.manager.approve` | Être sélectionné et statuer comme responsable |
 
-Prévoir au moins trois identités pour démontrer les séparations : demandeur, RH et manager. L’approbation de sa propre demande est interdite par défaut. Le choix du manager utilise les candidats habilités de la tâche cible ; aucun rôle ou nom de groupe LDAP n’est inscrit dans le module.
+Prévoir au moins trois identités pour démontrer les séparations : demandeur, RH et manager. L’approbation de sa propre demande est interdite par défaut. Le demandeur choisit son responsable lors de la confirmation, parmi les candidats habilités de la tâche cible ; aucune résolution automatique de la hiérarchie depuis l’annuaire n’est fournie. Les RH ne reçoivent la demande qu’après son approbation par le responsable ; aucun rôle ou nom de groupe LDAP n’est inscrit dans le module.
 
-Le formulaire métier déclare son handler indépendamment de son enregistrement. Les tâches de confirmation et d’approbation utilisent les formulaires standard ; la confirmation montre une substitution explicite de handler. Les résumés exposent uniquement les champs déclarés pour les participants. `privateNote` n’apparaît pas dans les résumés. Les commentaires sont validés mais le handler standard ne les fusionne pas dans les données métier ; cette conservation relève d’un handler métier si elle est requise.
+Le formulaire métier déclare son handler indépendamment de son enregistrement. Les tâches de confirmation et d’approbation utilisent les formulaires standard ; la confirmation montre une substitution explicite de handler. Les résumés exposent uniquement les champs déclarés pour les participants. `privateNote` n’apparaît pas dans les résumés. Les actions d’approbation et de refus conservent les commentaires dans la collection typée `Comments` via le handler intégré ; le refus exige un commentaire.
 
-Le manifeste est produit depuis le module avec `WorkflowModuleManifestWriter.Create` ; le test `LeaveRequestModuleTests` construit l’artefact et le charge réellement. Les composants restent manifestés et hachés avec leur artefact. Le processus est qualifié sous `sample.leave-request.leave-request`, révision 8 (release 1.7.0, schéma d’état 4).
+Le manifeste est produit depuis le module avec `WorkflowModuleManifestWriter.Create` ; le test `LeaveRequestModuleTests` construit l’artefact et le charge réellement. Les composants restent manifestés et hachés avec leur artefact. Le processus est qualifié sous `sample.leave-request.leave-request`, révision 9 (release 1.8.0, schéma d’état 4).
 
 Les emails de pool sont activés uniquement si `Notifications:Smtp:Host` est configuré dans le Kernel. Sans SMTP, le parcours inbox est identique. Pour les comptes locaux, fournir la correspondance `Notifications:Smtp:Addresses` avec une clé `local|<subjectId>` ; les identités d’annuaire utilisent leur email courant lorsqu’il est disponible. Les secrets SMTP restent dans la configuration de l’installation.
 
@@ -27,7 +27,7 @@ Le [guide SDK](../../docs/sdk-fluent-design.md) décrit les contrats ; [l8b-vali
 
 Après installation locale de `ew` selon le [guide](../../docs/l9-cli.md), lancer `ew dev --project samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj` depuis le dépôt. Le fichier `ew.dev.json` initialise Alice, Bob et Carol avec des permissions explicites ; choisir une identité dans le sélecteur. Aucun SMTP n’est activé par défaut. `ew dev --reset` archive l’ancien environnement si son seed doit être remplacé.
 
-`ew pack --project samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj --output ./artifacts` produit le package installable ; `ew verify ./artifacts/sample.leave-request/1.7.0` vérifie son intégrité et ses déclarations. Le [script navigateur](../../scripts/qualify-l9-browser.sh) utilise une copie isolée du module et la [capture SMTP Docker](../../tests/smtp/README.md).
+`ew pack --project samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj --output ./artifacts` produit le package installable ; `ew verify ./artifacts/sample.leave-request/1.8.0` vérifie son intégrité et ses déclarations. Le [script navigateur](../../scripts/qualify-l9-browser.sh) utilise une copie isolée du module et la [capture SMTP Docker](../../tests/smtp/README.md).
 
 
 Le state DTO `LeaveRequestState` est annoté et validé par `LeaveDatesValidator`. `LeaveRequestInitializer` mappe explicitement les entrées, et collecte `documents` sans en dupliquer les références dans l’état : formulaires et state restent indépendants. Le champ fichier accepte trois justificatifs bornés ; la clôture génère un fichier texte via l’API médias, attaché au commit et disponible dans la bibliothèque selon les droits. La note personnelle est cachée dans le détail. Les anciennes releases déjà déployées restent nécessaires pour les anciennes instances ; ce changement de source n’en modifie pas les artefacts.
@@ -48,7 +48,7 @@ Le CLI utilise `.ew/environments/recette` dans le projet du module. Les ancienne
 ew dev .
 ew dev . --environment recette-rh
 ew dev . --environment recette-rh --reset
-ew dev --artifact ./artifacts/sample.leave-request/1.7.0 --environment qualification --config ./ew.dev.json
+ew dev --artifact ./artifacts/sample.leave-request/1.8.0 --environment qualification --config ./ew.dev.json
 ```
 
 `--reset` archive uniquement l’environnement sélectionné et sa base possédée. `--artifact` ne compile pas et ne surveille pas les sources ; les flags CLI `--configuration` et `--no-watch` sont refusés dans ce mode. L’artefact ciblé est copié et vérifié dans le registre local. Les anciennes générations nécessaires à l’historique ou aux instances restent disponibles ; les versions simplement présentes sur disque ne sont pas chargées.
@@ -58,3 +58,7 @@ Les générations locales portent une release `…-ewdev.gN` et une révision in
 La configuration v2 choisit le défaut avec `defaultEnvironment`, les réglages communs avec `build`, `server`, `seed`, `smtp`, `serialization`, et les adaptations sous `environments`. Priorité : CLI > environnement choisi > commun > défauts. Les noms sont normalisés sans distinction de casse et doivent être uniques. Les bases externes explicites ne sont pas archivées par un reset.
 
 Le sample initialise son DTO avec le service DI `IWorkflowSerializer` ; la confirmation retourne `HumanTaskCompletionResult.Success()` sans outcome. La transition appartient à l’action définie dans le processus.
+
+## Évolution 1.8.0 / révision 9
+
+Le responsable désigné approuve avant les RH. La confirmation exige sa sélection pour soumettre ; l’annulation reste possible sans désignation. Après approbation du responsable, les RH prennent en charge et valident ou refusent. Un refus à l’une ou l’autre étape termine la demande sans passer à la validation suivante. Le schéma d’état reste 4 car le DTO ne change pas. Conserver les artefacts 1.7.0 pour les anciennes instances : leur ordre RH → responsable reste celui de leur définition immuable.

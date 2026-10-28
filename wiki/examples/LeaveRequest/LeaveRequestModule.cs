@@ -16,9 +16,9 @@ namespace EnterpriseWorkflow.LeaveRequest;
 /// <summary>Complete L8b example; permissions are independent of installation profile names.</summary>
 public sealed class LeaveRequestModule : WorkflowModule
 {
-    public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.leave-request", "1.7.0", 8)
+    public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.leave-request", "1.8.0", 9)
         .WithName("Gestion des congés")
-        .WithDescription("Demande, confirmation et validations RH et manager.");
+        .WithDescription("Demande, confirmation, approbation hiérarchique puis validation RH.");
 
     public override void ConfigurePermissions(WorkflowPermissionRegistryBuilder permissions) => permissions
         .Add("request", "Créer et confirmer une demande de congé")
@@ -71,7 +71,7 @@ public sealed class LeaveRequestProcess : IWorkflowProcess
         var flow = process.WithState<LeaveRequestState>();
         flow.WithId("leave-request")
             .WithName("Demande de congé")
-            .WithDescription("Confirmer sa demande, puis la soumettre aux RH et au responsable choisi.")
+            .WithDescription("Confirmer sa demande, puis la soumettre au responsable choisi avant la validation RH.")
             .InitializedBy<LeaveRequestInitializer>()
             .WithStateSchemaVersion(4)
             .RequiresPermission("request")
@@ -87,19 +87,8 @@ public sealed class LeaveRequestProcess : IWorkflowProcess
             .ShowFields("startDate", "endDate", "leaveType", "reason")
             .Actions(actions =>
             {
-                actions.Add("submit", "Confirmer", action => action.Then("validation-rh"));
+                actions.Add("submit", "Confirmer", action => action.SelectAssigneeFor("validation-manager").Then("validation-manager"));
                 actions.Add("cancel", "Annuler", action => action.Then("cancelled"));
-            }));
-
-        flow.Approval("validation-rh", "Validation RH", task => task
-            .RequiresPermission("hr.review")
-            .ClaimedByEligibleParticipant()
-            .ShowFields("startDate", "endDate", "leaveType", "reason")
-            .Actions(actions =>
-            {
-                actions.Add("validate", "Valider et désigner le responsable", action => action
-                    .CommentAt(state => state.Comments).SelectAssigneeFor("validation-manager").Then("validation-manager"));
-                actions.Add("decline", "Refuser", action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
             }));
 
         flow.Approval("validation-manager", "Validation du responsable", task => task
@@ -108,7 +97,17 @@ public sealed class LeaveRequestProcess : IWorkflowProcess
             .ShowFields("startDate", "endDate", "leaveType", "reason")
             .Actions(actions =>
             {
-                actions.Add("validate", "Approuver", action => action.CommentAt(state => state.Comments).Then("close-request"));
+                actions.Add("validate", "Approuver", action => action.CommentAt(state => state.Comments).Then("validation-rh"));
+                actions.Add("decline", "Refuser", action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
+            }));
+
+        flow.Approval("validation-rh", "Validation RH", task => task
+            .RequiresPermission("hr.review")
+            .ClaimedByEligibleParticipant()
+            .ShowFields("startDate", "endDate", "leaveType", "reason")
+            .Actions(actions =>
+            {
+                actions.Add("validate", "Valider", action => action.CommentAt(state => state.Comments).Then("close-request"));
                 actions.Add("decline", "Refuser", action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
             }));
 

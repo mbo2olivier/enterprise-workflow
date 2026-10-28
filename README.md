@@ -9,7 +9,7 @@ Build durable business workflows in C# and .NET 10. Enterprise Workflow combines
 Visit the [Enterprise Workflow wiki](https://mbo2olivier.github.io/enterprise-workflow/) for tutorials, concepts, integration guides, deployment procedures and reference material.
 
 - [Get started](https://mbo2olivier.github.io/enterprise-workflow/getting-started/overview/) — prerequisites, installation and your first workflow.
-- [Follow LeaveRequest](https://mbo2olivier.github.io/enterprise-workflow/examples/leave-request/) — requester confirmation, HR review, manager assignment, attachments and reporting.
+- [Follow LeaveRequest](https://mbo2olivier.github.io/enterprise-workflow/examples/leave-request/) — requester confirmation and manager selection, manager approval, final HR validation, attachments and reporting.
 - [Embed the engine](https://mbo2olivier.github.io/enterprise-workflow/getting-started/embedded/) — compose the runtime inside your application.
 - [Deploy the Kernel](https://mbo2olivier.github.io/enterprise-workflow/operations/install/) — install, configure, back up and maintain the modular host.
 - [Browse packages and CLI reference](https://mbo2olivier.github.io/enterprise-workflow/reference/packages/).

@@ -35,10 +35,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  pages-configuration:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
     permissions:
-      contents: read
       pages: read
+    steps:
+      - name: Check required repository Pages settings
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const settings = `https://github.com/${owner}/${repo}/settings/pages`;
+            try {
+              const { data } = await github.request('GET /repos/{owner}/{repo}/pages', { owner, repo });
+              if (data.build_type !== 'workflow') {
+                core.setFailed(`GitHub Pages must use GitHub Actions. Open ${settings}, then Build and deployment → Source → GitHub Actions. Re-run the workflow after saving.`);
+                return;
+              }
+              core.info(`GitHub Pages is configured for GitHub Actions: ${data.html_url}`);
+            } catch (error) {
+              if (error.status === 404) {
+                core.setFailed(`GitHub Pages is not enabled or is inaccessible to this workflow. A repository administrator must open ${settings} and select Build and deployment → Source → GitHub Actions. Then re-run the workflow. If already configured, check repository/organization Pages policies and token access.`);
+                return;
+              }
+              throw error;
+            }
+
+  build:
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -54,9 +78,6 @@ jobs:
       - run: node scripts/check-examples.mjs
       - run: npm run check
       - run: npm run build
-      - name: Configure Pages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/configure-pages@v5
       - name: Upload public site only
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
@@ -80,11 +101,11 @@ jobs:
           cp wiki/examples/NuGet.Config "$RUNNER_TEMP/LeaveRequest.Tutorial/NuGet.Config"
           export NUGET_PACKAGES="$RUNNER_TEMP/wiki-public-consumption/packages"
           "$RUNNER_TEMP/wiki-public-consumption/tools/ew" pack "$RUNNER_TEMP/LeaveRequest.Tutorial" --configuration Release --output "$RUNNER_TEMP/leave-artifacts"
-          "$RUNNER_TEMP/wiki-public-consumption/tools/ew" verify "$RUNNER_TEMP/leave-artifacts/sample.leave-request/1.7.0"
+          "$RUNNER_TEMP/wiki-public-consumption/tools/ew" verify "$RUNNER_TEMP/leave-artifacts/sample.leave-request/1.8.0"
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [build, public-examples]
+    needs: [pages-configuration, build, public-examples]
     runs-on: ubuntu-24.04
     permissions:
       pages: write
