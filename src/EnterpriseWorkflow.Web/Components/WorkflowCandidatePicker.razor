@@ -1,11 +1,12 @@
+@inject WorkflowUiLocalizer Ui
 <div class="candidate-picker" data-candidate-endpoint="@Endpoint">
     <label for="@_id">@Label</label>
     <input id="@_id" type="search" disabled autocomplete="off" minlength="2" maxlength="256"
            role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="@(_id + "-results")"
-           value="@DisplayValue" data-candidate-query placeholder="Saisissez au moins deux lettres du nom" />
+           value="@DisplayValue" data-candidate-query placeholder="@(Ui["Saisissez au moins deux lettres du nom"])" />
     <input type="hidden" name="@Name" value="@Value" data-candidate-value />
     <ul id="@(_id + "-results")" role="listbox" data-candidate-results hidden></ul>
-    <p class="field-help" role="status" aria-live="polite" data-candidate-status>Saisissez au moins deux caractères, puis sélectionnez une personne.</p>
+    <p class="field-help" role="status" aria-live="polite" data-candidate-status>@Ui["Saisissez au moins deux caractères, puis sélectionnez une personne."]</p>
 </div>
 @code {
     [Parameter, EditorRequired] public string Endpoint { get; set; } = string.Empty;

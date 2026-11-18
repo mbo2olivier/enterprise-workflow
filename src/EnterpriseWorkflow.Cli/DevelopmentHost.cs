@@ -24,6 +24,10 @@ internal static class DevelopmentHost
         });
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddInMemoryCollection(configuration.ToHostConfiguration());
+        builder.Configuration.AddInMemoryCollection(DevelopmentEnvironment.ReadHostValues().Select(pair =>
+            new KeyValuePair<string, string?>(pair.Key.Replace("__", ":", StringComparison.Ordinal), pair.Value)));
+        if (builder.Configuration["Localization:DefaultCulture"] is { } consoleCulture)
+            System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo(consoleCulture);
         builder.WebHost.UseUrls(configuration.Server.Url);
         builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(stateRoot, "keys")));
         Microsoft.AspNetCore.Hosting.StaticWebAssets.StaticWebAssetsLoader.UseStaticWebAssets(builder.Environment, builder.Configuration);
@@ -55,6 +59,7 @@ internal static class DevelopmentHost
         builder.Services.AddSingleton<ILocalSecurityProvisioningStore>(securityStore);
         builder.Services.AddSingleton<IWorkflowAccessStore>(securityStore);
         builder.Services.AddSingleton<IPresentationSettingsStore>(securityStore);
+        builder.Services.AddSingleton<IUserCulturePreferenceStore>(securityStore);
         builder.Services.AddSingleton(directories);
         builder.Services.AddSingleton(localAuthentication);
         builder.Services.AddSingleton<IAuthenticationProvider>(selectedAuthentication);
@@ -98,7 +103,12 @@ internal static class DevelopmentHost
         builder.Services.AddSingleton<IExternalEffectTransport>(services => new WorkflowNotificationTransport(
             services.GetRequiredService<IWorkflowStore>(), services.GetRequiredService<IWorkflowAuthorizationService>(),
             services.GetRequiredService<ISecurityProfileStore>(), services.GetRequiredService<ILocalAccountStore>(),
-            directories, smtp, new SmtpWorkflowMailSender(smtp), new DevelopmentExternalEffectTransport()));
+            directories, smtp, new SmtpWorkflowMailSender(smtp), new DevelopmentExternalEffectTransport()) {
+                CulturePreferences = services.GetService<IUserCulturePreferenceStore>(),
+                DefaultCulture = builder.Configuration["Localization:DefaultCulture"] ?? "fr",
+                FallbackCulture = builder.Configuration["Localization:FallbackCulture"] ?? "en",
+                SupportedCultures = (builder.Configuration.GetSection("Localization:SupportedCultures").Get<string[]>() ?? ["en", "fr"]).ToHashSet(StringComparer.OrdinalIgnoreCase),
+            });
         builder.Services.AddEnterpriseWorkflowRuntime<DevelopmentExternalEffectTransport>(options => { options.NotifyHumanTaskPools = smtp.Enabled; options.Serialization = configuration.Serialization; });
         builder.Services.AddEnterpriseWorkflowPresentation(options =>
         {
@@ -106,6 +116,7 @@ internal static class DevelopmentHost
             if (primaryArtifact is not null) options.StartArtifactSha256 = moduleCatalog.Modules.Single(module => module.RootPath == Path.GetFullPath(primaryArtifact)).ArtifactSha256;
             options.MediaRoot = Path.Combine(stateRoot, "media");
         });
+        builder.Services.AddEnterpriseWorkflowLocalization(builder.Configuration.GetSection("Localization").Get<WorkflowLocalizationOptions>() ?? new());
         builder.Services.AddEnterpriseWorkflowWeb();
         builder.Services.AddSingleton(new WorkflowDevelopmentEnvironment(string.Join(", ", moduleCatalog.Modules.Select(module =>
             $"{module.Manifest.Id.Value} / {module.Manifest.Version} / {module.ArtifactSha256[..12]}"))));
@@ -126,8 +137,8 @@ internal static class DevelopmentHost
             if (await Console.In.ReadLineAsync() == "stop") app.Lifetime.StopApplication();
         });
         await app.StartAsync();
-        Console.WriteLine($"Interface : {configuration.Server.Url}");
-        Console.WriteLine($"Stockage : {configuration.Storage.Path}");
+        Console.WriteLine(CliText.Format("Interface : {0}", "Interface: {0}", configuration.Server.Url));
+        Console.WriteLine(CliText.Format("Stockage : {0}", "Storage: {0}", configuration.Storage.Path));
         await app.WaitForShutdownAsync();
 
     }

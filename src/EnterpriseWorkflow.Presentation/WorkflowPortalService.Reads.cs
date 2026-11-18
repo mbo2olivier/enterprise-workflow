@@ -37,14 +37,14 @@ public sealed partial class WorkflowPortalService
                 if ((await generalAuthorization.AuthorizeAsync(new(actor, new(permission)), cancellationToken)).Allowed) permissions.Add(permission);
             visible = contract.Project(snapshot.State.Value, permissions);
             labels = contract.Root.Fields.Where(field => !field.Hidden && field.PermissionGroups.All(group => group.Any(permissions.Contains)))
-                .ToDictionary(field => field.Name, field => field.Label, StringComparer.Ordinal);
+                .ToDictionary(field => field.Name, field => TextLocalizer.Resolve(field.LocalizedLabel, field.Label), StringComparer.Ordinal);
         }
         var groups = new List<WorkflowCommentGroup>();
         await CollectCommentsAsync(contract.Root, visible.ToJsonElement(), groups, cancellationToken).ConfigureAwait(false);
         groups = groups.Select(group => group with { Comments = group.Comments.Select(comment => comment with
-        { Stage = snapshot.Definition.Nodes.FirstOrDefault(node => node.Id.Value == comment.Stage)?.DisplayLabel ?? comment.Stage }).ToArray() }).ToList();
+        { Stage = comment.Stage is { } stage ? LocalizedNodeLabel(snapshot.Definition.Nodes.FirstOrDefault(node => node.Id.Value == stage), stage) : null }).ToArray() }).ToList();
         var table = (contract with { Root = TableFields(contract.Root) }).Project(visible, new HashSet<string>(AllPermissions(contract.Root), StringComparer.Ordinal));
-        return new(await ViewAsync(snapshot.Summary, cancellationToken, snapshot.Definition).ConfigureAwait(false), table, labels, snapshot.Initiator, snapshot.Steps, snapshot.RecentHistory, groups);
+        return new(await ViewAsync(snapshot.Summary, cancellationToken, snapshot.Definition).ConfigureAwait(false), table, labels, snapshot.Initiator, snapshot.Steps?.Select(step => step with { Label = LocalizedNodeLabel(snapshot.Definition.Nodes.FirstOrDefault(node => node.Id.Value == step.NodeId), step.Label) }).ToArray(), snapshot.RecentHistory, groups);
     }
 
     public async ValueTask<WorkflowSearchPage> SearchInstancesAsync(IdentityReference actor, WorkflowSearchRequest request, CancellationToken cancellationToken)
@@ -97,11 +97,11 @@ public sealed partial class WorkflowPortalService
             : position.Status is NodeExecutionStatus.Pending or NodeExecutionStatus.Running or NodeExecutionStatus.Waiting || instance.Status == WorkflowInstanceStatus.Failed && position.Status == NodeExecutionStatus.Failed).ToArray();
         var outcomes = current.Select(position => nodes?.FirstOrDefault(node => node.Id.Value == position.NodeId))
             .Where(node => node?.Role == WorkflowNodeRole.End).Select(node => WorkflowStagePolicy.Read(node!.Configuration)?.CompletionOutcome).Distinct().ToArray();
-        return new(instance.InstanceId, process?.Title ?? instance.DefinitionId.Value,
+        return new(instance.InstanceId, process is null ? instance.DefinitionId.Value : TextLocalizer.Resolve(process.LocalizedTitle, process.Title),
             instance.DefinitionVersion, instance.Status, instance.Revision, instance.BusinessKey, instance.CreatedAtUtc, instance.UpdatedAtUtc,
             instance.PublicReference, instance.Initiator, instance.Initiator is { } actor ? await DisplayNameAsync(actor, token).ConfigureAwait(false) : null,
             current.Length == 0 ? null : string.Join(",", current.Select(position => position.NodeId)),
-            current.Length == 0 ? null : string.Join(" · ", current.Select(position => nodes?.FirstOrDefault(node => node.Id.Value == position.NodeId)?.DisplayLabel ?? position.NodeId)),
+            current.Length == 0 ? null : string.Join(" · ", current.Select(position => LocalizedNodeLabel(nodes?.FirstOrDefault(node => node.Id.Value == position.NodeId), position.NodeId))),
             instance.Status == WorkflowInstanceStatus.Completed && outcomes.Length == 1 ? outcomes[0] : null);
     }
 
@@ -137,7 +137,7 @@ public sealed partial class WorkflowPortalService
                 rows.Add(new(Get("text"), Get("stageId"), subject is null ? null : $"{provider} / {subject}",
                     Get("actorDisplayName") ?? (item.TryGetProperty("actorDisplayName", out _) && provider is not null && subject is not null ? await DisplayNameAsync(new(new(provider), subject), token).ConfigureAwait(false) : null), Get("createdAtUtc")));
             }
-            groups.Add(new(field.Label, rows));
+            groups.Add(new(TextLocalizer.Resolve(field.LocalizedLabel, field.Label), rows));
         }
         else if (value.ValueKind == JsonValueKind.Object)
         {

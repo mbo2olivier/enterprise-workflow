@@ -44,31 +44,37 @@ public sealed class WorkflowFormFeedbackStore
 
 public static class WorkflowValidationMessages
 {
-    public static string Message(WorkflowFormError error, WorkflowFormDefinition? form = null)
+    public static string Message(WorkflowFormError error, WorkflowFormDefinition? form = null) => Message(error, form, "en");
+
+    public static string Message(WorkflowFormError error, WorkflowFormDefinition? form, string fallbackCulture)
     {
+        var localizer = new WorkflowUiLocalizer(new WorkflowLocalizationOptions { FallbackCulture = fallbackCulture });
+        string M(string template, params object?[] arguments) => string.Format(System.Globalization.CultureInfo.CurrentCulture,
+            localizer.Resolve(template, System.Globalization.CultureInfo.CurrentUICulture.Name), arguments);
+        if (error.LocalizedMessage is not null) return error.LocalizedMessage.Resolve(System.Globalization.CultureInfo.CurrentUICulture.Name, fallbackCulture);
         if (!string.IsNullOrWhiteSpace(error.Message)) return error.Message;
         var field = form?.Fields.FirstOrDefault(field => field.Id.Value == error.FieldId);
         return error.Code switch
         {
-            "presentation.form-field-required" => "Ce champ est obligatoire.",
-            "presentation.form-field-too-short" => $"Saisissez au moins {field?.MinimumLength} caractères.",
-            "presentation.form-field-too-long" => $"Saisissez au maximum {field?.MaximumLength} caractères.",
-            "presentation.form-field-pattern" => "La valeur ne respecte pas le format attendu.",
-            "presentation.form-field-text-expected" => "Saisissez un texte valide.",
-            "presentation.form-field-date-expected" => "Saisissez une date valide.",
-            "presentation.form-field-number-expected" => "Saisissez un nombre valide.",
-            "presentation.form-field-number-too-small" => $"La valeur doit être supérieure ou égale à {field?.Minimum}.",
-            "presentation.form-field-number-too-large" => $"La valeur doit être inférieure ou égale à {field?.Maximum}.",
-            "presentation.form-field-choice-invalid" => "Sélectionnez une valeur proposée.",
-            "presentation.form-field-boolean-expected" => "Sélectionnez une valeur valide.",
-            "presentation.form-file-invalid" or "presentation.form-media-invalid" => "Vérifiez le nombre, le format et la validité des fichiers joints.",
-            "runtime.comment-required" => "Un commentaire est obligatoire pour cette action.",
-            "validation" => "Le retour de validation a expiré ou a déjà été consulté. Vérifiez le formulaire avant de le renvoyer.",
-            "runtime.state-invalid" or "presentation.state-invalid" => "L’état de la demande ne respecte pas les règles du processus.",
-            "presentation.designated-assignments-incomplete" or "runtime.undeclared-assignment" or "security.task-assignee-ineligible" => "Sélectionnez un destinataire éligible pour l’étape suivante.",
-            "revision" or "conflict" or "store.task-revision-conflict" or "store.instance-revision-conflict" or "runtime.human-task-completion-conflict" or "runtime.human-task-mutation-conflict" => "Cette tâche a été modifiée. Actualisez la page avant de recommencer.",
-            "runtime.media-inspection-pending" => "Un fichier est encore en cours de vérification. Réessayez dans un instant.",
-            _ => "L’opération n’a pas pu être enregistrée. Vérifiez votre saisie et réessayez.",
+            "presentation.form-field-required" => M("Ce champ est obligatoire."),
+            "presentation.form-field-too-short" => M("Saisissez au moins {0} caractères.", field?.MinimumLength),
+            "presentation.form-field-too-long" => M("Saisissez au maximum {0} caractères.", field?.MaximumLength),
+            "presentation.form-field-pattern" => M("La valeur ne respecte pas le format attendu."),
+            "presentation.form-field-text-expected" => M("Saisissez un texte valide."),
+            "presentation.form-field-date-expected" => M("Saisissez une date valide."),
+            "presentation.form-field-number-expected" => M("Saisissez un nombre valide."),
+            "presentation.form-field-number-too-small" => M("La valeur doit être supérieure ou égale à {0}.", field?.Minimum),
+            "presentation.form-field-number-too-large" => M("La valeur doit être inférieure ou égale à {0}.", field?.Maximum),
+            "presentation.form-field-choice-invalid" => M("Sélectionnez une valeur proposée."),
+            "presentation.form-field-boolean-expected" => M("Sélectionnez une valeur valide."),
+            "presentation.form-file-invalid" or "presentation.form-media-invalid" => M("Vérifiez le nombre, le format et la validité des fichiers joints."),
+            "runtime.comment-required" => M("Un commentaire est obligatoire pour cette action."),
+            "validation" => M("Le retour de validation a expiré ou a déjà été consulté. Vérifiez le formulaire avant de le renvoyer."),
+            "runtime.state-invalid" or "presentation.state-invalid" => M("L’état de la demande ne respecte pas les règles du processus."),
+            "presentation.designated-assignments-incomplete" or "runtime.undeclared-assignment" or "security.task-assignee-ineligible" => M("Sélectionnez un destinataire éligible pour l’étape suivante."),
+            "revision" or "conflict" or "store.task-revision-conflict" or "store.instance-revision-conflict" or "runtime.human-task-completion-conflict" or "runtime.human-task-mutation-conflict" => M("Cette tâche a été modifiée. Actualisez la page avant de recommencer."),
+            "runtime.media-inspection-pending" => M("Un fichier est encore en cours de vérification. Réessayez dans un instant."),
+            _ => M("L’opération n’a pas pu être enregistrée. Vérifiez votre saisie et réessayez."),
         };
     }
 }

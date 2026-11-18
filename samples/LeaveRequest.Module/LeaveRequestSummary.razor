@@ -1,16 +1,20 @@
+@using EnterpriseWorkflow.Abstractions
+@using EnterpriseWorkflow.LeaveRequest
+@using static EnterpriseWorkflow.Sdk.WorkflowTexts
+@inject IWorkflowTextLocalizer TextLocalizer
 @using EnterpriseWorkflow.Core.Model
 @using Microsoft.AspNetCore.Components
 <section class="leave-request-summary">
-    <p class="eyebrow">Demande de congé</p>
+    <p class="eyebrow">@TextLocalizer.Resolve(Text("process.title", "Leave request"), "Leave request")</p>
     @if (State?.ToJsonElement().TryGetProperty("reason", out var reason) == true)
     {
         <h2>@reason.GetString()</h2>
-        <p>Cette demande sera examinée par le responsable désigné puis par les RH.</p>
+        <p>@TextLocalizer.Resolve(Text("summary.review", "This request will be reviewed by the selected manager, then by HR."), "This request will be reviewed by the selected manager, then by HR.")</p>
     }
     else
     {
-        <h2>Préparez votre demande</h2>
-        <p>Renseignez les dates, le type de congé et le motif. Vous pouvez joindre des justificatifs.</p>
+        <h2>@TextLocalizer.Resolve(Text("summary.prepare", "Prepare your request"), "Prepare your request")</h2>
+        <p>@TextLocalizer.Resolve(Text("summary.help", "Enter the dates, leave type and reason. You can attach supporting documents."), "Enter the dates, leave type and reason. You can attach supporting documents.")</p>
     }
 </section>
 @code {

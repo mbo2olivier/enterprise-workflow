@@ -1,3 +1,4 @@
+@inject WorkflowUiLocalizer Ui
 @page "/admin"
 @attribute [Authorize]
 @inject IWorkflowPresentationCatalog Catalog
@@ -6,25 +7,25 @@
 @inject IConfiguration Configuration
 @inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
-<PageTitle>Administration · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["Administration · Enterprise Workflow"]</PageTitle>
 <div class="content content-medium admin-content">
     <div class="admin-page-intro">
-        <div><p class="eyebrow">Centre de contrôle</p><h1>Administration</h1><p>@AttentionSummary</p></div>
-        <span class="status success"><PhosphorIcon Name="check-circle" Size="15" />Système prêt</span>
+        <div><p class="eyebrow">@Ui["Centre de contrôle"]</p><h1>@Ui["Administration"]</h1><p>@AttentionSummary</p></div>
+        <span class="status success"><PhosphorIcon Name="check-circle" Size="15" />@Ui["Système prêt"]</span>
     </div>
     <section class="admin-health-grid">
-        <a class="health-card" href="/admin/access"><span class="health-icon success"><PhosphorIcon Name="shield-check" Size="22" /></span><small>Sécurité</small><strong>@SecurityValue</strong><p>@SecurityCopy</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
-        <a class="health-card" href="/admin/workflows"><span class="health-icon @(_workflowCount == 0 ? "warning" : "success")"><PhosphorIcon Name="flow-arrow" Size="22" /></span><small>Workflows</small><strong>@_workflowCount publié@(_workflowCount > 1 ? "s" : null)</strong><p>Catalogue de présentation chargé</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
-        <a class="health-card" href="/admin/operations"><span class="health-icon success"><PhosphorIcon Name="pulse" Size="22" /></span><small>Exécution</small><strong>Stable</strong><p>Kernel actif · @DatabaseProvider</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
-        <a class="health-card" href="/admin/operations"><span class="health-icon success"><PhosphorIcon Name="plugs" Size="22" /></span><small>Intégrations</small><strong>@Modules.Modules.Length module@(Modules.Modules.Length > 1 ? "s" : null)</strong><p>Extensions chargées au démarrage</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/access"><span class="health-icon success"><PhosphorIcon Name="shield-check" Size="22" /></span><small>@Ui["Sécurité"]</small><strong>@SecurityValue</strong><p>@SecurityCopy</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/workflows"><span class="health-icon @(_workflowCount == 0 ? "warning" : "success")"><PhosphorIcon Name="flow-arrow" Size="22" /></span><small>Workflows</small><strong>@_workflowCount publié@(_workflowCount > 1 ? "s" : null)</strong><p>@Ui["Catalogue de présentation chargé"]</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/operations"><span class="health-icon success"><PhosphorIcon Name="pulse" Size="22" /></span><small>@Ui["Exécution"]</small><strong>@Ui["Stable"]</strong><p>@Ui["Kernel actif ·"] @DatabaseProvider</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
+        <a class="health-card" href="/admin/operations"><span class="health-icon success"><PhosphorIcon Name="plugs" Size="22" /></span><small>@Ui["Intégrations"]</small><strong>@Modules.Modules.Length module@(Modules.Modules.Length > 1 ? "s" : null)</strong><p>@Ui["Extensions chargées au démarrage"]</p><PhosphorIcon Name="arrow-right" Size="16" /></a>
     </section>
     <div class="admin-dashboard-grid">
         <section class="panel">
-            <div class="section-heading"><div><p class="eyebrow">À vérifier</p><h2>Requiert votre attention</h2></div></div>
+            <div class="section-heading"><div><p class="eyebrow">@Ui["À vérifier"]</p><h2>@Ui["Requiert votre attention"]</h2></div></div>
             <div class="attention-list">
                 @if (_attention.Count == 0)
                 {
-                    <div class="admin-empty-row"><span class="attention-mark success"><PhosphorIcon Name="check-circle" Size="19" /></span><span><strong>Aucun point d’attention détecté</strong><small>Les contrôles disponibles ne signalent aucune action immédiate.</small></span></div>
+                    <div class="admin-empty-row"><span class="attention-mark success"><PhosphorIcon Name="check-circle" Size="19" /></span><span><strong>@Ui["Aucun point d’attention détecté"]</strong><small>@Ui["Les contrôles disponibles ne signalent aucune action immédiate."]</small></span></div>
                 }
                 @foreach (var item in _attention)
                 {
@@ -33,17 +34,17 @@
             </div>
         </section>
         <section class="panel">
-            <div class="section-heading"><div><p class="eyebrow">Activité</p><h2>Derniers changements</h2></div><a class="text-button" href="/admin/audit">Tout voir <PhosphorIcon Name="arrow-right" Size="15" /></a></div>
+            <div class="section-heading"><div><p class="eyebrow">@Ui["Activité"]</p><h2>@Ui["Derniers changements"]</h2></div><a class="text-button" href="/admin/audit">Tout voir <PhosphorIcon Name="arrow-right" Size="15" /></a></div>
             @if (_audit.Count == 0)
             {
-                <div class="admin-empty-audit">Aucune activité de sécurité enregistrée.</div>
+                <div class="admin-empty-audit">@Ui["Aucune activité de sécurité enregistrée."]</div>
             }
             else
             {
                 <div class="mini-audit">
                     @foreach (var entry in _audit.Take(3))
                     {
-                        <div><span class="audit-dot"></span><p><strong>@entry.Action</strong><small>@entry.Actor.SubjectId · @entry.OccurredAtUtc.ToLocalTime().ToString("g", CultureInfo.GetCultureInfo("fr-FR"))</small></p></div>
+                        <div><span class="audit-dot"></span><p><strong>@entry.Action</strong><small>@entry.Actor.SubjectId · @entry.OccurredAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</small></p></div>
                     }
                 </div>
             }
@@ -70,12 +71,12 @@
     }
 
     private string DatabaseProvider => Configuration["Database:Provider"] ?? "Sqlite";
-    private string SecurityValue => _administratorCount is null ? "Disponible" : $"{_administratorCount} administrateur{(_administratorCount > 1 ? "s" : null)}";
+    private string SecurityValue => _administratorCount is null ? Ui["Disponible"] : $"{_administratorCount} administrateur{(_administratorCount > 1 ? "s" : null)}";
     private string SecurityCopy => Directories.Count == 0
-        ? "Fournisseur interne disponible"
+        ? Ui["Fournisseur interne disponible"]
         : $"Fournisseur interne et {Directories.Count} annuaire{(Directories.Count > 1 ? "s" : null)} disponible{(Directories.Count > 1 ? "s" : null)}";
     private string AttentionSummary => _attention.Count == 0
-        ? "L’installation est opérationnelle. Aucun élément ne requiert votre attention."
+        ? Ui["L’installation est opérationnelle. Aucun élément ne requiert votre attention."]
         : $"L’installation est opérationnelle. {_attention.Count} élément{(_attention.Count > 1 ? "s" : null)} mérite{(_attention.Count > 1 ? "nt" : null)} votre attention.";
     private sealed record AttentionItem(string Title, string Copy, string Href);
 }

@@ -1,6 +1,6 @@
 # L11 — hôtes personnalisés, extensions de sécurité et localisation
 
-Date : 18 novembre 2026. Nomenclature décidée par le porteur : ce lot porte le numéro L11, le Studio, initialement repoussé à L12 lors de l’ajout de L11, est désormais prévu en L13 après validation du lot L12 et la série L10 reste close. Statut : plan intégré à la demande du porteur ; implémentation non démarrée. Les orientations produit ci-dessous reprennent les arbitrages de la conversation. Les noms d’API, le découpage des packages et les mécanismes détaillés restent à formaliser dans les spécifications et ADR avant implémentation. Ce plan ne modifie pas les contrats actuellement livrés et ne constitue pas une preuve de qualification.
+Date : 18 novembre 2026. Nomenclature décidée par le porteur : ce lot porte le numéro L11, le Studio, initialement repoussé à L12 lors de l’ajout de L11, est désormais prévu en L13 après validation du lot L12 et la série L10 reste close. Statut : implémentation démarrée le 18 novembre 2026 à la demande du porteur ; qualification en cours. Voir la [spécification](l11-spec.md) et la [preuve](evidence/l11.md). Les orientations produit ci-dessous reprennent les arbitrages de la conversation. Les noms d’API, le découpage des packages et les mécanismes détaillés restent à formaliser dans les spécifications et ADR avant implémentation. Ce plan ne modifie pas les contrats actuellement livrés et ne constitue pas une preuve de qualification.
 
 ## Périmètre et limites
 
@@ -96,7 +96,7 @@ Une modification du fichier nécessite de relancer `ew dev` dans cette première
 
 ## Localisation du socle et du métier
 
-La configuration d’instance déclare les langues disponibles, la langue par défaut et la langue de repli, toutes validées. Proposer dans le profil une préférence persistée localement ou « Utiliser la langue de l’instance », y compris pour les identités externes.
+La configuration d’instance déclare les langues disponibles, la langue par défaut et la langue de repli, toutes validées. Proposer un toggle à côté de la recherche dans la barre supérieure, avec préférence persistée localement et réinitialisation à la langue de l’instance, y compris pour les identités externes. La modification conserve la page et ses paramètres ; le menu et la page Profil dédiés sont supprimés.
 
 Résolution : préférence utilisateur > langue par défaut de l’instance. Pour une traduction absente : langue de repli configurée, puis libellé de secours déclaré. L’anglais est une traduction prioritaire du produit, pas une langue d’instance imposée. Fuseau horaire et langue restent distincts.
 

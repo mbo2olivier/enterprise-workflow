@@ -1,3 +1,4 @@
+@inject WorkflowUiLocalizer Ui
 @using System.Text.Json
 
 @foreach (var field in Form.Fields)
@@ -12,7 +13,7 @@
                 <input id="@name" aria-invalid="@(errors.Length > 0 ? "true" : null)" aria-describedby="@(errors.Length > 0 ? name + "-error" : null)" type="file" disabled multiple="@(field.FileSpecification?.MaximumFiles > 1)" accept="@string.Join(",", field.FileSpecification?.AllowedExtensions ?? [])"
                        required="@(field.Required && !HasUploadedFiles(name))" data-media-upload="@field.Id.Value" data-media-max-files="@field.FileSpecification?.MaximumFiles" />
                 <input name="@name" type="hidden" value="@(SubmittedValues?.GetValueOrDefault(name) ?? "[]")" data-media-reference="@field.Id.Value" />
-                <small role="status" aria-live="polite" data-media-status="@field.Id.Value">@(HasUploadedFiles(name) ? "Pièces jointes conservées pour cette soumission." : "Aucun fichier sélectionné.")</small>
+                <small role="status" aria-live="polite" data-media-status="@field.Id.Value">@(HasUploadedFiles(name) ? Ui["Pièces jointes conservées pour cette soumission."] : Ui["Aucun fichier sélectionné."])</small>
                 break;
             case WorkflowFormFieldKind.LongText:
                 <textarea id="@name" aria-invalid="@(errors.Length > 0 ? "true" : null)" aria-describedby="@(errors.Length > 0 ? name + "-error" : null)" name="@name" required="@field.Required" maxlength="@field.MaximumLength" rows="4">@Value(field)</textarea>
@@ -25,11 +26,11 @@
                        min="@field.Minimum" max="@field.Maximum" step="any" />
                 break;
             case WorkflowFormFieldKind.Boolean:
-                <span class="checkbox-field"><input id="@name" aria-invalid="@(errors.Length > 0 ? "true" : null)" aria-describedby="@(errors.Length > 0 ? name + "-error" : null)" name="@name" type="checkbox" value="true" checked="@BooleanValue(field)" /><span>Oui</span></span>
+                <span class="checkbox-field"><input id="@name" aria-invalid="@(errors.Length > 0 ? "true" : null)" aria-describedby="@(errors.Length > 0 ? name + "-error" : null)" name="@name" type="checkbox" value="true" checked="@BooleanValue(field)" /><span>@Ui["Oui"]</span></span>
                 break;
             case WorkflowFormFieldKind.Choice:
                 <select id="@name" aria-invalid="@(errors.Length > 0 ? "true" : null)" aria-describedby="@(errors.Length > 0 ? name + "-error" : null)" name="@name" required="@field.Required">
-                    <option value="">Sélectionner…</option>
+                    <option value="">@Ui["Sélectionner…"]</option>
                     @foreach (var option in field.Options)
                     {
                         <option value="@option.Value" selected="@(Value(field) == option.Value)">@option.Label</option>
@@ -41,7 +42,7 @@
                        minlength="@field.MinimumLength" maxlength="@field.MaximumLength" />
                 break;
         }
-        @if (errors.Length > 0) { <span id="@(name + "-error")" class="field-validation-error">@foreach (var error in errors) { <span>@WorkflowValidationMessages.Message(error, Form)</span> }</span> }
+        @if (errors.Length > 0) { <span id="@(name + "-error")" class="field-validation-error">@foreach (var error in errors) { <span>@WorkflowValidationMessages.Message(error, Form, Ui.FallbackCulture)</span> }</span> }
         @if (!string.IsNullOrWhiteSpace(field.HelpText)) { <small class="field-help">@field.HelpText</small> }
     </label>
 }

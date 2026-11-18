@@ -6,7 +6,11 @@ using EnterpriseWorkflow.Core.Model;
 
 namespace EnterpriseWorkflow.Presentation;
 
-public sealed record WorkflowFormError(string FieldId, string Code, string? Message = null);
+public sealed record WorkflowFormError(string FieldId, string Code, string? Message = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public EnterpriseWorkflow.Abstractions.WorkflowText? LocalizedMessage { get; init; }
+}
 
 public sealed record WorkflowFormValidationResult(
     bool Succeeded,

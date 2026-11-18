@@ -1,0 +1,82 @@
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using EnterpriseWorkflow.Abstractions;
+using EnterpriseWorkflow.Presentation;
+using EnterpriseWorkflow.Sdk;
+using Xunit;
+
+namespace EnterpriseWorkflow.Web.Tests;
+
+public sealed class LocalizationTests
+{
+    [Fact]
+    public void CatalogsAndFormProjectionsAreIndependentOfCompilationCultureAndKeepValuesStable()
+    {
+        using var french = new MemoryStream(Encoding.UTF8.GetBytes("""{"fields.date":"Date de début","choices.paid":"Congé payé"}"""));
+        var catalog = new WorkflowTextCatalog().AddJson("fr", french);
+        var label = catalog.Text("fields.date", "Start date");
+        var choice = catalog.Text("choices.paid", "Paid leave");
+        var form = new WorkflowFormDefinition(new(new("leave.form"), 1), "Leave request",
+            [new(new("type"), choice.Fallback, WorkflowFormFieldKind.Choice, true, WorkflowFieldAudience.Initiator,
+                Options: [new("paid", choice.Fallback) { LocalizedLabel = choice }]) { LocalizedLabel = label }]);
+        var originalJson = JsonSerializer.Serialize(form);
+        var localizer = new WorkflowTextLocalizer(new() { FallbackCulture = "en" });
+        var previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr");
+            var fr = localizer.ResolveForm(form);
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en");
+            var en = localizer.ResolveForm(form);
+            Assert.Equal("Date de début", fr.Fields[0].Label);
+            Assert.Equal("Start date", en.Fields[0].Label);
+            Assert.Equal("paid", fr.Fields[0].Options[0].Value);
+            Assert.Equal("paid", en.Fields[0].Options[0].Value);
+            Assert.Equal("Congé payé", fr.Fields[0].Options[0].Label);
+            Assert.Equal(originalJson, JsonSerializer.Serialize(form));
+            var roundTrip = JsonSerializer.Deserialize<WorkflowFormDefinition>(originalJson)!;
+            Assert.Equal("Date de début", roundTrip.Fields[0].LocalizedLabel!.Resolve("fr-FR", "en"));
+        }
+        finally { CultureInfo.CurrentUICulture = previous; }
+    }
+
+    [Fact]
+    public void FallbackLanguageIsConfigurableAndInstanceCulturesAreValidated()
+    {
+        var text = new WorkflowText("greeting", "Hello", new Dictionary<string, string> { ["fr"] = "Bonjour" });
+        Assert.Equal("Bonjour", text.Resolve("de", "fr"));
+        Assert.Equal("Hello", text.Resolve("de", "en"));
+        Assert.Throws<InvalidOperationException>(() => new WorkflowLocalizationOptions { DefaultCulture = "de" }.Validate());
+        var localizer = new WorkflowUiLocalizer(new());
+        Assert.Equal("Sign in", localizer.Resolve("Se connecter", "en"));
+        Assert.Equal("Se connecter", localizer.Resolve("Se connecter", "fr"));
+    }
+
+    [Fact]
+    public void StateLabelMetadataCanBeAuthoredWithoutTranslatingTheStateSchemaValues()
+    {
+        var contract = WorkflowStateContractCompiler.Compile<LocalizedState>(1);
+        var field = Assert.Single(contract.Root.Fields);
+        Assert.Equal("Date de début", field.LocalizedLabel!.Resolve("fr", "en"));
+        Assert.Equal("startDate", field.Name);
+        Assert.Equal("date", field.Kind);
+    }
+
+    public sealed class CatalogProvider : IWorkflowTextCatalogProvider
+    {
+        public WorkflowTextCatalog Catalog
+        {
+            get
+            {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes("""{"date":"Date de début"}"""));
+                return new WorkflowTextCatalog().AddJson("fr", stream);
+            }
+        }
+    }
+    public sealed class LocalizedState
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("startDate"), LabelKey(typeof(CatalogProvider), "date", "Start date")]
+        public DateOnly StartDate { get; init; }
+    }
+}

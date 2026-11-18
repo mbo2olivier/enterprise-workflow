@@ -52,3 +52,10 @@ Commencer sans trimming ni Native AOT afin d’éprouver le chargement dynamique
 ## Environnement observé
 
 Les lots L1 à L3b ont été compilés avec le SDK .NET `10.0.401` sur macOS 26.3 ARM64. SQLite a été testé sur fichiers locaux et Oracle via Oracle Entity Framework Core `10.23.26301` contre Oracle Free `23.26.3` puis Oracle Enterprise `19.19.0.0.0` Linux ARM64 en conteneur. L5a est qualifié sur OpenLDAP 2.6 réel par le job Linux GitHub Actions confirmé le 4 octobre 2026. Ces preuves qualifient leurs adaptateurs dans les environnements cités ; elles ne qualifient ni un artefact de distribution, ni les autres lignes de la matrice, ni Active Directory.
+
+
+## L11 — évolution en cours
+
+Les contrats optionnels d’identité et de seconde authentification sont ajoutés aux abstractions existantes. Les constructeurs historiques des sessions, les signatures des stores et les libellés littéraux sont conservés. Les métadonnées de traduction absentes sont omises du JSON pour préserver les anciennes définitions ; les traductions ne sont jamais résolues au moment du hash. Les nouvelles déclarations et traductions sont publiées dans un nouvel artefact de module, sans remplacer les versions historiques.
+
+Les migrations de sécurité ajoutent les préférences de langue et l’assurance des sessions. Les sessions historiques reçoivent `SecondFactorVerified=false` : elles restent utilisables avec l’authentification simple mais nécessitent une reconnexion si le second facteur est activé. Le déploiement normal valide les schémas et exige l’application explicite des migrations avant démarrage. Qualification et limites : [L11](evidence/l11.md). Aucun numéro de package déjà publié ne doit être réutilisé pour diffuser ces changements.

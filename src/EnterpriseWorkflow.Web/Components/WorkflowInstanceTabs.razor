@@ -1,0 +1,19 @@
+@inject WorkflowUiLocalizer Ui
+<nav class="segmented-control instance-tabs" aria-label="@Ui["Onglets de la demande"]">
+    @foreach (var tab in Tabs)
+    {
+        <a class="@(ActiveTab == tab.Key ? "active" : null)" aria-current="@(ActiveTab == tab.Key ? "page" : null)"
+           href="@($"/instances/{InstanceId}?tab={tab.Key}")">@Ui[tab.Value]</a>
+    }
+</nav>
+
+@code {
+    private static readonly Dictionary<string, string> Tabs = new()
+    {
+        ["details"] = "Détails", ["library"] = "Bibliothèque", ["progress"] = "Progression",
+        ["history"] = "Historique", ["comments"] = "Commentaires",
+    };
+    [Parameter] public Guid InstanceId { get; set; }
+    [Parameter] public string ActiveTab { get; set; } = "details";
+    public static bool IsKnownTab(string? tab) => tab is not null && Tabs.ContainsKey(tab);
+}

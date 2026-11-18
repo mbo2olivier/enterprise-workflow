@@ -10,6 +10,10 @@ public sealed record WorkflowValidationError
         if (Code.Length > 128 || Message.Length > 1024 || Field?.Length > 128) throw new ArgumentOutOfRangeException(nameof(Message));
         this.Code = Code; this.Message = Message; this.Field = Field;
     }
+    public WorkflowValidationError(string code, EnterpriseWorkflow.Abstractions.WorkflowText message, string? field = null)
+        : this(code, message.Fallback, field) => LocalizedMessage = message;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public EnterpriseWorkflow.Abstractions.WorkflowText? LocalizedMessage { get; init; }
     public string Code { get; }
     public string Message { get; }
     public string? Field { get; }

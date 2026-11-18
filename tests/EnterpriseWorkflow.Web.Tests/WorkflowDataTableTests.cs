@@ -15,6 +15,7 @@ public sealed class WorkflowDataTableTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddEnterpriseWorkflowLocalization();
         await using var provider = services.BuildServiceProvider();
         await using var renderer = new HtmlRenderer(provider, provider.GetRequiredService<ILoggerFactory>());
         using var document = JsonDocument.Parse("""{"comments":[{"text":"Refus motiv\u00E9 <script>alert(1)</script>"}]}""");

@@ -163,6 +163,8 @@ public sealed record WorkflowStateContract(int Version, WorkflowStateField Root,
 
 public sealed record WorkflowStateField
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public EnterpriseWorkflow.Abstractions.WorkflowText? LocalizedLabel { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PresentationRole { get; init; }
     public string Name { get; init; } = string.Empty;

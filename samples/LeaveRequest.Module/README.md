@@ -62,3 +62,11 @@ Le sample initialise son DTO avec le service DI `IWorkflowSerializer` ; la confi
 ## Évolution 1.8.0 / révision 9
 
 Le responsable désigné approuve avant les RH. La confirmation exige sa sélection pour soumettre ; l’annulation reste possible sans désignation. Après approbation du responsable, les RH prennent en charge et valident ou refusent. Un refus à l’une ou l’autre étape termine la demande sans passer à la validation suivante. Le schéma d’état reste 4 car le DTO ne change pas. Conserver les artefacts 1.7.0 pour les anciennes instances : leur ordre RH → responsable reste celui de leur définition immuable.
+
+
+## L11 — exemple bilingue
+
+Le sample source utilise la release métier 1.9.0 / révision 10 avec les catalogues `Localization/en.json` et `Localization/fr.json`, les libellés SDK et le composant résumé localisé via `IWorkflowTextLocalizer`. Le schéma de données métier reste 4. Les anciennes instances gardent leur artefact exact. Choisir la langue dans le toggle de la barre supérieure ou configurer `Localization:DefaultCulture` et `Localization:FallbackCulture` ; aucune valeur métier n’est traduite.
+
+
+Les catalogues embarqués suivent la convention SDK `Localization/<culture>.json`. `using static EnterpriseWorkflow.Sdk.WorkflowTexts;` permet `Text(clé, repli)` sans classe dédiée. Les DTO utilisent `[LabelKey(clé, repli)]`. Pour un helper situé dans une autre assembly, choisir le propriétaire avec `WorkflowTexts.For<LeaveRequestModule>()`.

@@ -1,0 +1,39 @@
+@inject WorkflowUiLocalizer Ui
+@page "/second-factor"
+@attribute [AllowAnonymous]
+@layout LoginLayout
+@inject WorkflowSecondFactorFlow Flow
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+
+<PageTitle>Second authentication · Enterprise Workflow</PageTitle>
+<main class="login-page">
+    <section class="login-panel panel">
+        <p class="eyebrow">Enterprise Workflow</p>
+        <h1>@Ui["Verify your identity"]</h1>
+        @if (_pending is null)
+        {
+            <p>@Ui["This verification has expired or is unavailable."]</p>
+            <a href="/login">@Ui["Sign in again"]</a>
+        }
+        else
+        {
+            <p>@(_pending.Prompt ?? Ui["Enter your verification code or confirm your approval, then continue."])</p>
+            @if (Error is not null) { <div class="form-error" role="alert">@Ui["Verification was not completed. Try again or sign in again."]</div> }
+            <form method="post" action="/auth/second-factor" class="request-form login-form">
+                <AntiforgeryToken />
+                <label>@Ui["Verification code"]<input name="proof" autocomplete="one-time-code" maxlength="1024" autofocus /></label>
+                <button class="primary-button" type="submit">@Ui["Verify"]</button>
+            </form>
+            <form method="post" action="/auth/second-factor/cancel">
+                <AntiforgeryToken />
+                <button type="submit">@Ui["Cancel"]</button>
+            </form>
+        }
+    </section>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    private WorkflowSecondFactorFlow.PendingAuthentication? _pending;
+    protected override void OnInitialized() => _pending = Http.HttpContext is { } context ? Flow.Read(context) : null;
+}

@@ -1,3 +1,4 @@
+@inject WorkflowUiLocalizer Ui
 @page "/"
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
@@ -5,18 +6,18 @@
 @inject ILocalAccountStore LocalAccounts
 @inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
-<PageTitle>Today · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["Today · Enterprise Workflow"]</PageTitle>
 <div class="content content-narrow">
-    <div class="page-intro"><p class="eyebrow">@DateTimeOffset.Now.ToString("dddd d MMMM", CultureInfo.GetCultureInfo("fr-FR"))</p><h1>Hello, @_displayName</h1><p>Voici ce qui mérite votre attention aujourd’hui.</p></div>
+    <div class="page-intro"><p class="eyebrow">@DateTimeOffset.Now.ToString("dddd d MMMM", CultureInfo.CurrentCulture)</p><h1>@Ui["Hello,"] @_displayName</h1><p>@Ui["Voici ce qui mérite votre attention aujourd’hui."]</p></div>
     <section class="panel focus-panel">
-        <div class="section-heading"><div><p class="eyebrow">Votre journée</p><h2>À faire maintenant</h2></div><a class="text-button" href="/inbox">Tout voir <PhosphorIcon Name="arrow-right" Size="16" /></a></div>
+        <div class="section-heading"><div><p class="eyebrow">@Ui["Votre journée"]</p><h2>@Ui["À faire maintenant"]</h2></div><a class="text-button" href="/inbox">Tout voir <PhosphorIcon Name="arrow-right" Size="16" /></a></div>
         @if (_tasks is null)
         {
-            <p class="loading">Chargement…</p>
+            <p class="loading">@Ui["Chargement…"]</p>
         }
         else if (_tasks.Count == 0)
         {
-            <div class="empty-state compact"><strong>Votre file est à jour</strong><p>Aucune tâche ne requiert votre intervention.</p></div>
+            <div class="empty-state compact"><strong>@Ui["Votre file est à jour"]</strong><p>@Ui["Aucune tâche ne requiert votre intervention."]</p></div>
         }
         else
         {
@@ -30,10 +31,10 @@
         }
     </section>
     <section class="panel">
-        <div class="section-heading"><div><h2>Mes demandes récentes</h2></div><a class="text-button" href="/requests">Tout afficher <PhosphorIcon Name="arrow-right" Size="16" /></a></div>
+        <div class="section-heading"><div><h2>@Ui["Mes demandes récentes"]</h2></div><a class="text-button" href="/requests">Tout afficher <PhosphorIcon Name="arrow-right" Size="16" /></a></div>
         @if (_requests.Count == 0)
         {
-            <div class="empty-state compact"><strong>Aucune demande récente</strong><p>Les processus que vous démarrez apparaîtront ici.</p></div>
+            <div class="empty-state compact"><strong>@Ui["Aucune demande récente"]</strong><p>@Ui["Les processus que vous démarrez apparaîtront ici."]</p></div>
         }
         else
         {
@@ -79,5 +80,5 @@
     }
 
     private static string StatusClass(WorkflowInstanceStatus status) => status is WorkflowInstanceStatus.Completed ? "success" : status is WorkflowInstanceStatus.Failed or WorkflowInstanceStatus.Cancelled ? "warning" : "progress";
-    private static string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Completed => "Terminée", WorkflowInstanceStatus.Cancelled => "Annulée", WorkflowInstanceStatus.Failed => "En erreur", WorkflowInstanceStatus.Waiting => "En attente", _ => "En cours" };
+    private string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Completed => Ui["Terminée"], WorkflowInstanceStatus.Cancelled => Ui["Annulée"], WorkflowInstanceStatus.Failed => Ui["En erreur"], WorkflowInstanceStatus.Waiting => Ui["En attente"], _ => Ui["En cours"] };
 }

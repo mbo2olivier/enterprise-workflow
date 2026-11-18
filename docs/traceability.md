@@ -93,3 +93,15 @@ Le [plan L12](l12-cli-distributions-branding-plan.md), approuvé le 18 novembre 
 | Contrats partagés et compatibilité | L12-3/6 | Même artefact dans les deux hôtes ; absence/incompatibilité diagnostiquée |
 | Templates et distribution organisationnelle privée | L12-4/6 | Installation feed de test, commande nommée et module préconfiguré |
 | Identité visuelle et localisation L11 | L12-5/6 | Marque/palette cohérentes, réglages contrôlés et rendu bilingue |
+
+## L11 — hôtes, capacités de sécurité et langues
+
+| Besoin | Décision | Implémentation / preuve attendue |
+| --- | --- | --- |
+| Composition d’un kernel personnalisé sans recopier le programme standard | ADR 0029 ; L11-1 | Hosting SDK, adaptation du kernel et exemple `CustomKernel` |
+| Capacités d’identité et maker/checker optionnels | ADR 0029 ; L11-2/3 | Contrats, contrôles serveur et scénarios de conformité des providers |
+| Second facteur optionnel avec écran générique | Arbitrages porteur du 18 novembre ; L11-4 | Handler compilé, absence nominale, challenge sans session et assurance persistée |
+| Secrets de développement hors artefacts et compilations | L11-5 | Tests `.env`, priorité des sources, snapshot et recette native |
+| Langues d’instance et préférence locale ; modules bilingues | L11-6 | Catalogues immuables, migrations SQLite/Oracle, projections et navigateur |
+
+Statut et limites de qualification : [preuve L11](evidence/l11.md). Le plan et les spécifications ne constituent pas une preuve d’exécution.

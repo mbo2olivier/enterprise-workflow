@@ -36,8 +36,9 @@ public sealed class ArchitectureTests
             ["EnterpriseWorkflow.Security.Persistence.Sqlite"] = ["EnterpriseWorkflow.Security.Persistence"],
             ["EnterpriseWorkflow.Sdk"] = ["EnterpriseWorkflow.Abstractions", "EnterpriseWorkflow.Core", "EnterpriseWorkflow.Presentation.Abstractions", "EnterpriseWorkflow.Runtime"],
             ["EnterpriseWorkflow.Web"] = ["EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Security"],
-            ["EnterpriseWorkflow.Kernel"] =
+            ["EnterpriseWorkflow.Hosting"] =
                 ["EnterpriseWorkflow.Extensions", "EnterpriseWorkflow.Persistence.Oracle", "EnterpriseWorkflow.Persistence.Sqlite", "EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Security.Persistence.Oracle", "EnterpriseWorkflow.Security.Persistence.Sqlite", "EnterpriseWorkflow.Web"],
+            ["EnterpriseWorkflow.Kernel"] = ["EnterpriseWorkflow.Hosting"],
         };
 
         var projectPaths = Directory.GetFiles(

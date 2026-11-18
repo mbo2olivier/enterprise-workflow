@@ -43,7 +43,7 @@ public sealed class LeaveRequestModuleTests
             Assert.Equal("sample.leave-request.leave-request", process.Definition.Id.Value);
             Assert.Empty(process.DesignatedAssignmentNodes);
             Assert.Equal(4, catalog.Permissions.Length);
-            Assert.Equal(9, process.Definition.Version);
+            Assert.Equal(10, process.Definition.Version);
             var draft = process.Definition.Nodes.Single(node => node.Id.Value == "draft");
             var manager = process.Definition.Nodes.Single(node => node.Id.Value == "validation-manager");
             var hr = process.Definition.Nodes.Single(node => node.Id.Value == "validation-rh");
@@ -84,7 +84,9 @@ public sealed class LeaveRequestModuleTests
                 new(invalid, "start", null, []), TestContext.Current.CancellationToken);
             var error = Assert.Single(errors);
             Assert.Equal("leave.invalid-dates", error.Code);
-            Assert.Contains("date de fin", error.Message, StringComparison.Ordinal);
+            Assert.Contains("End date", error.Message, StringComparison.Ordinal);
+            Assert.NotNull(error.LocalizedMessage);
+            Assert.Contains("date de fin", error.LocalizedMessage.Resolve("fr", "en"), StringComparison.Ordinal);
             Assert.Null(error.Field);
         }
         finally

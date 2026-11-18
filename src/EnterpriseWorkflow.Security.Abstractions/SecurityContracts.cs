@@ -11,12 +11,20 @@ public interface IAuthenticationProvider
     ValueTask<AuthenticationResult> AuthenticateAsync(PasswordCredential credential, CancellationToken cancellationToken);
 }
 
-public interface IIdentityDirectory
+public interface IIdentityDirectory : IIdentityResolver, IIdentitySearchProvider
 {
-    string ProviderId { get; }
+    // Redeclarations preserve the existing interface surface for compiled consumers.
+    new string ProviderId { get; }
     DirectoryCapabilities Capabilities { get; }
-    ValueTask<ProviderResult<DirectoryIdentity>> FindAsync(IdentityReference identity, bool includeGroups, CancellationToken cancellationToken);
-    ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken);
+    new ValueTask<ProviderResult<DirectoryIdentity>> FindAsync(IdentityReference identity, bool includeGroups, CancellationToken cancellationToken);
+    new ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> SearchAsync(string query, int maximumResults, CancellationToken cancellationToken);
+
+    string IIdentityResolver.ProviderId => ProviderId;
+    string IIdentitySearchProvider.ProviderId => ProviderId;
+    ValueTask<ProviderResult<DirectoryIdentity>> IIdentityResolver.FindAsync(IdentityReference identity, bool includeGroups, CancellationToken cancellationToken) =>
+        FindAsync(identity, includeGroups, cancellationToken);
+    ValueTask<ProviderResult<IReadOnlyList<DirectoryIdentity>>> IIdentitySearchProvider.SearchAsync(string query, int maximumResults, CancellationToken cancellationToken) =>
+        SearchAsync(query, maximumResults, cancellationToken);
 }
 
 public interface IAuthorizationProvider

@@ -134,3 +134,11 @@ EF-05/09/11 incluent un sélecteur réutilisable avec recherche distante partiel
 ## Implémentation locale L9b — 25 octobre 2026
 
 Les exigences EF-17 à EF-21, le state DTO et le sélecteur distant sont implémentés localement. Le [guide SDK/exploitation](l9b-sdk.md) décrit leurs contrats effectifs ; la [preuve L9b](evidence/l9b.md) distingue qualifications locales et limites. Le gate intégré L9b est fermé le 27 octobre 2026 sur confirmation explicite par le porteur des tests lourds locaux et de la pipeline GitHub ; L10 reste à démarrer.
+
+## Évolutions L11 — décision du 18 novembre 2026
+
+Le porteur autorise l’implémentation du [lot L11](l11-hosting-security-localization-plan.md), détaillé dans la [spécification](l11-spec.md). La série L10 reste close. Le SDK d’hébergement compose les kernels personnalisés ; authentification tierce, résolution/provisionnement maker/checker et second facteur sont des capacités implémentées par l’hôte. Le kernel standard conserve ses providers et n’est obligé d’implémenter aucune de ces extensions. La double authentification est désactivée par défaut ; son activation sans handler compilé est une erreur de configuration. Un écran générique EW est demandé par le porteur.
+
+Sans statut distant disponible, les sessions restent soumises à l’expiration et à la révocation locales. Les rôles et permissions restent locaux. Le maker/checker importe uniquement dans EW, approuve conjointement identité/profils et relit la source avant activation. `ew dev` charge le seul `.env` facultatif ou un fichier explicite, garde ses identités JSON et exclut la seconde authentification. Les langues par défaut/de repli de l’instance sont configurables ; une préférence utilisateur locale est proposée. Les traductions métier sont résolues à l’affichage sans modifier les identifiants ou les valeurs métier.
+
+Cette entrée décrit le périmètre autorisé, pas une clôture de qualification ou une publication.

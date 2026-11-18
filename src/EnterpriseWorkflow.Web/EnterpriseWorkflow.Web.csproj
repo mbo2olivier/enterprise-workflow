@@ -4,6 +4,7 @@
     <RootNamespace>EnterpriseWorkflow.Web</RootNamespace>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
+  <ItemGroup><EmbeddedResource Include="Localization/*.json" /></ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

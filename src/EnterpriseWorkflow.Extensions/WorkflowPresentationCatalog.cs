@@ -207,7 +207,7 @@ public sealed class WorkflowPresentationCatalog : IWorkflowPresentationCatalog
                     throw new WorkflowModuleLoadException("EW7032_PROCESS_OWNER_MISMATCH", "The reused definition does not reference its original owner.");
                 var descriptor = new WorkflowProcessDescriptor(definition, processOwner, declaration.Title,
                     declaration.Description, declaration.StartForm, declaration.InitialStateSchemaVersion,
-                    declaration.DesignatedAssignmentNodes, declaration.IconResourcePath, declaration.StateInitializerType, declaration.StateValidatorTypes);
+                    declaration.DesignatedAssignmentNodes, declaration.IconResourcePath, declaration.StateInitializerType, declaration.StateValidatorTypes) { LocalizedTitle = declaration.LocalizedTitle, LocalizedDescription = declaration.LocalizedDescription };
                 var processKey = new ProcessKey(definition.Id.Value, definition.Version);
                 if (processes.TryGetValue(processKey, out var existing) && existing.Definition.Sha256 == definition.Sha256 &&
                     builder.IsReferencedProcess(declaration.Id.Value, declaration.Version)) continue;

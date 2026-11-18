@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/EnterpriseWorkflow.Hosting/EnterpriseWorkflow.Hosting.csproj" />
     <Project Path="src/EnterpriseWorkflow.Cli/EnterpriseWorkflow.Cli.csproj" />
     <Project Path="src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj" />
     <Project Path="src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj" />
@@ -37,6 +38,7 @@
     <Project Path="templates/EnterpriseWorkflow.Templates.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/CustomKernel/CustomKernel.csproj" />
     <Project Path="samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj" />
     <Project Path="samples/ExecutableWorkflow/ExecutableWorkflow.csproj" />
     <Project Path="samples/SecurityApi/SecurityApi.csproj" />

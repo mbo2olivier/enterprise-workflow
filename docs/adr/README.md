@@ -36,3 +36,5 @@ Une modification significative donnera lieu à un nouvel ADR qui remplace le pr�
 | [0027](0027-consultation-medias-audit-tat-l9b.md) | Lecture/recherche autorisée, audit/export, médias et projections TAT | A1–A7 acceptés le 25 octobre 2026 ; implémentation locale et limites suivies en L9b |
 
 - [ADR 0028 — État typé obligatoire et commentaires déclaratifs d’approbation](0028-etat-type-obligatoire-et-commentaires-approbation.md) — accepté, implémenté localement, qualification en cours.
+
+- [ADR 0029 — Composition d’hôtes et capacités optionnelles L11](0029-composition-hotes-et-capacites-l11.md) — orientations acceptées, implémentation en cours ; seconde authentification optionnelle, écran générique et sessions locales sans statut distant confirmés le 18 novembre 2026.

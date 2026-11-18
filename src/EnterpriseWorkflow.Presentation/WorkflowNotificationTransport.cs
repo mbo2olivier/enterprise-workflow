@@ -38,9 +38,17 @@ public interface IWorkflowMailSender
     ValueTask SendAsync(string address, string taskUrl, string idempotencyKey, CancellationToken cancellationToken);
 }
 
-public sealed class SmtpWorkflowMailSender(WorkflowSmtpOptions options) : IWorkflowMailSender
+public interface ILocalizedWorkflowMailSender : IWorkflowMailSender
 {
-    public async ValueTask SendAsync(string address, string taskUrl, string idempotencyKey, CancellationToken cancellationToken)
+    ValueTask SendAsync(string address, string taskUrl, string idempotencyKey, string culture, string fallbackCulture, CancellationToken cancellationToken);
+}
+
+public sealed class SmtpWorkflowMailSender(WorkflowSmtpOptions options) : ILocalizedWorkflowMailSender
+{
+    public ValueTask SendAsync(string address, string taskUrl, string idempotencyKey, CancellationToken cancellationToken) =>
+        SendAsync(address, taskUrl, idempotencyKey, "fr", "en", cancellationToken);
+
+    public async ValueTask SendAsync(string address, string taskUrl, string idempotencyKey, string culture, string fallbackCulture, CancellationToken cancellationToken)
     {
         using var client = new SmtpClient(options.Host!, options.Port)
         {
@@ -49,7 +57,11 @@ public sealed class SmtpWorkflowMailSender(WorkflowSmtpOptions options) : IWorkf
             Timeout = options.TimeoutSeconds * 1000,
         };
         if (!string.IsNullOrWhiteSpace(options.UserName)) client.Credentials = new NetworkCredential(options.UserName, options.Password);
-        using var message = new MailMessage(options.From!, address, "Une tâche est disponible", $"Une tâche est disponible dans votre file : {taskUrl}");
+        var subject = new EnterpriseWorkflow.Abstractions.WorkflowText("notification.task.subject", "A task is available",
+            new Dictionary<string, string> { ["fr"] = "Une tâche est disponible", ["en"] = "A task is available" }).Resolve(culture, fallbackCulture);
+        var body = new EnterpriseWorkflow.Abstractions.WorkflowText("notification.task.body", "A task is available in your inbox: {0}",
+            new Dictionary<string, string> { ["fr"] = "Une tâche est disponible dans votre file : {0}", ["en"] = "A task is available in your inbox: {0}" }).Resolve(culture, fallbackCulture);
+        using var message = new MailMessage(options.From!, address, subject, string.Format(System.Globalization.CultureInfo.GetCultureInfo(culture), body, taskUrl));
         message.Headers.Add("X-Workflow-Idempotency-Key", idempotencyKey);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
@@ -68,6 +80,11 @@ public sealed class WorkflowNotificationTransport(
     IWorkflowMailSender sender,
     IExternalEffectTransport fallback) : IExternalEffectTransport
 {
+    public IUserCulturePreferenceStore? CulturePreferences { get; init; }
+    public string DefaultCulture { get; init; } = "fr";
+    public string FallbackCulture { get; init; } = "en";
+    public IReadOnlySet<string> SupportedCultures { get; init; } = new HashSet<string>(["en", "fr"], StringComparer.OrdinalIgnoreCase);
+
     public async ValueTask<ExternalEffectDeliveryResult> DeliverAsync(OutboxLease message, CancellationToken cancellationToken)
     {
         if (message.Destination.Value is not ("workflow.pool-notification" or "workflow.pool-mail"))
@@ -102,7 +119,14 @@ public sealed class WorkflowNotificationTransport(
             if (string.IsNullOrWhiteSpace(address)) return ExternalEffectDeliveryResult.PermanentFailure("notification.email-missing");
             try
             {
-                await sender.SendAsync(address, $"{options.BaseUrl.TrimEnd('/')}/tasks/{task.TaskId.Value:D}", message.IdempotencyKey, cancellationToken).ConfigureAwait(false);
+                var taskUrl = $"{options.BaseUrl.TrimEnd('/')}/tasks/{task.TaskId.Value:D}";
+                if (sender is ILocalizedWorkflowMailSender localized)
+                {
+                    var preference = CulturePreferences is null ? null : await CulturePreferences.ReadCultureAsync(recipient.Identity, cancellationToken).ConfigureAwait(false);
+                    var culture = preference is not null && SupportedCultures.Contains(preference) ? preference : DefaultCulture;
+                    await localized.SendAsync(address, taskUrl, message.IdempotencyKey, culture, FallbackCulture, cancellationToken).ConfigureAwait(false);
+                }
+                else await sender.SendAsync(address, taskUrl, message.IdempotencyKey, cancellationToken).ConfigureAwait(false);
                 return ExternalEffectDeliveryResult.Success();
             }
             catch (FormatException) { return ExternalEffectDeliveryResult.PermanentFailure("notification.email-invalid"); }

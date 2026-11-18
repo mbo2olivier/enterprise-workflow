@@ -4,11 +4,14 @@ using System.Text.Json;
 
 internal static class DevelopmentRunner
 {
-    internal static async Task RunAsync(string project, string? configFile, string? url, bool noWatch, string? configuration, bool reset, string[] additionalModules, string? environment = null, string? artifact = null)
+    internal static async Task RunAsync(string project, string? configFile, string? url, bool noWatch, string? configuration, bool reset, string[] additionalModules, string? environment = null, string? artifact = null, string? envFile = null, bool noEnvFile = false)
     {
         var sourceMode = artifact is null;
         var root = sourceMode ? Path.GetDirectoryName(project)! : configFile is null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(configFile))!;
-        var config = await DevelopmentConfiguration.ReadAsync(sourceMode ? project : Path.Combine(root, "artifact.csproj"), configFile, url, noWatch, environment, configuration);
+        var environmentValues = await DevelopmentEnvironment.ReadAsync(sourceMode ? root : Path.GetFullPath(artifact!), envFile, noEnvFile);
+        if (DevelopmentEnvironment.Configuration(environmentValues)["Localization:DefaultCulture"] is { } consoleCulture)
+            System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo(consoleCulture);
+        var config = await DevelopmentConfiguration.ReadAsync(sourceMode ? project : Path.Combine(root, "artifact.csproj"), configFile, url, noWatch, environment, configuration, environmentValues);
         if (!sourceMode) config.Watch = false;
         config.ModuleDirectories = config.ModuleDirectories.Concat(additionalModules).Distinct(StringComparer.Ordinal).ToArray();
         var stateRoot = config.StateRoot;
@@ -23,15 +26,15 @@ internal static class DevelopmentRunner
             var archive = Path.Combine(root, ".ew", "archives", config.EnvironmentName + "-" + Guid.NewGuid().ToString("N"));
             DevelopmentArtifacts.EnsureOwnedPath(archive);
             Directory.CreateDirectory(Path.GetDirectoryName(archive)!); Directory.Move(stateRoot, archive);
-            Console.WriteLine($"Ancien environnement conservé : {archive}");
+            Console.WriteLine(CliText.Format("Ancien environnement conservé : {0}", "Previous environment preserved: {0}", archive));
         }
         Directory.CreateDirectory(stateRoot);
         Directory.CreateDirectory(Path.GetDirectoryName(config.Storage.Path!)!);
         var artifacts = Path.Combine(stateRoot, "artifacts"); Directory.CreateDirectory(artifacts);
         var runtimeConfig = Path.Combine(stateRoot, "runtime.json");
         await File.WriteAllTextAsync(runtimeConfig, JsonSerializer.Serialize(config));
-        Console.WriteLine($"Environnement : {config.EnvironmentName} — {stateRoot}");
-        if (Directory.Exists(Path.Combine(root, ".ew", "dev"))) Console.WriteLine("Ancien espace .ew/dev conservé ; il n’est ni importé ni réinitialisé automatiquement.");
+        Console.WriteLine(CliText.Format("Environnement : {0} — {1}", "Environment: {0} — {1}", config.EnvironmentName, stateRoot));
+        if (Directory.Exists(Path.Combine(root, ".ew", "dev"))) Console.WriteLine(CliText.Get("Ancien espace .ew/dev conservé ; il n’est ni importé ni réinitialisé automatiquement.", "Legacy .ew/dev workspace preserved; it is not imported or reset automatically."));
         var projectRoot = root;
         using var stop = new CancellationTokenSource();
         ConsoleCancelEventHandler handler = (_, eventArgs) => { eventArgs.Cancel = true; stop.Cancel(); };
@@ -49,7 +52,7 @@ internal static class DevelopmentRunner
                 if (host.ExitCode != 0) throw new InvalidOperationException($"Development host failed (exit {host.ExitCode}).");
                 return;
             }
-            Console.WriteLine("Surveillance active. Identités : /__ew/dev — Ctrl+C pour arrêter.");
+            Console.WriteLine(CliText.Get("Surveillance active. Identités : /__ew/dev — Ctrl+C pour arrêter.", "Watching. Identities: /__ew/dev — Ctrl+C to stop."));
             while (!stop.IsCancellationRequested)
             {
                 await Task.Delay(750, stop.Token);
@@ -61,7 +64,7 @@ internal static class DevelopmentRunner
                 catch (Exception exception) when (exception is InvalidOperationException or IOException)
                 {
                     Console.Error.WriteLine(exception.Message);
-                    Console.Error.WriteLine(host.HasExited ? "Runtime arrêté." : "Ancienne génération toujours active.");
+                    Console.Error.WriteLine(host.HasExited ? CliText.Get("Runtime arrêté.", "Runtime stopped.") : CliText.Get("Ancienne génération toujours active.", "Previous generation is still active."));
                 }
             }
         }
@@ -117,6 +120,8 @@ internal static class DevelopmentRunner
                 Stop(host);
                 var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardInput = true };
                 foreach (var argument in new[] { typeof(DevelopmentRunner).Assembly.Location, "__host-session", runtimeConfig, stateRoot, bool.TrueString, primary }.Concat(modules)) start.ArgumentList.Add(argument);
+                foreach (var pair in DevelopmentEnvironment.HostValues(environmentValues))
+                    start.Environment[DevelopmentEnvironment.HostPrefix + pair.Key] = pair.Value;
                 var nextHost = Process.Start(start) ?? throw new InvalidOperationException("Could not start development host.");
                 host?.Dispose(); return nextHost;
             }

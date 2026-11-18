@@ -1,25 +1,26 @@
+@inject WorkflowUiLocalizer Ui
 @page "/login"
 @attribute [AllowAnonymous]
 @layout LoginLayout
 
-<PageTitle>Connexion · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["Connexion · Enterprise Workflow"]</PageTitle>
 <main class="login-page">
     <div class="grid-reveal login-grid-reveal" aria-hidden="true"></div>
     <section class="login-panel panel">
         <span class="brand-mark login-brand"><PhosphorIcon Name="sparkle" Size="20" /></span>
         <p class="eyebrow">Enterprise Workflow</p>
-        <h1>Se connecter</h1>
-        <p>Utilisez les identifiants du fournisseur configuré pour cette installation.</p>
+        <h1>@Ui["Se connecter"]</h1>
+        <p>@Ui["Utilisez les identifiants du fournisseur configuré pour cette installation."]</p>
         @if (!string.IsNullOrWhiteSpace(Error))
         {
-            <div class="form-error" role="alert">Identifiants invalides ou fournisseur indisponible.</div>
+            <div class="form-error" role="alert">@Ui["Identifiants invalides ou fournisseur indisponible."]</div>
         }
         <form method="post" action="/auth/login" class="request-form login-form">
             <AntiforgeryToken />
             <input type="hidden" name="returnUrl" value="@ReturnUrl" />
-            <label>Identifiant<input name="userName" autocomplete="username" required autofocus /></label>
-            <label>Mot de passe<input name="password" type="password" autocomplete="current-password" required /></label>
-            <button class="primary-button" type="submit">Se connecter</button>
+            <label>@Ui["Identifiant"]<input name="userName" autocomplete="username" required autofocus /></label>
+            <label>@Ui["Mot de passe"]<input name="password" type="password" autocomplete="current-password" required /></label>
+            <button class="primary-button" type="submit">@Ui["Se connecter"]</button>
         </form>
     </section>
 </main>

@@ -67,3 +67,12 @@ Liveness : processus actif. Readiness : capacité à accepter/exécuter avec bas
 ## Rétention et mise hors service
 
 Rétention à définir avant données réelles ; pas de purge automatique implicite. Avant suppression d’un module, compte ou fournisseur : examiner instances actives, tâches affectées et audit à conserver. Avant retrait d’une installation : traiter les processus en cours et préserver les éléments exigés par sa politique locale.
+
+
+## Préparation des hôtes L11
+
+Avant déploiement d’un kernel personnalisé L11, appliquer explicitement les nouvelles migrations de sécurité pour les préférences de langue et l’assurance des sessions. Conserver une sauvegarde et vérifier la restauration selon le runbook existant. Le kernel standard conserve `migrate` et `bootstrap` ; le SDK d’hébergement expose leurs opérations distinctes de la construction de l’hôte.
+
+La seconde authentification reste désactivée par défaut. Un hôte peut ne fournir aucun handler ; l’activer sans handler compilé empêche le démarrage. L’activation impose la reconnexion des anciennes sessions simples. Partager/persister les clés Data Protection et le stockage des challenges entre réplicas ; le handler personnalisé doit assurer expiration, nombre d’essais et consommation atomique. Sans capacité de statut distant, les sessions respectent expiration et révocation locales ; une panne d’un statut effectivement enregistré n’est pas ignorée.
+
+Les fichiers `.env` sont réservés à `ew dev`, jamais chargés automatiquement par le kernel de production. La préférence de langue se conserve localement par identité ; la configuration définit les langues disponibles/par défaut/de repli. Les données métier, IDs et timestamps persistés ne sont pas traduits.

@@ -64,6 +64,9 @@ public sealed class WorkflowModuleBuilder(WorkflowModuleInfo info)
         return this;
     }
 
+    public WorkflowModuleBuilder AddForm(string id, WorkflowText title, Action<WorkflowFormBuilder> configure) =>
+        AddForm(id, title.Fallback, form => { form.LocalizedTitle = title; configure(form); });
+
     public WorkflowModuleBuilder AddForm(string id, string title, Action<WorkflowFormBuilder> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -93,7 +96,7 @@ public sealed class WorkflowModuleBuilder(WorkflowModuleInfo info)
         AddDependency(process.ModuleArtifact);
         var declaration = new WorkflowProcessDeclaration(process.Definition.Id, process.Definition.Version,
             process.Title, process.Description, process.StartForm, process.InitialStateSchemaVersion,
-            _ => process.Definition, process.DesignatedAssignmentNodes, process.IconResourcePath, process.StateInitializerType, process.StateValidatorTypes);
+            _ => process.Definition, process.DesignatedAssignmentNodes, process.IconResourcePath, process.StateInitializerType, process.StateValidatorTypes) { LocalizedTitle = process.LocalizedTitle, LocalizedDescription = process.LocalizedDescription };
         _reusedProcesses.Add((declaration, process.ModuleArtifact));
         return this;
     }
@@ -169,6 +172,7 @@ public sealed class WorkflowFormBuilder
     private readonly WorkflowModuleBuilder? _module;
     private readonly WorkflowFormReference _reference;
     private readonly string _title;
+    internal WorkflowText? LocalizedTitle { get; set; }
     private readonly List<WorkflowFieldBuilder> _fields = [];
     private Type? _handlerType;
     private WorkflowHandlerReference? _handler;
@@ -201,7 +205,7 @@ public sealed class WorkflowFormBuilder
     internal WorkflowFormDefinition Build(Func<Type, WorkflowHandlerReference> resolve)
     {
         _ = Handler(resolve);
-        return _existing ?? new(_reference, _title, _fields.Select(field => field.Build(_module)).ToImmutableArray(), _component);
+        return _existing ?? new(_reference, _title, _fields.Select(field => field.Build(_module)).ToImmutableArray(), _component) { LocalizedTitle = LocalizedTitle };
     }
     internal static WorkflowFormBuilder Reference(WorkflowFormDefinition form, WorkflowHandlerReference handler, WorkflowArtifactReference owner) =>
         new(form.Reference, form.Title) { _existing = form, _handler = handler, Owner = owner };
@@ -212,12 +216,19 @@ public sealed class WorkflowFieldsBuilder
     private readonly List<WorkflowFieldBuilder> _fields;
     private readonly WorkflowFieldAudience _audience;
     internal WorkflowFieldsBuilder(List<WorkflowFieldBuilder> fields, WorkflowFieldAudience audience) { _fields = fields; _audience = audience; }
+    public WorkflowFieldBuilder LongText(string id, WorkflowText label) => LongText(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder LongText(string id, string label) => Add(id, label, WorkflowFormFieldKind.LongText);
+    public WorkflowFieldBuilder Text(string id, WorkflowText label) => Text(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder Text(string id, string label) => Add(id, label, WorkflowFormFieldKind.ShortText);
+    public WorkflowFieldBuilder Date(string id, WorkflowText label) => Date(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder Date(string id, string label) => Add(id, label, WorkflowFormFieldKind.Date);
+    public WorkflowFieldBuilder Choice(string id, WorkflowText label) => Choice(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder Choice(string id, string label) => Add(id, label, WorkflowFormFieldKind.Choice);
+    public WorkflowFieldBuilder Number(string id, WorkflowText label) => Number(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder Number(string id, string label) => Add(id, label, WorkflowFormFieldKind.Number);
+    public WorkflowFieldBuilder File(string id, WorkflowText label) => File(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder File(string id, string label) => Add(id, label, WorkflowFormFieldKind.File);
+    public WorkflowFieldBuilder Boolean(string id, WorkflowText label) => Boolean(id, label.Fallback).LocalizedLabel(label);
     public WorkflowFieldBuilder Boolean(string id, string label) => Add(id, label, WorkflowFormFieldKind.Boolean);
     private WorkflowFieldBuilder Add(string id, string label, WorkflowFormFieldKind kind)
     {
@@ -233,6 +244,13 @@ public sealed class WorkflowFieldBuilder
     internal WorkflowFieldBuilder(WorkflowFormField field) => _field = field;
     public WorkflowFieldBuilder UseMediaPolicy(string id) { if (_field.Kind != WorkflowFormFieldKind.File) throw new InvalidOperationException("Media policies apply to file fields only."); _ = new TechnicalId(id); _field = _field with { FileSpecification = new(0, _field.FileSpecification?.MaximumFiles ?? 1, [], [], id) }; return this; }
     public WorkflowFieldBuilder MaximumFiles(int count) { if (_field.Kind != WorkflowFormFieldKind.File) throw new InvalidOperationException("File count applies to file fields only."); if (count is < 1 or > 8) throw new ArgumentOutOfRangeException(nameof(count)); _field = _field with { FileSpecification = (_field.FileSpecification ?? new(0, 1, [], [])) with { MaximumFiles = count } }; return this; }
+    internal WorkflowFieldBuilder LocalizedLabel(WorkflowText text) { _field = _field with { LocalizedLabel = text }; return this; }
+    public WorkflowFieldBuilder Help(WorkflowText text) { _field = _field with { HelpText = text.Fallback, LocalizedHelp = text }; return this; }
+    public WorkflowFieldBuilder Options(params (string Value, WorkflowText Label)[] choices)
+    {
+        _field = _field with { Options = choices.Select(choice => new WorkflowChoiceOption(choice.Value, choice.Label.Fallback) { LocalizedLabel = choice.Label }).ToImmutableArray() };
+        return this;
+    }
     public WorkflowFieldBuilder Required() { _field = _field with { Required = true }; return this; }
     public WorkflowFieldBuilder ReadableBy(WorkflowFieldAudience audience) { _field = _field with { ReadableBy = audience }; return this; }
     public WorkflowFieldBuilder Length(int minimum, int maximum) { _field = _field with { MinimumLength = minimum, MaximumLength = maximum }; return this; }

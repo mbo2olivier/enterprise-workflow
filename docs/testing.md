@@ -109,3 +109,11 @@ La [preuve L10](evidence/l10.md) consigne les vérifications de préparation des
 packages et archives. Le mode `public` de `scripts/qualify-l9.sh` prépare la
 recette depuis NuGet.org ; son exécution reste conditionnée à la publication.
 Ces contrôles ne ferment pas G4 ni la qualification de distribution.
+
+## Qualification L11
+
+La compilation de solution et les tests locaux couvrent composition web/non-web, capacités optionnelles, admission/révocation, second facteur et préférence linguistique. `SecondFactorTests` démarre un serveur HTTP réel avec un handler de test à consommation unique. Les scénarios de `IdentityProvisioningTests` sont à reproduire contre le stockage durable du provider de l’organisation ; son double mémoire ne prouve pas cette intégration. Les tests de catalogues vérifient que deux langues partagent les mêmes IDs/valeurs et que les métadonnées ne changent pas à la résolution.
+
+Les migrations Oracle disposent d’un contrôle de génération de SQL hors ligne. La qualification sur Oracle 19 réel reste distincte, requiert un schéma jetable et ne doit jamais être remplacée par ce contrôle. La recette navigateur inclut le changement/restauration de la préférence de langue ; la recette native de `ew dev` reste opt-in. Voir [preuve L11](evidence/l11.md).
+
+Recette lourde déléguée au porteur le 18 novembre 2026 pour limiter les tokens : [L11 — étapes détaillées](validation/l11-recette-porteur.md). Ne pas relancer ces campagnes automatiquement ; consolider les résultats retournés dans la preuve L11.

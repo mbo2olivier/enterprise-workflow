@@ -1,13 +1,14 @@
+@inject WorkflowUiLocalizer Ui
 @page "/inbox"
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
 
-<PageTitle>À traiter · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["À traiter · Enterprise Workflow"]</PageTitle>
 <div class="content content-medium">
-    <div class="page-intro"><p class="eyebrow">Votre file</p><h1>À traiter</h1><p>Les tâches sont filtrées avec vos habilitations actuelles.</p></div>
-    @if (_tasks is null) { <p class="loading">Chargement…</p> }
-    else if (_tasks.Count == 0) { <section class="panel empty-state"><h2>Aucune tâche</h2><p>Votre file est à jour.</p></section> }
+    <div class="page-intro"><p class="eyebrow">@Ui["Votre file"]</p><h1>@Ui["À traiter"]</h1><p>@Ui["Les tâches sont filtrées avec vos habilitations actuelles."]</p></div>
+    @if (_tasks is null) { <p class="loading">@Ui["Chargement…"]</p> }
+    else if (_tasks.Count == 0) { <section class="panel empty-state"><h2>@Ui["Aucune tâche"]</h2><p>@Ui["Votre file est à jour."]</p></section> }
     else { <section class="panel request-list">@foreach (var task in _tasks) { @if (_views.GetValueOrDefault(task.TaskId) is { Request: { } request } view) { <WorkflowRequestRow Request="request" Href="@($"/tasks/{task.TaskId.Value}")" StageId="@task.NodeId.Value" StageLabel="@view.NodeLabel" /> } }</section> }
 </div>
 

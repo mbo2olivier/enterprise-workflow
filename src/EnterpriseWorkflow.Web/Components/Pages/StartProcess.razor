@@ -1,18 +1,19 @@
+@inject WorkflowUiLocalizer Ui
 @page "/start/{ProcessId}/{Version:int}"
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
 @inject WorkflowFormFeedbackStore FeedbackStore
 
-<PageTitle>@(_process?.Title ?? "Démarrer") · Enterprise Workflow</PageTitle>
+<PageTitle>@(_process?.Title ?? Ui["Démarrer"]) · Enterprise Workflow</PageTitle>
 <div class="content content-small">
     @if (_process is null)
     {
-        <section class="panel empty-state"><h1>Processus indisponible</h1><p>Ce processus n’existe pas ou vous n’êtes pas autorisé à le démarrer.</p><a class="secondary-button" href="/start">Retour au catalogue</a></section>
+        <section class="panel empty-state"><h1>@Ui["Processus indisponible"]</h1><p>@Ui["Ce processus n’existe pas ou vous n’êtes pas autorisé à le démarrer."]</p><a class="secondary-button" href="/start">@Ui["Retour au catalogue"]</a></section>
     }
     else
     {
-        <div class="page-intro"><p class="eyebrow">Nouveau dossier</p><h1>@_process.Title</h1><p>@_process.Description</p></div>
+        <div class="page-intro"><p class="eyebrow">@Ui["Nouveau dossier"]</p><h1>@_process.Title</h1><p>@_process.Description</p></div>
         <WorkflowValidationSummary Form="_process.StartForm" Errors="ValidationErrors" />
         <WorkflowFormView ComponentType="_process.CustomComponentType" />
         <form method="post" action="/workflow/start/@_process.Id/@_process.Version" class="panel request-form workflow-form">
@@ -23,11 +24,11 @@
             {
                 <WorkflowCandidatePicker Name="@($"assignment.{node.Value}.identity")"
                     Value="@_feedback?.Values.GetValueOrDefault($"assignment.{node.Value}.identity")"
-                    Label="Responsable désigné"
+                    Label="@(Ui["Responsable désigné"])"
                     Endpoint="@($"/workflow/candidates/start/{Uri.EscapeDataString(_process.Id)}/{_process.Version}/{Uri.EscapeDataString(node.Value)}")" />
 
             }
-            <div class="form-actions"><a class="secondary-button" href="/start">Annuler</a><button class="primary-button" type="submit">Envoyer la demande</button></div>
+            <div class="form-actions"><a class="secondary-button" href="/start">@Ui["Annuler"]</a><button class="primary-button" type="submit">@Ui["Envoyer la demande"]</button></div>
         </form>
     }
 </div>

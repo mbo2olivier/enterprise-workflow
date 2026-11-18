@@ -26,9 +26,14 @@ public sealed class OracleSecurityStoreTests
         Assert.Equal(ProviderOutcome.Succeeded, (await store.MapGroupAsync(new("ad", "oracle-group"), profile.Id, actor, TestContext.Current.CancellationToken)).Outcome);
         Assert.Contains(WorkflowPermissions.ManageAccess, (await store.ResolvePermissionsAsync(new("ad", "member"), new HashSet<string> { "oracle-group" }, TestContext.Current.CancellationToken)).Value!);
         var now = new DateTimeOffset(2026, 10, 3, 12, 0, 0, TimeSpan.Zero);
-        var session = new SecuritySession(new string('a', 64), actor, now, now, now.AddHours(8), now, false, 0);
+        var session = new SecuritySession(new string('a', 64), actor, now, now, now.AddHours(8), now, false, 0) { SecondFactorVerified = true };
         Assert.Equal(ProviderOutcome.Succeeded, (await store.CreateSessionAsync(session, TestContext.Current.CancellationToken)).Outcome);
         Assert.Equal(actor, (await store.FindSessionAsync(session.TokenDigest, TestContext.Current.CancellationToken)).Value!.Identity);
+        Assert.True((await store.FindSessionAsync(session.TokenDigest, TestContext.Current.CancellationToken)).Value!.SecondFactorVerified);
+        await store.SetCultureAsync(new("external", "oracle-user"), "en", TestContext.Current.CancellationToken);
+        Assert.Equal("en", await database.CreateStore().ReadCultureAsync(new("external", "oracle-user"), TestContext.Current.CancellationToken));
+        await store.SetCultureAsync(new("external", "oracle-user"), null, TestContext.Current.CancellationToken);
+        Assert.Null(await store.ReadCultureAsync(new("external", "oracle-user"), TestContext.Current.CancellationToken));
         var scope = new WorkflowAuthorizationScope("oracle-approval", 1, "manager", WorkflowActions.ApproveTask);
         var recipient = WorkflowGrantRecipient.ForIdentity(actor);
         Assert.Equal(ProviderOutcome.Succeeded, (await store.GrantAsync(new(scope, recipient), actor, TestContext.Current.CancellationToken)).Outcome);

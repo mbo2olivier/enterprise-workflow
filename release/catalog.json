@@ -10,6 +10,7 @@
     "src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj",
     "src/EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj",
     "src/EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj",
+    "src/EnterpriseWorkflow.Hosting/EnterpriseWorkflow.Hosting.csproj",
     "src/EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj",
     "src/EnterpriseWorkflow.Persistence.Oracle/EnterpriseWorkflow.Persistence.Oracle.csproj",
     "src/EnterpriseWorkflow.Persistence.Sqlite/EnterpriseWorkflow.Persistence.Sqlite.csproj",

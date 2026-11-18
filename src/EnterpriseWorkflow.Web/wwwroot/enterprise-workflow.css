@@ -140,3 +140,10 @@ button,input,select,textarea { font:inherit; }
 .workflow-form [aria-invalid="true"] { border-color: #b72d2d; }
 .validation-summary ul { margin-bottom: 0; padding-left: 20px; }
 .validation-summary a { color: inherit; text-decoration: underline; }
+
+/* Direct language selection in the top bar, with no dedicated profile page. */
+.language-toggle{display:flex;align-items:center;gap:2px;margin:0;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff;max-width:40vw;overflow-x:auto;flex-shrink:0}
+.language-toggle button{min-width:34px;min-height:34px;padding:5px 7px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.language-toggle button[aria-pressed=true]{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,white)}
+.language-toggle button:hover{background:#edf3fb}.language-toggle button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}.language-toggle .language-reset{min-width:28px;font-size:17px}
+@media(max-width:600px){.language-toggle{gap:0;padding:2px}.language-toggle button{min-width:30px;padding:4px}.topbar-actions{gap:6px}}

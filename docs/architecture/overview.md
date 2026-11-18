@@ -80,3 +80,7 @@ Un module explicitement configuré mais incompatible doit empêcher la disponibi
 ## Déploiement minimal
 
 Un processus Host et une base ; un worker à concurrence bornée. Aucun serveur de messages, conteneur ou service JavaScript obligatoire. Une qualification multi-hôte est différée ; les tests de concurrence restent requis dès le premier worker. Le détail de l’hébergement en service Windows, service Linux ou processus macOS appartient à la documentation de distribution, pas au Core.
+
+## SDK d’hébergement L11
+
+`EnterpriseWorkflow.Hosting` compose configuration, persistance, modules, workers, sécurité locale et, sur demande, présentation web. Les builders web/non-web conservent les points de configuration .NET et permettent l’enregistrement de services/handlers propres à l’instance. Ce package serveur n’est pas référencé par le SDK d’auteur des modules. Le kernel standard devient une composition de référence ; migrations/bootstrap restent explicites. Les contrats d’identité et second facteur sont légers et optionnels. Voir [L11](../l11-spec.md) et la [preuve de qualification](../evidence/l11.md).

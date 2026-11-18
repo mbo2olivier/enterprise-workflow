@@ -13,6 +13,8 @@ public sealed class WorkflowTypedProcessBuilder<TState> where TState : class
     private readonly WorkflowProcessBuilder _inner;
     internal WorkflowTypedProcessBuilder(WorkflowProcessBuilder inner) => _inner = inner;
     public WorkflowTypedProcessBuilder<TState> WithId(string id) { _inner.WithId(id); return this; }
+    public WorkflowTypedProcessBuilder<TState> WithName(EnterpriseWorkflow.Abstractions.WorkflowText name) { _inner.WithName(name); return this; }
+    public WorkflowTypedProcessBuilder<TState> WithDescription(EnterpriseWorkflow.Abstractions.WorkflowText description) { _inner.WithDescription(description); return this; }
     public WorkflowTypedProcessBuilder<TState> WithName(string name) { _inner.WithName(name); return this; }
     public WorkflowTypedProcessBuilder<TState> WithDescription(string description) { _inner.WithDescription(description); return this; }
     public WorkflowTypedProcessBuilder<TState> InitializedBy<T>() where T : class, IWorkflowStateInitializer { _inner.InitializedBy<T>(); return this; }
@@ -26,8 +28,12 @@ public sealed class WorkflowTypedProcessBuilder<TState> where TState : class
     public WorkflowTypedProcessBuilder<TState> End(string id) { _inner.End(id); return this; }
     public WorkflowTypedProcessBuilder<TState> End(string id, WorkflowCompletionOutcome outcome, string? label = null) { _inner.End(id, outcome, label); return this; }
     public WorkflowStageBuilder Service<T>(string id) where T : class, IServiceNodeHandler => _inner.Service<T>(id);
+    public WorkflowTypedProcessBuilder<TState> Approval(string id, EnterpriseWorkflow.Abstractions.WorkflowText label, Action<WorkflowTypedStageBuilder<TState>> configure)
+    { _inner.Approval(id, label, stage => configure(new(stage))); return this; }
     public WorkflowTypedProcessBuilder<TState> Approval(string id, string label, Action<WorkflowTypedStageBuilder<TState>> configure)
     { _inner.Approval(id, label, stage => configure(new(stage))); return this; }
+    public WorkflowTypedProcessBuilder<TState> Input(string id, EnterpriseWorkflow.Abstractions.WorkflowText label, Action<WorkflowTypedStageBuilder<TState>> configure)
+    { _inner.Input(id, label, stage => configure(new(stage))); return this; }
     public WorkflowTypedProcessBuilder<TState> Input(string id, string label, Action<WorkflowTypedStageBuilder<TState>> configure)
     { _inner.Input(id, label, stage => configure(new(stage))); return this; }
 }
@@ -56,6 +62,8 @@ public sealed class WorkflowTypedActionsBuilder<TState> where TState : class
 {
     private readonly WorkflowActionsBuilder _inner;
     internal WorkflowTypedActionsBuilder(WorkflowActionsBuilder inner) => _inner = inner;
+    public WorkflowTypedActionsBuilder<TState> Add(string id, EnterpriseWorkflow.Abstractions.WorkflowText label, Action<WorkflowTypedActionBuilder<TState>> configure)
+    { _inner.Add(id, label, action => configure(new(action))); return this; }
     public WorkflowTypedActionsBuilder<TState> Add(string id, string label, Action<WorkflowTypedActionBuilder<TState>> configure)
     { _inner.Add(id, label, action => configure(new(action))); return this; }
 }

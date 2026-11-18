@@ -22,3 +22,7 @@ tests/oracle/.env
 /wiki/.astro/
 /output/
 /tmp/
+# Local development configuration and secrets
+.env
+.env.*
+!.env.example

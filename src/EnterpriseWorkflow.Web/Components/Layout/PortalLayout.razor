@@ -1,3 +1,4 @@
+@inject WorkflowUiLocalizer Ui
 @inherits LayoutComponentBase
 @inject IServiceProvider Services
 @inject IAuthorizationProvider Authorization
@@ -9,8 +10,8 @@
 <div class="portal-frame">
 @if (Services.GetService(typeof(WorkflowDevelopmentEnvironment)) is WorkflowDevelopmentEnvironment development)
 {
-    <aside class="development-banner" aria-label="Environnement de développement">
-        <span><strong>Développement</strong><span class="development-banner-detail"> · @_displayName · @development.ModuleSummary</span></span>
+    <aside class="development-banner" aria-label="@(Ui["Environnement de développement"])">
+        <span><strong>@Ui["Développement"]</strong><span class="development-banner-detail"> · @_displayName · @development.ModuleSummary</span></span>
         <a href="/__ew/dev">Changer d’identité <span aria-hidden="true">→</span></a>
     </aside>
 }
@@ -19,24 +20,25 @@
         <a class="brand" href="/" aria-label="Enterprise Workflow">
             <span class="brand-mark"><PhosphorIcon Name="sparkle" Size="20" /></span>
         </a>
-        <nav class="main-nav" aria-label="@(IsAdmin ? "Navigation de l’administration" : "Navigation principale")">
+        <nav class="main-nav" aria-label="@(IsAdmin ? Ui["Navigation de l’administration"] : Ui["Navigation principale"])">
             @if (IsAdmin)
             {
-                <NavItem Href="/admin" Label="Vue d’ensemble" Icon="gauge" Match="NavLinkMatch.All" />
-                <NavItem Href="/admin/access" Label="Accès" Icon="shield-check" />
+                <NavItem Href="/admin" Label="@(Ui["Vue d’ensemble"])" Icon="gauge" Match="NavLinkMatch.All" />
+                <NavItem Href="/admin/access" Label="@(Ui["Accès"])" Icon="shield-check" />
                 <NavItem Href="/admin/workflows" Label="Workflows" Icon="flow-arrow" />
-                <NavItem Href="/admin/operations" Label="Exploitation" Icon="pulse" />
+                <NavItem Href="/admin/operations" Label="@(Ui["Exploitation"])" Icon="pulse" />
                 <NavItem Href="/admin/audit" Label="Audit" Icon="scroll" />
-                <NavItem Href="/admin/tat" Label="Temps" Icon="clock" />
-                <NavItem Href="/admin/settings" Label="Réglages" Icon="sliders" />
+                <NavItem Href="/admin/tat" Label="@(Ui["Temps"])" Icon="clock" />
+                <NavItem Href="/admin/settings" Label="@(Ui["Réglages"])" Icon="sliders" />
             }
             else
             {
-                <NavItem Href="/" Label="Today" Icon="house" Match="NavLinkMatch.All" />
-                <NavItem Href="/start" Label="Démarrer" Icon="plus" />
-                <NavItem Href="/inbox" Label="À traiter" Icon="list-checks" CssClass="@(CurrentPath.StartsWith("tasks/", StringComparison.Ordinal) ? "active" : null)" />
-                <NavItem Href="/requests" Label="Mes demandes" Icon="clipboard" />
+                <NavItem Href="/" Label="@(Ui["Today"])" Icon="house" Match="NavLinkMatch.All" />
+                <NavItem Href="/start" Label="@(Ui["Démarrer"])" Icon="plus" />
+                <NavItem Href="/inbox" Label="@(Ui["À traiter"])" Icon="list-checks" CssClass="@(CurrentPath.StartsWith("tasks/", StringComparison.Ordinal) ? "active" : null)" />
+                <NavItem Href="/requests" Label="@(Ui["Mes demandes"])" Icon="clipboard" />
             }
+            @if (_canProvision) { <NavItem Href="/admin/identity-provisioning" Label="@(Ui["Identity approval"])" Icon="identification-card" /> }
         </nav>
     </aside>
     <main class="workspace">
@@ -45,20 +47,21 @@
             <div class="topbar-leading">
                 @if (IsAdmin)
                 {
-                    <a class="return-app-button" href="/"><PhosphorIcon Name="arrow-left" Size="16" /> <span>Application</span></a>
+                    <a class="return-app-button" href="/"><PhosphorIcon Name="arrow-left" Size="16" /> <span>@Ui["Application"]</span></a>
                 }
-                <nav class="breadcrumbs" aria-label="Fil d’Ariane">
-                    <a href="@(IsAdmin ? "/admin" : "/")">@(IsAdmin ? "Administration" : "Home")</a>
+                <nav class="breadcrumbs" aria-label="@(Ui["Fil d’Ariane"])">
+                    <a href="@(IsAdmin ? "/admin" : "/")">@(IsAdmin ? Ui["Administration"] : Ui["Home"])</a>
                     <span class="separator">/</span>
-                    <span aria-current="page">@PageLabel</span>
+                    <span aria-current="page">@Ui[PageLabel]</span>
                 </nav>
             </div>
             <div class="topbar-actions">
-            <button type="button" class="secondary-button" disabled data-open-search aria-label="Rechercher des demandes"><PhosphorIcon Name="magnifying-glass" Size="20" /></button>
+            <button type="button" class="secondary-button" disabled data-open-search aria-label="@(Ui["Rechercher des demandes"])"><PhosphorIcon Name="magnifying-glass" Size="20" /></button>
+            <WorkflowLanguageToggle ReturnUrl="@("/" + Navigation.ToBaseRelativePath(Navigation.Uri))" />
             <details class="top-profile-wrap">
-                <summary class="top-profile-button" aria-label="Ouvrir le menu utilisateur">
+                <summary class="top-profile-button" aria-label="@(Ui["Ouvrir le menu utilisateur"])">
                     <span class="avatar">@Initials</span>
-                    <span class="profile-copy"><strong>@_displayName</strong><small>@(IsAdmin ? "Mode administration" : (_canAdmin ? "Administrateur" : "Utilisateur"))</small></span>
+                    <span class="profile-copy"><strong>@_displayName</strong><small>@(IsAdmin ? Ui["Mode administration"] : (_canAdmin ? Ui["Administrateur"] : Ui["Utilisateur"]))</small></span>
                     <PhosphorIcon Name="caret-down" Size="15" CssClass="profile-caret" />
                 </summary>
                 <div class="top-profile-menu" role="menu">
@@ -78,10 +81,10 @@
             </details>
             </div>
             <dialog data-search-dialog class="admin-modal">
-                <header class="search-modal-header"><h2>Rechercher des demandes</h2><button type="button" class="close-decision" data-close-search aria-label="Fermer la recherche">×</button></header>
+                <header class="search-modal-header"><h2>@Ui["Rechercher des demandes"]</h2><button type="button" class="close-decision" data-close-search aria-label="@(Ui["Fermer la recherche"])">×</button></header>
                 <form method="get" action="/search" class="search-modal-form" role="search">
                     <div class="compact-form search-modal-body"><WorkflowSearchFields CanFilterInitiator="@_canSearchInitiator" /></div>
-                    <footer class="admin-modal-actions"><button type="button" class="secondary-button" data-close-search>Annuler</button><button class="primary-button" type="submit">Rechercher</button></footer>
+                    <footer class="admin-modal-actions"><button type="button" class="secondary-button" data-close-search>@Ui["Annuler"]</button><button class="primary-button" type="submit">@Ui["Rechercher"]</button></footer>
                 </form>
             </dialog>
         </header>
@@ -93,12 +96,16 @@
 
 @code {
     private bool _canAdmin;
+    private bool _canProvision;
     private bool _canSearchInitiator;
     private string _displayName = "Utilisateur";
 
     protected override async Task OnInitializedAsync()
     {
         var identity = await Identity.GetRequiredAsync();
+        _canProvision = Services.GetService(typeof(IEnumerable<IIdentityProvisioningProvider>)) is IEnumerable<IIdentityProvisioningProvider> providers && providers.Any()
+            && ((await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.SubmitIdentity), CancellationToken.None)).Allowed
+                || (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ApproveIdentity), CancellationToken.None)).Allowed);
         _canSearchInitiator = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.SearchByInitiator), CancellationToken.None)).Allowed;
         _canAdmin = (await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.ManageAccess), CancellationToken.None)).Allowed;
         if (string.Equals(identity.ProviderId, SecurityProviderIds.Local, StringComparison.Ordinal))
@@ -124,21 +131,21 @@
     private string Initials => string.Concat(_displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
     private string PageLabel => CurrentPath switch
     {
-        "" => "Today",
-        "start" => "Démarrer",
-        "inbox" => "À traiter",
-        "requests" => "Mes demandes",
-        "search" => "Recherche",
-        "admin/tat" => "Temps de traitement",
-        _ when CurrentPath.StartsWith("instances/", StringComparison.Ordinal) => "Détail de la demande",
-        "admin" => "Vue d’ensemble",
-        "admin/access" => "Accès",
+        "" => Ui["Today"],
+        "start" => Ui["Démarrer"],
+        "inbox" => Ui["À traiter"],
+        "requests" => Ui["Mes demandes"],
+        "search" => Ui["Recherche"],
+        "admin/tat" => Ui["Temps de traitement"],
+        _ when CurrentPath.StartsWith("instances/", StringComparison.Ordinal) => Ui["Détail de la demande"],
+        "admin" => Ui["Vue d’ensemble"],
+        "admin/access" => Ui["Accès"],
         "admin/workflows" => "Workflows",
-        "admin/operations" => "Exploitation",
+        "admin/operations" => Ui["Exploitation"],
         "admin/audit" => "Audit",
-        "admin/settings" => "Réglages",
-        _ when CurrentPath.StartsWith("tasks/", StringComparison.Ordinal) => "Détail de la demande",
-        _ when CurrentPath.StartsWith("start/", StringComparison.Ordinal) => "Nouvelle demande",
+        "admin/settings" => Ui["Réglages"],
+        _ when CurrentPath.StartsWith("tasks/", StringComparison.Ordinal) => Ui["Détail de la demande"],
+        _ when CurrentPath.StartsWith("start/", StringComparison.Ordinal) => Ui["Nouvelle demande"],
         _ => "Enterprise Workflow",
     };
 }

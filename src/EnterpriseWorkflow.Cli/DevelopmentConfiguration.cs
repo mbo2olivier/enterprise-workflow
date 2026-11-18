@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EnterpriseWorkflow.Presentation;
@@ -21,13 +22,19 @@ internal sealed class DevelopmentConfiguration
     public WorkflowSmtpOptions Smtp { get; set; } = new();
 
     internal static async Task<DevelopmentConfiguration> ReadAsync(string project, string? file, string? url, bool noWatch,
-        string? environment = null, string? configuration = null)
+        string? environment = null, string? configuration = null, IReadOnlyDictionary<string, string?>? environmentValues = null)
     {
         var root = Path.GetDirectoryName(project)!;
         var path = file is null ? Path.Combine(root, "ew.dev.json") : Path.GetFullPath(file);
         if (file is not null && !File.Exists(path)) throw new ArgumentException($"Configuration not found: {path}");
         var node = File.Exists(path) ? System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path)) as System.Text.Json.Nodes.JsonObject
             ?? throw new JsonException("Development configuration must be an object.") : new System.Text.Json.Nodes.JsonObject();
+        var external = environmentValues is null ? null : DevelopmentEnvironment.Configuration(environmentValues);
+        if (external is not null)
+        {
+            // Selection precedes the named JSON overlay; explicit CLI selection always wins.
+            if (external["Development:DefaultEnvironment"] is { } defaultEnvironment) node["defaultEnvironment"] = defaultEnvironment;
+        }
         var selected = environment ?? node["defaultEnvironment"]?.GetValue<string>() ?? "default";
         ValidateEnvironment(selected); selected = selected.ToLowerInvariant();
         if (node["environments"] is { } overrides)
@@ -51,10 +58,23 @@ internal sealed class DevelopmentConfiguration
         if (config.Server is null || config.Storage is null || config.Build is null || config.Serialization is null || config.Seed is null || config.Smtp is null || config.ModuleDirectories is null ||
             config.Seed.Users is null || config.Seed.Users.Length > 100 || config.Seed.Users.Any(user => user is null || user.Permissions is null))
             throw new ArgumentException("Development sections must be non-null; at most 100 seed users are supported.");
+        if (external is not null)
+        {
+            var development = external.GetSection("Development");
+            // Identity/seed/security sections cannot be overridden through .env.
+            development.GetSection("Server").Bind(config.Server);
+            development.GetSection("Storage").Bind(config.Storage);
+            development.GetSection("Build").Bind(config.Build);
+            development.GetSection("Serialization").Bind(config.Serialization);
+            if (development["Watch"] is { } watch) config.Watch = bool.Parse(watch);
+        }
         config.EnvironmentName = selected;
         config.StateRoot = Path.Combine(root, ".ew", "environments", selected);
         if (url is not null) config.Server.Url = url;
-        config.Watch = node["build"]?["watch"] is not null ? config.Build.Watch : node["watch"] is not null ? config.Watch : config.Build.Watch;
+        config.Watch = external?["Development:Build:Watch"] is not null ? config.Build.Watch
+            : external?["Development:Watch"] is not null ? config.Watch
+            : node["build"]?["watch"] is not null ? config.Build.Watch
+            : node["watch"] is not null ? config.Watch : config.Build.Watch;
         if (noWatch) config.Watch = false;
         if (configuration is not null) config.Build.Configuration = configuration;
         if (config.Build.Configuration is not ("Debug" or "Release")) throw new ArgumentException("Configuration must be Debug or Release.");

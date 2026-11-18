@@ -10,6 +10,8 @@ public sealed record WorkflowStagePolicy
     public const string PropertyName = "$workflow";
     public int Version { get; init; } = 1;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedLabel { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public WorkflowCompletionOutcome? CompletionOutcome { get; init; }
     public string[][] Permissions { get; init; } = [];
     public string[][] ReadPermissions { get; init; } = [];
@@ -98,6 +100,8 @@ public sealed record WorkflowStagePolicy
 public sealed record WorkflowActionPolicy
 {
     public string Label { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedLabel { get; init; }
     public string[][] Permissions { get; init; } = [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool CaptureCommentActorName { get; init; }

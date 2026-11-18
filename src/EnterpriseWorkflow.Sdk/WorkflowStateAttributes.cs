@@ -23,6 +23,29 @@ public sealed class CommentStateAttribute : Attribute;
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class HiddenFieldAttribute : Attribute;
 
+public interface IWorkflowTextCatalogProvider
+{
+    WorkflowTextCatalog Catalog { get; }
+}
+
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class LabelKeyAttribute : Attribute
+{
+    public LabelKeyAttribute(string key, string fallback) { Key = key; Fallback = fallback; }
+    public LabelKeyAttribute(Type catalogProviderType, string key, string fallback) : this(key, fallback)
+    { ArgumentNullException.ThrowIfNull(catalogProviderType); CatalogProviderType = catalogProviderType; }
+    public Type? CatalogProviderType { get; }
+    public string Key { get; }
+    public string Fallback { get; }
+    internal WorkflowText Resolve(Assembly declaringAssembly)
+    {
+        if (CatalogProviderType is null) return WorkflowTextCatalog.FromAssembly(declaringAssembly).Text(Key, Fallback);
+        if (Activator.CreateInstance(CatalogProviderType) is not IWorkflowTextCatalogProvider provider)
+            throw new InvalidOperationException("A label catalog provider must implement IWorkflowTextCatalogProvider and have a public parameterless constructor.");
+        return provider.Catalog.Text(Key, Fallback);
+    }
+}
+
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class LabelAttribute(string text) : Attribute
 {
@@ -115,7 +138,8 @@ public static class WorkflowStateContractCompiler
                     return field with
                     {
                         PresentationRole = property.IsDefined(typeof(CommentStateAttribute)) ? "comments" : property.PropertyType == typeof(WorkflowMediaReference) ? "media" : field.PresentationRole,
-                        Label = property.GetCustomAttribute<LabelAttribute>()?.Text ?? property.Name,
+                        Label = property.GetCustomAttribute<LabelKeyAttribute>()?.Fallback ?? property.GetCustomAttribute<LabelAttribute>()?.Text ?? property.Name,
+                        LocalizedLabel = property.GetCustomAttribute<LabelKeyAttribute>()?.Resolve(property.DeclaringType!.Assembly),
                         Hidden = property.IsDefined(typeof(HiddenFieldAttribute)),
                         Required = property.IsDefined(typeof(RequiredAttribute)),
                         RequiredGroups = property.GetCustomAttributes<RequiredForAttribute>().SelectMany(attribute => attribute.Groups).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(),

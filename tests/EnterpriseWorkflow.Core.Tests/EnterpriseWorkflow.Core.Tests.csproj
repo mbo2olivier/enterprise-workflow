@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
     <RootNamespace>EnterpriseWorkflow.Core.Tests</RootNamespace>
   </PropertyGroup>
+  <ItemGroup><EmbeddedResource Include="Localization/*.json" /></ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />

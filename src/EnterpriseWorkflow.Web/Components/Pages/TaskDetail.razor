@@ -1,19 +1,20 @@
+@inject WorkflowUiLocalizer Ui
 @page "/tasks/{TaskId:guid}"
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
 @inject WorkflowFormFeedbackStore FeedbackStore
 
-<PageTitle>Tâche · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["Tâche · Enterprise Workflow"]</PageTitle>
 <div class="content content-small">
     @if (_task is null)
     {
-        <section class="panel empty-state"><h1>Tâche indisponible</h1><p>Cette tâche n’existe pas ou ne vous est pas accessible.</p><a class="secondary-button" href="/inbox">Retour à la file</a></section>
+        <section class="panel empty-state"><h1>@Ui["Tâche indisponible"]</h1><p>@Ui["Cette tâche n’existe pas ou ne vous est pas accessible."]</p><a class="secondary-button" href="/inbox">@Ui["Retour à la file"]</a></section>
     }
     else
     {
-        <div class="page-intro"><p class="eyebrow">@_task.ProcessTitle</p><h1>@_task.NodeLabel</h1><p>Créée le @_task.CreatedAtUtc.ToLocalTime().ToString("g") · révision @_task.Revision</p></div>
-        @if (Completed is not null) { <div class="notice success" role="status">L’action a été enregistrée.</div> }
+        <div class="page-intro"><p class="eyebrow">@_task.ProcessTitle</p><h1>@_task.NodeLabel</h1><p>@Ui["Créée le"] @_task.CreatedAtUtc.ToLocalTime().ToString("g") · révision @_task.Revision</p></div>
+        @if (Completed is not null) { <div class="notice success" role="status">@Ui["L’action a été enregistrée."]</div> }
         <WorkflowValidationSummary Form="_task.Form" Errors="ValidationErrors" />
         @if (_task.CustomComponentType is not null)
         {
@@ -25,22 +26,22 @@
         }
         else
         {
-            <section class="panel data-table-panel"><table class="workflow-data-table"><tbody><tr><td colspan="2"><a class="text-button" href="/instances/@_task.InstanceId.Value">Consulter la demande →</a></td></tr></tbody></table></section>
+            <section class="panel data-table-panel"><table class="workflow-data-table"><tbody><tr><td colspan="2"><a class="text-button" href="/instances/@_task.InstanceId.Value">@Ui["Consulter la demande →"]</a></td></tr></tbody></table></section>
         }
         @if (_task.CanAssign)
         {
             <form method="post" action="/workflow/tasks/@_task.TaskId.Value/assign" class="panel workflow-form">
                 <AntiforgeryToken />
                 <input type="hidden" name="revision" value="@_task.Revision" />
-                <p>La tâche attend un destinataire éligible. Aucune personne n’a été substituée automatiquement.</p>
+                <p>@Ui["La tâche attend un destinataire éligible. Aucune personne n’a été substituée automatiquement."]</p>
                 <WorkflowCandidatePicker Name="assignee" Endpoint="@($"/workflow/candidates/recovery/{TaskId}")" />
 
-                <button class="primary-button" type="submit">Affecter</button>
+                <button class="primary-button" type="submit">@Ui["Affecter"]</button>
             </form>
         }
         @if (_task.Status is HumanTaskStatus.Available)
         {
-            <form method="post" action="/workflow/tasks/@_task.TaskId.Value/claim" class="panel ownership-action"><AntiforgeryToken /><input type="hidden" name="revision" value="@_task.Revision" /><p>Cette tâche appartient à un pool habilité. Réservez-la avant de la traiter.</p><button class="primary-button" type="submit">Prendre en charge</button></form>
+            <form method="post" action="/workflow/tasks/@_task.TaskId.Value/claim" class="panel ownership-action"><AntiforgeryToken /><input type="hidden" name="revision" value="@_task.Revision" /><p>@Ui["Cette tâche appartient à un pool habilité. Réservez-la avant de la traiter."]</p><button class="primary-button" type="submit">@Ui["Prendre en charge"]</button></form>
         }
         else if (_task.Status is HumanTaskStatus.Assigned or HumanTaskStatus.Claimed)
         {
@@ -57,7 +58,7 @@
                         <div data-assignment-action="@action.ActionId.Value">
                             <WorkflowCandidatePicker Name="@($"assignment.{target}.identity")"
                                 Value="@_feedback?.Values.GetValueOrDefault($"assignment.{target}.identity")"
-                                Label="@($"Destinataire · {_task.AssignmentLabels?.GetValueOrDefault(target) ?? "Étape suivante"} · {action.ActionId.Value}")"
+                                Label="@($"Destinataire · {_task.AssignmentLabels?.GetValueOrDefault(target) ?? Ui["Étape suivante"]} · {action.ActionId.Value}")"
                                 Endpoint="@($"/workflow/candidates/task/{TaskId}/{Uri.EscapeDataString(action.ActionId.Value)}")" />
                         </div>
                     }
@@ -65,7 +66,7 @@
                 <div class="action-dock">
                     @if (_task.Status is HumanTaskStatus.Claimed)
                     {
-                        <button class="secondary-button" type="submit" formaction="/workflow/tasks/@_task.TaskId.Value/release" formnovalidate>Libérer</button>
+                        <button class="secondary-button" type="submit" formaction="/workflow/tasks/@_task.TaskId.Value/release" formnovalidate>@Ui["Libérer"]</button>
                     }
                     @foreach (var action in _task.Actions)
                     {
@@ -77,7 +78,7 @@
         }
         else if (!_task.CanAssign)
         {
-            <section class="panel empty-state compact"><strong>Aucune action disponible</strong><p>La tâche attend une affectation ou a déjà été clôturée.</p></section>
+            <section class="panel empty-state compact"><strong>@Ui["Aucune action disponible"]</strong><p>@Ui["La tâche attend une affectation ou a déjà été clôturée."]</p></section>
         }
     }
 </div>
@@ -101,11 +102,11 @@
         _task = await Portal.ReadTaskAsync(actor, new(TaskId), CancellationToken.None);
     }
 
-    private static string ActionLabel(string action) => action switch
+    private string ActionLabel(string action) => action switch
     {
-        "task.approve" => "Approuver",
-        "task.reject" => "Refuser",
-        "task.submit" => "Valider",
+        "task.approve" => Ui["Approuver"],
+        "task.reject" => Ui["Refuser"],
+        "task.submit" => Ui["Valider"],
         _ => action,
     };
 

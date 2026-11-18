@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using EnterpriseWorkflow.Runtime;
 
 namespace EnterpriseWorkflow.Presentation;
@@ -26,7 +27,15 @@ public static class WorkflowPresentationServiceCollectionExtensions
         services.AddSingleton<WorkflowAuditService>();
         services.AddSingleton<WorkflowTatService>();
         services.AddSingleton<IWorkflowFormService, WorkflowFormService>();
-        services.AddSingleton<IWorkflowPortalService, WorkflowPortalService>();
+        services.TryAddSingleton<WorkflowTextLocalizationOptions>();
+        services.TryAddSingleton<WorkflowTextLocalizer>();
+        services.TryAddSingleton<EnterpriseWorkflow.Abstractions.IWorkflowTextLocalizer>(provider => provider.GetRequiredService<WorkflowTextLocalizer>());
+        services.AddSingleton<IWorkflowPortalService>(provider =>
+        {
+            var portal = ActivatorUtilities.CreateInstance<WorkflowPortalService>(provider);
+            portal.TextLocalizer = provider.GetRequiredService<WorkflowTextLocalizer>();
+            return portal;
+        });
         return services;
     }
 }

@@ -40,6 +40,8 @@ public sealed class WorkflowProcessBuilder : WorkflowPermissionBuilder<WorkflowP
     private readonly WorkflowModuleBuilder _module;
     private string? _id;
     private string? _name;
+    private WorkflowText? _localizedName;
+    private WorkflowText? _localizedDescription;
     private string? _description;
     private int? _schema;
     private Type? _stateType;
@@ -51,6 +53,8 @@ public sealed class WorkflowProcessBuilder : WorkflowPermissionBuilder<WorkflowP
     private readonly List<WorkflowStageBuilder> _stages = [];
     internal WorkflowProcessBuilder(WorkflowModuleBuilder module) => _module = module;
     public WorkflowProcessBuilder WithId(string id) { _ = new TechnicalId(id); _id = id; return this; }
+    public WorkflowProcessBuilder WithName(WorkflowText name) { _localizedName = name; return WithName(name.Fallback); }
+    public WorkflowProcessBuilder WithDescription(WorkflowText description) { _localizedDescription = description; return WithDescription(description.Fallback); }
     public WorkflowProcessBuilder WithName(string name) { _name = name; return this; }
     public WorkflowProcessBuilder WithDescription(string description) { _description = description; return this; }
     public WorkflowTypedProcessBuilder<TState> WithState<TState>() where TState : class { if (_stateType is not null) throw new InvalidOperationException("State type is already declared."); _stateType = typeof(TState); return new(this); }
@@ -62,6 +66,10 @@ public sealed class WorkflowProcessBuilder : WorkflowPermissionBuilder<WorkflowP
     internal WorkflowProcessBuilder Then(string stageId) { _first = stageId; return this; }
     internal WorkflowProcessBuilder Approval(string id, string label, Action<WorkflowStageBuilder> configure) => Human(id, label, HumanTaskKind.Approval, configure);
     internal WorkflowProcessBuilder Input(string id, string label, Action<WorkflowStageBuilder> configure) => Human(id, label, HumanTaskKind.Input, configure);
+    internal WorkflowProcessBuilder Approval(string id, WorkflowText label, Action<WorkflowStageBuilder> configure) =>
+        Human(id, label.Fallback, HumanTaskKind.Approval, stage => { stage.LocalizedLabel = label; configure(stage); });
+    internal WorkflowProcessBuilder Input(string id, WorkflowText label, Action<WorkflowStageBuilder> configure) =>
+        Human(id, label.Fallback, HumanTaskKind.Input, stage => { stage.LocalizedLabel = label; configure(stage); });
     private WorkflowProcessBuilder Human(string id, string label, HumanTaskKind kind, Action<WorkflowStageBuilder> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -99,6 +107,7 @@ public sealed class WorkflowProcessBuilder : WorkflowPermissionBuilder<WorkflowP
             stage.Policy = new WorkflowStagePolicy
             {
                 CompletionOutcome = stage.CompletionOutcome,
+                LocalizedLabel = stage.LocalizedLabel,
                 MediaFields = stage.FormId is null ? null : MediaFields(_module.Form(stage.FormId).Build(_module.ResolveHandler)),
                 StateValidationGroups = stage.ValidationGroups.Count == 0 ? null : stage.ValidationGroups.ToArray(),
                 Permissions = stage.ResolvePermissions(_module.Info, known),
@@ -109,6 +118,7 @@ public sealed class WorkflowProcessBuilder : WorkflowPermissionBuilder<WorkflowP
                 {
                     StateValidationGroups = action.ValidationGroups.Count == 0 ? null : action.ValidationGroups.ToArray(),
                     Label = action.Label,
+                    LocalizedLabel = action.LocalizedLabel,
                     Permissions = action.ResolvePermissions(_module.Info, known),
                     RequireComment = action.CommentRequired,
                     CommentPath = action.CommentPath,
@@ -157,7 +167,7 @@ public sealed class WorkflowProcessBuilder : WorkflowPermissionBuilder<WorkflowP
         var template = Compile(placeholder, stages, permissions, known);
         return new(_module.Info.Qualify(_id), _module.Info.ContractRevision,
             _name ?? _id, _description ?? _name ?? _id, startForm.FormReference, _schema.Value,
-            artifact => WorkflowArtifactBinding.Bind(template, placeholder, artifact), [], StateInitializerType: _initializerType, StateValidatorTypes: _stateType?.GetCustomAttributes<StateValidatorAttribute>().Select(attribute => attribute.ValidatorType).Distinct().ToArray());
+            artifact => WorkflowArtifactBinding.Bind(template, placeholder, artifact), [], StateInitializerType: _initializerType, StateValidatorTypes: _stateType?.GetCustomAttributes<StateValidatorAttribute>().Select(attribute => attribute.ValidatorType).Distinct().ToArray()) { LocalizedTitle = _localizedName, LocalizedDescription = _localizedDescription };
     }
 
     private static Dictionary<string, string>? MediaFields(WorkflowFormDefinition form)
@@ -224,6 +234,7 @@ public sealed class WorkflowStageBuilder : WorkflowPermissionBuilder<WorkflowSta
     internal WorkflowStageBuilder(string id, string label, HumanTaskKind? kind) { _ = new TechnicalId(id); Id = id; Label = label; Kind = kind; }
     internal string Id { get; }
     internal string Label { get; }
+    internal WorkflowText? LocalizedLabel { get; set; }
     internal HumanTaskKind? Kind { get; }
     internal WorkflowCompletionOutcome? CompletionOutcome { get; init; }
     internal HumanTaskAssignmentMode? Mode { get; private set; }
@@ -266,6 +277,8 @@ public sealed class WorkflowActionsBuilder
 {
     private readonly List<WorkflowActionBuilder> _actions;
     internal WorkflowActionsBuilder(List<WorkflowActionBuilder> actions) => _actions = actions;
+    public WorkflowActionsBuilder Add(string id, WorkflowText label, Action<WorkflowActionBuilder> configure) =>
+        Add(id, label.Fallback, action => { action.LocalizedLabel = label; configure(action); });
     public WorkflowActionsBuilder Add(string id, string label, Action<WorkflowActionBuilder> configure)
     {
         var action = new WorkflowActionBuilder(id, label);
@@ -283,6 +296,7 @@ public sealed class WorkflowActionBuilder : WorkflowPermissionBuilder<WorkflowAc
     internal WorkflowActionBuilder(string id, string label) { _ = new TechnicalId(id); Id = id; Label = label; }
     internal string Id { get; }
     internal string Label { get; }
+    internal WorkflowText? LocalizedLabel { get; set; }
     internal string? Target { get; private set; }
     internal string? AssigneeTarget { get; private set; }
     internal bool CommentRequired { get; private set; }

@@ -1,0 +1,19 @@
+@inject WorkflowUiLocalizer Ui
+@inject WorkflowLocalizationOptions Localization
+
+<form method="post" action="/preferences/language" class="language-toggle" role="group" aria-label="@Ui["Language"]">
+    <AntiforgeryToken />
+    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+    @foreach (var culture in Localization.SupportedCultures)
+    {
+        <button type="submit" name="culture" value="@culture"
+                aria-pressed="@(string.Equals(CultureInfo.CurrentUICulture.Name, culture, StringComparison.OrdinalIgnoreCase) ? "true" : "false")"
+                aria-label="@CultureInfo.GetCultureInfo(culture).NativeName"
+                title="@CultureInfo.GetCultureInfo(culture).NativeName">@culture.ToUpperInvariant()</button>
+    }
+    <button type="submit" name="culture" value="" class="language-reset" aria-label="@Ui["Installation default"]" title="@Ui["Installation default"]">↺</button>
+</form>
+
+@code {
+    [Parameter] public string ReturnUrl { get; set; } = "/";
+}

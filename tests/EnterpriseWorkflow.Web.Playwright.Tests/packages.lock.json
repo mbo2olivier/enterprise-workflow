@@ -347,49 +347,55 @@
       "enterpriseworkflow.core": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Abstractions": "[1.0.0, )"
+          "EnterpriseWorkflow.Abstractions": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.extensions": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Extensions.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Runtime": "[1.0.0, )"
+          "EnterpriseWorkflow.Extensions.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Runtime": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.extensions.abstractions": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Runtime": "[1.0.0, )",
-          "EnterpriseWorkflow.Sdk": "[1.0.0, )",
+          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Runtime": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Sdk": "[1.0.0-rc.1, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )"
+        }
+      },
+      "enterpriseworkflow.hosting": {
+        "type": "Project",
+        "dependencies": {
+          "EnterpriseWorkflow.Extensions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Persistence.Oracle": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Persistence.Sqlite": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Presentation": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Security.Persistence.Oracle": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Security.Persistence.Sqlite": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Web": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.kernel": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Extensions": "[1.0.0, )",
-          "EnterpriseWorkflow.Persistence.Oracle": "[1.0.0, )",
-          "EnterpriseWorkflow.Persistence.Sqlite": "[1.0.0, )",
-          "EnterpriseWorkflow.Presentation": "[1.0.0, )",
-          "EnterpriseWorkflow.Security.Persistence.Oracle": "[1.0.0, )",
-          "EnterpriseWorkflow.Security.Persistence.Sqlite": "[1.0.0, )",
-          "EnterpriseWorkflow.Web": "[1.0.0, )"
+          "EnterpriseWorkflow.Hosting": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.persistence.abstractions": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Core": "[1.0.0, )"
+          "EnterpriseWorkflow.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Core": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.persistence.oracle": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0-rc.1, )",
           "Oracle.EntityFrameworkCore": "[10.23.26301, )",
           "System.Security.Cryptography.Pkcs": "[8.0.2, )"
         }
@@ -397,18 +403,18 @@
       "enterpriseworkflow.persistence.sqlite": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0-rc.1, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )"
         }
       },
       "enterpriseworkflow.presentation": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Extensions": "[1.0.0, )",
-          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Runtime": "[1.0.0, )",
-          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Extensions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Runtime": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0-rc.1, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Options": "[10.0.12, )"
         }
@@ -416,15 +422,15 @@
       "enterpriseworkflow.presentation.abstractions": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Core": "[1.0.0, )"
+          "EnterpriseWorkflow.Core": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.runtime": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Core": "[1.0.0, )",
-          "EnterpriseWorkflow.Runtime.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Core": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Runtime.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0-rc.1, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Options": "[10.0.12, )"
@@ -433,24 +439,24 @@
       "enterpriseworkflow.runtime.abstractions": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Core": "[1.0.0, )",
-          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0, )"
+          "EnterpriseWorkflow.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Core": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.sdk": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Core": "[1.0.0, )",
-          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0, )",
-          "EnterpriseWorkflow.Runtime": "[1.0.0, )"
+          "EnterpriseWorkflow.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Core": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Presentation.Abstractions": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Runtime": "[1.0.0-rc.1, )"
         }
       },
       "enterpriseworkflow.security": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0-rc.1, )",
           "System.DirectoryServices.Protocols": "[10.0.11, )"
         }
       },
@@ -460,7 +466,7 @@
       "enterpriseworkflow.security.persistence": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0, )",
+          "EnterpriseWorkflow.Security.Abstractions": "[1.0.0-rc.1, )",
           "Microsoft.EntityFrameworkCore": "[10.0.12, )",
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.12, )"
         }
@@ -468,7 +474,7 @@
       "enterpriseworkflow.security.persistence.oracle": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Security.Persistence": "[1.0.0, )",
+          "EnterpriseWorkflow.Security.Persistence": "[1.0.0-rc.1, )",
           "Oracle.EntityFrameworkCore": "[10.23.26301, )",
           "System.Security.Cryptography.Pkcs": "[8.0.2, )"
         }
@@ -476,15 +482,15 @@
       "enterpriseworkflow.security.persistence.sqlite": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Security.Persistence": "[1.0.0, )",
+          "EnterpriseWorkflow.Security.Persistence": "[1.0.0-rc.1, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )"
         }
       },
       "enterpriseworkflow.web": {
         "type": "Project",
         "dependencies": {
-          "EnterpriseWorkflow.Presentation": "[1.0.0, )",
-          "EnterpriseWorkflow.Security": "[1.0.0, )"
+          "EnterpriseWorkflow.Presentation": "[1.0.0-rc.1, )",
+          "EnterpriseWorkflow.Security": "[1.0.0-rc.1, )"
         }
       },
       "Microsoft.EntityFrameworkCore": {

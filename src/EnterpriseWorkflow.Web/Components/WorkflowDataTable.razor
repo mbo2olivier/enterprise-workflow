@@ -1,14 +1,15 @@
+@inject WorkflowUiLocalizer Ui
 @using System.Text.Json
 <div class="panel data-table-panel">
-    <div class="data-table-scroll" tabindex="0" role="region" aria-label="Données de la demande">
+    <div class="data-table-scroll" tabindex="0" role="region" aria-label="@(Ui["Données de la demande"])">
         <table class="workflow-data-table">
-            <caption>Données de la demande</caption>
+            <caption>@Ui["Données de la demande"]</caption>
             <tbody>
                 @foreach (var field in Data.EnumerateObject())
                 {
-                    <tr><th scope="row">@(Labels?.GetValueOrDefault(field.Name) ?? field.Name)</th><td>@DisplayValue(field.Value)</td></tr>
+                    <tr><th scope="row">@(Labels?.GetValueOrDefault(field.Name) ?? field.Name)</th><td>@DisplayValue(field.Value, Ui["Oui"], Ui["Non"])</td></tr>
                 }
-                @if (InstanceLink is not null) { <tr><td colspan="2"><a class="text-button" href="@InstanceLink">Consulter la demande →</a></td></tr> }
+                @if (InstanceLink is not null) { <tr><td colspan="2"><a class="text-button" href="@InstanceLink">@Ui["Consulter la demande →"]</a></td></tr> }
             </tbody>
         </table>
     </div>
@@ -21,11 +22,12 @@
     [Parameter, EditorRequired] public JsonElement Data { get; set; }
     [Parameter] public IReadOnlyDictionary<string, string>? Labels { get; set; }
     [Parameter] public string? InstanceLink { get; set; }
-    public static string DisplayValue(JsonElement value) => value.ValueKind switch
+    public static string DisplayValue(JsonElement value) => DisplayValue(value, "Oui", "Non");
+    public static string DisplayValue(JsonElement value, string trueLabel, string falseLabel) => value.ValueKind switch
     {
         JsonValueKind.Null or JsonValueKind.Undefined => "—",
-        JsonValueKind.True => "Oui",
-        JsonValueKind.False => "Non",
+        JsonValueKind.True => trueLabel,
+        JsonValueKind.False => falseLabel,
         JsonValueKind.String => value.GetString() ?? "—",
         JsonValueKind.Object or JsonValueKind.Array => JsonSerializer.Serialize(value, DisplayJson),
         _ => value.ToString(),

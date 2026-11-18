@@ -1,3 +1,4 @@
+@inject WorkflowUiLocalizer Ui
 @page "/admin/audit"
 @attribute [Authorize]
 @inject WorkflowAuditService Audit
@@ -6,32 +7,32 @@
 @inject WorkflowWebIdentityAccessor Identity
 @inject IPresentationSettingsStore Settings
 @inject NavigationManager Navigation
-<PageTitle>Audit · Enterprise Workflow</PageTitle>
-<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">Administration</p><h1>Audit</h1><p>Recherchez et extrayez les opérations métier et de sécurité autorisées.</p></div>
+<PageTitle>@Ui["Audit · Enterprise Workflow"]</PageTitle>
+<div class="content content-medium admin-content"><div class="page-intro"><p class="eyebrow">@Ui["Administration"]</p><h1>Audit</h1><p>@Ui["Recherchez et extrayez les opérations métier et de sécurité autorisées."]</p></div>
 <form method="get" class="panel filter-form" role="search">
 <div class="compact-form filter-fields">
-    <label>Depuis<input type="date" name="from" value="@From" /></label>
-    <label>Jusqu’au<input type="date" name="until" value="@Until" /></label>
-    <label>Fournisseur de l’acteur<input name="provider" value="@Provider" maxlength="256" /></label>
-    <label>Identifiant utilisateur<input name="actor" value="@Actor" maxlength="256" /></label>
-    <label>Module<select name="module"><option value="">Tous les modules</option>@foreach (var module in Modules) { <option value="@module" selected="@(Module == module)">@module</option> }</select></label>
-    <label>Processus<select name="process"><option value="">Tous les processus</option>@foreach (var process in Processes) { <option value="@process.Key" selected="@(Process == process.Key)">@process.Value</option> }</select></label>
-    <label>Action<select name="action"><option value="">Toutes les actions</option>@foreach (var action in Actions) { <option value="@action.Key" selected="@(Action == action.Key)">@action.Value</option> }</select></label>
-    <label>Étape<select name="stage"><option value="">Toutes les étapes</option>@foreach (var stage in Stages) { <option value="@stage.Key" selected="@(Stage == stage.Key)">@stage.Value</option> }</select></label>
-    <label>Cible<input name="target" value="@Target" maxlength="1024" /></label>
-    <label>Résultat<input name="outcome" value="@Outcome" maxlength="64" /></label>
+    <label>@Ui["Depuis"]<input type="date" name="from" value="@From" /></label>
+    <label>@Ui["Jusqu’au"]<input type="date" name="until" value="@Until" /></label>
+    <label>@Ui["Fournisseur de l’acteur"]<input name="provider" value="@Provider" maxlength="256" /></label>
+    <label>@Ui["Identifiant utilisateur"]<input name="actor" value="@Actor" maxlength="256" /></label>
+    <label>@Ui["Module"]<select name="module"><option value="">@Ui["Tous les modules"]</option>@foreach (var module in Modules) { <option value="@module" selected="@(Module == module)">@module</option> }</select></label>
+    <label>@Ui["Processus"]<select name="process"><option value="">@Ui["Tous les processus"]</option>@foreach (var process in Processes) { <option value="@process.Key" selected="@(Process == process.Key)">@process.Value</option> }</select></label>
+    <label>@Ui["Action"]<select name="action"><option value="">@Ui["Toutes les actions"]</option>@foreach (var action in Actions) { <option value="@action.Key" selected="@(Action == action.Key)">@action.Value</option> }</select></label>
+    <label>@Ui["Étape"]<select name="stage"><option value="">@Ui["Toutes les étapes"]</option>@foreach (var stage in Stages) { <option value="@stage.Key" selected="@(Stage == stage.Key)">@stage.Value</option> }</select></label>
+    <label>@Ui["Cible"]<input name="target" value="@Target" maxlength="1024" /></label>
+    <label>@Ui["Résultat"]<input name="outcome" value="@Outcome" maxlength="64" /></label>
 </div><footer class="filter-actions">
-    <button class="primary-button" type="submit">Rechercher</button>
-    <button class="secondary-button" type="submit" formaction="/admin/audit/export" disabled="@(!_canExport)">Exporter les résultats CSV</button>
-    @if (!_canExport) { <p class="field-help wide-field">L’export nécessite la permission « Exporter l’audit ». Vous pouvez l’attribuer au profil concerné dans <a href="/admin/access?tab=profiles">Accès · Profils</a>.</p> }
+    <button class="primary-button" type="submit">@Ui["Rechercher"]</button>
+    <button class="secondary-button" type="submit" formaction="/admin/audit/export" disabled="@(!_canExport)">@Ui["Exporter les résultats CSV"]</button>
+    @if (!_canExport) { <p class="field-help wide-field">L’export nécessite la permission « Exporter l’audit ». Vous pouvez l’attribuer au profil concerné dans <a href="/admin/access?tab=profiles">@Ui["Accès · Profils"]</a>.</p> }
 </footer></form>
-@if (_error) { <section class="panel empty-state" role="alert"><h2>Audit indisponible</h2><p>Vérifiez les filtres et vos permissions.</p></section> }
+@if (_error) { <section class="panel empty-state" role="alert"><h2>@Ui["Audit indisponible"]</h2><p>@Ui["Vérifiez les filtres et vos permissions."]</p></section> }
 else
 {
-    <section class="panel data-panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Acteur</th><th>Module</th><th>Action</th><th>Processus</th><th>Étape</th><th>Cible / identifiant</th><th>Résultat</th></tr></thead><tbody>
-    @foreach (var row in _entries) { var entry = row.Entry; <tr><td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td><td>@row.ActorDisplayName<small>@entry.Actor.ProviderId / @entry.Actor.SubjectId</small></td><td>@(row.Module ?? "—")</td><td>@(row.ActionLabel ?? ActionLabel(entry.Action))<small>@entry.Action</small></td><td>@(row.ProcessTitle ?? ProcessContext(entry).Process)</td><td>@(row.StageLabel ?? row.Stage ?? ProcessContext(entry).Stage)</td><td><strong>@TargetLabel(entry)</strong><details><summary>Identifiant technique</summary><code>@entry.Target</code></details></td><td><span class="status @(entry.Outcome == "succeeded" ? "success" : "warning")">@(entry.Outcome == "succeeded" ? "Réussite" : entry.Outcome == "forbidden" ? "Refusé" : entry.Outcome == "unknown" ? "Non renseigné (historique)" : entry.Outcome)</span></td></tr> }
-    </tbody></table></div>@if (_entries.Count == 0) { <p>Aucune entrée correspondante.</p> }</section>
-    @if (_entries.Count == 50) { <a class="secondary-button" href="@Next()">Page suivante</a> }
+    <section class="panel data-panel"><div class="table-wrap"><table><thead><tr><th>@Ui["Date"]</th><th>@Ui["Acteur"]</th><th>@Ui["Module"]</th><th>@Ui["Action"]</th><th>@Ui["Processus"]</th><th>@Ui["Étape"]</th><th>@Ui["Cible / identifiant"]</th><th>@Ui["Résultat"]</th></tr></thead><tbody>
+    @foreach (var row in _entries) { var entry = row.Entry; <tr><td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td><td>@row.ActorDisplayName<small>@entry.Actor.ProviderId / @entry.Actor.SubjectId</small></td><td>@(row.Module ?? "—")</td><td>@(row.ActionLabel ?? ActionLabel(entry.Action))<small>@entry.Action</small></td><td>@(row.ProcessTitle ?? ProcessContext(entry).Process)</td><td>@(row.StageLabel ?? row.Stage ?? ProcessContext(entry).Stage)</td><td><strong>@TargetLabel(entry)</strong><details><summary>@Ui["Identifiant technique"]</summary><code>@entry.Target</code></details></td><td><span class="status @(entry.Outcome == "succeeded" ? "success" : "warning")">@(entry.Outcome == "succeeded" ? Ui["Réussite"] : entry.Outcome == "forbidden" ? Ui["Refusé"] : entry.Outcome == "unknown" ? Ui["Non renseigné (historique)"] : entry.Outcome)</span></td></tr> }
+    </tbody></table></div>@if (_entries.Count == 0) { <p>@Ui["Aucune entrée correspondante."]</p> }</section>
+    @if (_entries.Count == 50) { <a class="secondary-button" href="@Next()">@Ui["Page suivante"]</a> }
 }
 </div>
 @code {
@@ -83,20 +84,20 @@ else
             return actions;
         }
     }
-    private static string ActionLabel(string action) => action switch
+    private string ActionLabel(string action) => action switch
     {
-        "security.session.revoke" => "Déconnexion de session",
-        "security.profile.upsert" => "Enregistrement d’un profil",
-        "security.profile.delete" => "Suppression d’un profil",
-        "security.workflow-grant.add" => "Attribution d’un droit workflow",
-        "security.workflow-grant.revoke" => "Retrait d’un droit workflow",
-        "security.audit.export" => "Export de l’audit",
-        "security.identity.assign" => "Association à un profil",
-        "security.identity.unassign" => "Retrait d’un profil",
-        "workflow.tat.export" => "Export des temps de traitement",
-        "security.account.create" => "Création d’un compte",
-        "security.bootstrap" => "Initialisation de l’administration",
-        "presentation.settings.update" => "Modification des réglages",
+        "security.session.revoke" => Ui["Déconnexion de session"],
+        "security.profile.upsert" => Ui["Enregistrement d’un profil"],
+        "security.profile.delete" => Ui["Suppression d’un profil"],
+        "security.workflow-grant.add" => Ui["Attribution d’un droit workflow"],
+        "security.workflow-grant.revoke" => Ui["Retrait d’un droit workflow"],
+        "security.audit.export" => Ui["Export de l’audit"],
+        "security.identity.assign" => Ui["Association à un profil"],
+        "security.identity.unassign" => Ui["Retrait d’un profil"],
+        "workflow.tat.export" => Ui["Export des temps de traitement"],
+        "security.account.create" => Ui["Création d’un compte"],
+        "security.bootstrap" => Ui["Initialisation de l’administration"],
+        "presentation.settings.update" => Ui["Modification des réglages"],
         _ => action
     };
     private (string Process, string Stage) ProcessContext(SecurityAuditEntry entry)
@@ -105,7 +106,7 @@ else
         var parts = entry.Target.Split(':');
         if (parts.Length < 3 || !int.TryParse(parts[1], out var version)) return ("—", "—");
         Catalog.TryGetProcess(parts[0], version, out var process);
-        return ($"{process?.Title ?? parts[0]} · v{version}", parts[2] == "_" ? "Toutes les étapes" : process?.Definition.Nodes.FirstOrDefault(node => node.Id.Value == parts[2])?.DisplayLabel ?? parts[2]);
+        return ($"{process?.Title ?? parts[0]} · v{version}", parts[2] == "_" ? Ui["Toutes les étapes"] : process?.Definition.Nodes.FirstOrDefault(node => node.Id.Value == parts[2])?.DisplayLabel ?? parts[2]);
     }
     private string TargetLabel(SecurityAuditEntry entry)
     {

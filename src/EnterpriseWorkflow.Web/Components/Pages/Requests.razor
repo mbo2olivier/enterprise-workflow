@@ -1,12 +1,13 @@
+@inject WorkflowUiLocalizer Ui
 @page "/requests"
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
 
-<PageTitle>Mes demandes · Enterprise Workflow</PageTitle>
-<div class="content content-medium"><div class="page-intro"><p class="eyebrow">Suivi</p><h1>Mes demandes</h1><p>Retrouvez les processus que vous avez démarrés.</p></div>
-@if (_requests is null) { <p class="loading">Chargement…</p> }
-else if (_requests.Count == 0) { <section class="panel empty-state"><h2>Aucune demande à afficher</h2><p>Les demandes que vous êtes autorisé à relire apparaîtront ici.</p><a class="primary-button" href="/start">Démarrer une demande</a></section> }
+<PageTitle>@Ui["Mes demandes · Enterprise Workflow"]</PageTitle>
+<div class="content content-medium"><div class="page-intro"><p class="eyebrow">@Ui["Suivi"]</p><h1>@Ui["Mes demandes"]</h1><p>@Ui["Retrouvez les processus que vous avez démarrés."]</p></div>
+@if (_requests is null) { <p class="loading">@Ui["Chargement…"]</p> }
+else if (_requests.Count == 0) { <section class="panel empty-state"><h2>@Ui["Aucune demande à afficher"]</h2><p>@Ui["Les demandes que vous êtes autorisé à relire apparaîtront ici."]</p><a class="primary-button" href="/start">@Ui["Démarrer une demande"]</a></section> }
 else { <section class="panel request-list">@foreach (var request in _requests) { <WorkflowRequestRow Request="request" Href="@($"/instances/{request.InstanceId.Value}")" /> }</section> }
 </div>
 
@@ -15,5 +16,5 @@ else { <section class="panel request-list">@foreach (var request in _requests) {
     protected override async Task OnInitializedAsync() =>
         _requests = await Portal.ListMyRequestsAsync(await Identity.GetRequiredAsync(), 100, CancellationToken.None);
     private static string StatusClass(WorkflowInstanceStatus status) => status is WorkflowInstanceStatus.Completed ? "success" : status is WorkflowInstanceStatus.Failed or WorkflowInstanceStatus.Cancelled ? "warning" : "progress";
-    private static string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Completed => "Terminée", WorkflowInstanceStatus.Cancelled => "Annulée", WorkflowInstanceStatus.Failed => "En erreur", WorkflowInstanceStatus.Waiting => "En attente", _ => "En cours" };
+    private string StatusLabel(WorkflowInstanceStatus status) => status switch { WorkflowInstanceStatus.Completed => Ui["Terminée"], WorkflowInstanceStatus.Cancelled => Ui["Annulée"], WorkflowInstanceStatus.Failed => Ui["En erreur"], WorkflowInstanceStatus.Waiting => Ui["En attente"], _ => Ui["En cours"] };
 }

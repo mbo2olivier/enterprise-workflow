@@ -15,8 +15,17 @@ public sealed class SecurityDbContext(DbContextOptions<SecurityDbContext> option
     internal DbSet<WorkflowPolicyStateRow> WorkflowPolicyStates => Set<WorkflowPolicyStateRow>();
     internal DbSet<PresentationSettingsRow> PresentationSettings => Set<PresentationSettingsRow>();
 
+    internal DbSet<UserCultureRow> UserCultures => Set<UserCultureRow>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<UserCultureRow>(entity =>
+        {
+            entity.ToTable("EwUserCultures"); entity.HasKey(row => new { row.ProviderId, row.SubjectId });
+            entity.Property(row => row.ProviderId).HasMaxLength(256);
+            entity.Property(row => row.SubjectId).HasMaxLength(256);
+            entity.Property(row => row.Culture).HasMaxLength(32);
+        });
         modelBuilder.Entity<ProfileRow>(entity => { entity.ToTable("EwSecurityProfiles"); entity.HasKey(x => x.Id); entity.Property(x => x.Id).HasMaxLength(160); entity.Property(x => x.DisplayName).HasMaxLength(256); });
         modelBuilder.Entity<PermissionRow>(entity => { entity.ToTable("EwSecurityPermissions"); entity.HasKey(x => new { x.ProfileId, x.PermissionId }); entity.Property(x => x.ProfileId).HasMaxLength(160); entity.Property(x => x.PermissionId).HasMaxLength(160); });
         modelBuilder.Entity<IdentityProfileRow>(entity => { entity.ToTable("EwSecurityIdentityProfiles"); entity.HasKey(x => new { x.ProviderId, x.SubjectId, x.ProfileId }); entity.Property(x => x.ProviderId).HasMaxLength(256); entity.Property(x => x.SubjectId).HasMaxLength(256); entity.Property(x => x.ProfileId).HasMaxLength(160); });
@@ -52,7 +61,9 @@ internal sealed class IdentityProfileRow { public required string ProviderId { g
 internal sealed class GroupProfileRow { public required string ProviderId { get; set; } public required string GroupId { get; set; } public required string ProfileId { get; set; } }
 internal sealed class LocalAccountRow { public required string SubjectId { get; set; } public required string UserName { get; set; } public required string NormalizedUserName { get; set; } public required string PasswordHash { get; set; } public bool Enabled { get; set; } public int FailedAccessCount { get; set; } public long? LockoutEndUnixMilliseconds { get; set; } public long Revision { get; set; } }
 internal sealed class AuditRow { public string Id { get; set; } = Guid.NewGuid().ToString("N"); public long OccurredAtUnixMilliseconds { get; set; } public required string ActorProviderId { get; set; } public required string ActorSubjectId { get; set; } public required string Action { get; set; } public required string Target { get; set; } public required string Outcome { get; set; } }
-internal sealed class SessionRow { public required string TokenDigest { get; set; } public required string ProviderId { get; set; } public required string SubjectId { get; set; } public long CreatedAtUnixMilliseconds { get; set; } public long LastSeenAtUnixMilliseconds { get; set; } public long ExpiresAtUnixMilliseconds { get; set; } public long RemoteStatusCheckedAtUnixMilliseconds { get; set; } public bool Revoked { get; set; } public long Revision { get; set; } }
+internal sealed class SessionRow { public bool SecondFactorVerified { get; set; } public required string TokenDigest { get; set; } public required string ProviderId { get; set; } public required string SubjectId { get; set; } public long CreatedAtUnixMilliseconds { get; set; } public long LastSeenAtUnixMilliseconds { get; set; } public long ExpiresAtUnixMilliseconds { get; set; } public long RemoteStatusCheckedAtUnixMilliseconds { get; set; } public bool Revoked { get; set; } public long Revision { get; set; } }
 internal sealed class WorkflowGrantRow { public required string GrantId { get; set; } public required string WorkflowId { get; set; } public int DefinitionVersion { get; set; } public required string NodeId { get; set; } public required string ActionId { get; set; } public int RecipientKind { get; set; } public string? RecipientProviderId { get; set; } public string? RecipientSubjectId { get; set; } public string? RecipientProfileId { get; set; } public long PolicyRevision { get; set; } }
 internal sealed class WorkflowPolicyStateRow { public required string Id { get; set; } public long Revision { get; set; } }
 internal sealed class PresentationSettingsRow { public required string Id { get; set; } public required string DisplayName { get; set; } public string? LogoResourcePath { get; set; } public required string AccentColor { get; set; } public required string TimeZoneId { get; set; } public required string Culture { get; set; } public long Revision { get; set; } }
+
+internal sealed class UserCultureRow { public required string ProviderId { get; set; } public required string SubjectId { get; set; } public required string Culture { get; set; } }

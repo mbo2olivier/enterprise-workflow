@@ -21,6 +21,10 @@ public sealed partial class DevelopmentLifecycleTests
         var module = Path.Combine(root, "Module"); Directory.CreateDirectory(module);
         var source = Path.Combine(repo.FullName, "samples", "LeaveRequest.Module");
         foreach (var file in Directory.GetFiles(source).Where(path => Path.GetExtension(path) is ".cs" or ".razor" or ".csproj" || Path.GetFileName(path) == "ew.dev.json")) File.Copy(file, Path.Combine(module, Path.GetFileName(file)));
+        var localization = Path.Combine(module, "Localization");
+        Directory.CreateDirectory(localization);
+        foreach (var file in Directory.GetFiles(Path.Combine(source, "Localization"), "*.json"))
+            File.Copy(file, Path.Combine(localization, Path.GetFileName(file)));
         foreach (var name in new[] { "Directory.Build.props", "Directory.Packages.props", "global.json", "NuGet.Config" }) File.Copy(Path.Combine(repo.FullName, name), Path.Combine(root, name));
         var project = Directory.GetFiles(module, "*.csproj").Single(); var xml = XDocument.Load(project);
         foreach (var reference in xml.Descendants("ProjectReference")) reference.SetAttributeValue("Include", Path.GetFullPath(reference.Attribute("Include")!.Value, source));
@@ -46,7 +50,9 @@ public sealed partial class DevelopmentLifecycleTests
         var unused = Path.Combine(module, ".ew", "environments", "first", "artifacts", "unused"); Directory.CreateDirectory(unused);
         await File.WriteAllTextAsync(Path.Combine(unused, "module.json"), "unreadable unused prototype", token);
         var code = Path.Combine(module, "LeaveRequestModule.cs");
-        await File.WriteAllTextAsync(code, (await File.ReadAllTextAsync(code, token)).Replace("Confirmer sa demande, puis", "Nouvelle génération : confirmer sa demande, puis", StringComparison.Ordinal), token);
+        var originalCode = await File.ReadAllTextAsync(code, token);
+        Assert.Contains("Confirm the request, then", originalCode, StringComparison.Ordinal);
+        await File.WriteAllTextAsync(code, originalCode.Replace("Confirm the request, then", "New generation: confirm the request, then", StringComparison.Ordinal), token);
         var second = await Start("first");
         try
         {

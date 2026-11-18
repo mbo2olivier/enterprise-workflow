@@ -33,7 +33,10 @@ public sealed class WorkflowValidationTests
     [Fact]
     public async Task MultipleErrorsAreRenderedAtTheirFieldsWithEscapedMessagesAndPreservedValues()
     {
+        var previousCulture = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo("fr");
         var services = new ServiceCollection().AddLogging();
+        services.AddEnterpriseWorkflowLocalization();
         await using var provider = services.BuildServiceProvider();
         await using var renderer = new HtmlRenderer(provider, provider.GetRequiredService<ILoggerFactory>());
         var form = new WorkflowFormDefinition(new(new("form"), 1), "Formulaire", [
@@ -52,5 +55,6 @@ public sealed class WorkflowValidationTests
         var summary = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync<WorkflowValidationSummary>(ParameterView.FromDictionary(new Dictionary<string, object?> { ["Form"] = form, ["Errors"] = errors }))).ToHtmlString());
         Assert.Contains("href=\"#field.reason\"", summary, StringComparison.Ordinal);
         Assert.Contains("href=\"#field.date\"", summary, StringComparison.Ordinal);
+        System.Globalization.CultureInfo.CurrentUICulture = previousCulture;
     }
 }

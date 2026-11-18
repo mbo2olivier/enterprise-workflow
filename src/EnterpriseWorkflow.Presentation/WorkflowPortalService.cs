@@ -156,7 +156,11 @@ public sealed partial class WorkflowPortalService(
     IServiceScopeFactory? scopeFactory = null,
     IWorkflowStateValidationService? stateValidation = null) : IWorkflowPortalService
 {
+    public WorkflowTextLocalizer TextLocalizer { get; set; } = new();
     private readonly WorkflowPortalOptions _options = Validate(configuredOptions.Value);
+    private string LocalizedNodeLabel(WorkflowNode? node, string fallback) => node is null ? fallback
+        : TextLocalizer.Resolve(WorkflowStagePolicy.Read(node.Configuration)?.LocalizedLabel, node.DisplayLabel ?? fallback);
+
     private bool IsSelectedForStart(WorkflowProcessDescriptor process) => _options.StartArtifactSha256 is null || process.Definition.Artifacts.Any(artifact => artifact.Sha256 == _options.StartArtifactSha256);
 
     public async ValueTask<IReadOnlyList<WorkflowProcessCard>> ListStartableProcessesAsync(
@@ -172,8 +176,8 @@ public sealed partial class WorkflowPortalService(
             if (!decision.Allowed || !catalog.TryResolveForm(process.Definition, process.StartForm, out var registration) ||
                 registration is null)
                 continue;
-            accepted.Add(new(process.Definition.Id.Value, process.Definition.Version, process.Title,
-                process.Description, registration.Form, process.DesignatedAssignmentNodes, process.IconResourcePath, registration.CustomComponentType));
+            accepted.Add(new(process.Definition.Id.Value, process.Definition.Version, TextLocalizer.Resolve(process.LocalizedTitle, process.Title),
+                TextLocalizer.Resolve(process.LocalizedDescription, process.Description), TextLocalizer.ResolveForm(registration.Form), process.DesignatedAssignmentNodes, process.IconResourcePath, registration.CustomComponentType));
         }
         return accepted;
     }
@@ -212,7 +216,7 @@ public sealed partial class WorkflowPortalService(
             var mediaExecution = WorkflowMediaSession.Create(process.Definition, startNode.Configuration, new(new(new(actor.ProviderId), actor.SubjectId), null, null, request.IdempotencyKey.Value), validation.Submission!);
             WorkflowStateInitializationResult initialized;
             try { initialized = await initializer.InitializeAsync(new(new(new(actor.ProviderId), actor.SubjectId), validation.Submission!, request.IdempotencyKey.Value) { MediaExecution = mediaExecution }, cancellationToken); }
-            catch (WorkflowValidationException exception) { mediaExecution.Seal(); return new(false, null, false, exception.Errors.Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message)).ToArray(), "runtime.validation-failed"); }
+            catch (WorkflowValidationException exception) { mediaExecution.Seal(); return new(false, null, false, exception.Errors.Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message) { LocalizedMessage = error.LocalizedMessage }).ToArray(), "runtime.validation-failed"); }
             catch (WorkflowMediaInspectionPendingException) { mediaExecution.Seal(); return Failed("runtime.media-inspection-pending"); }
             catch (FormatException) { mediaExecution.Seal(); return Failed("presentation.state-invalid"); }
             catch { mediaExecution.Seal(); throw; }
@@ -236,7 +240,7 @@ public sealed partial class WorkflowPortalService(
         var started = await starts.StartAsync(process.Definition, command, cancellationToken).ConfigureAwait(false);
         return started.Succeeded
             ? new(true, started.InstanceId, started.WasReplay, [])
-            : new(false, null, false, (started.Errors ?? []).Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message)).ToArray(), started.ErrorCode);
+            : new(false, null, false, (started.Errors ?? []).Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message) { LocalizedMessage = error.LocalizedMessage }).ToArray(), started.ErrorCode);
     }
 
     public ValueTask<HumanTaskInboxPage> ReadInboxAsync(
@@ -386,17 +390,17 @@ public sealed partial class WorkflowPortalService(
                 if ((await generalAuthorization.AuthorizeAsync(new(actor, new(permission)), cancellationToken)).Allowed) permissions.Add(permission);
             var selected = stateContract.Root.Fields.Where(field => policy.SummaryFields.Contains(field.Name, StringComparer.Ordinal)).ToArray();
             summary = (stateContract with { Root = TableFields(stateContract.Root with { Fields = selected }) }).Project(snapshot.State.Value, permissions);
-            summaryLabels = selected.Where(field => !field.Hidden && field.PermissionGroups.All(group => group.Any(permissions.Contains))).ToDictionary(field => field.Name, field => field.Label, StringComparer.Ordinal);
+            summaryLabels = selected.Where(field => !field.Hidden && field.PermissionGroups.All(group => group.Any(permissions.Contains))).ToDictionary(field => field.Name, field => TextLocalizer.Resolve(field.LocalizedLabel, field.Label), StringComparer.Ordinal);
         }
         var canAssign = snapshot.Status == HumanTaskStatus.AwaitingAssignment &&
             (await authorization.AuthorizeAsync(new(actor, new(snapshot.Definition.Id.Value, snapshot.Definition.Version, node.Id.Value, WorkflowActions.AssignTask)), cancellationToken).ConfigureAwait(false)).Allowed;
         return new(snapshot.TaskId, snapshot.InstanceId,
             snapshot.Definition.DisplayLabel ?? snapshot.Definition.Id.Value,
-            node.DisplayLabel ?? node.Id.Value, snapshot.Status, snapshot.AssignmentMode,
-            snapshot.Revision, registration.Form, registration.CustomComponentType, data,
-            actions, snapshot.CreatedAtUtc, policy, summary, snapshot.Definition.Id.Value, snapshot.Definition.Version, canAssign, summaryLabels,
+            TextLocalizer.Resolve(WorkflowStagePolicy.Read(node.Configuration)?.LocalizedLabel, node.DisplayLabel ?? node.Id.Value), snapshot.Status, snapshot.AssignmentMode,
+            snapshot.Revision, TextLocalizer.ResolveForm(registration.Form), registration.CustomComponentType, data,
+            actions, snapshot.CreatedAtUtc, TextLocalizer.ResolvePolicy(policy), summary, snapshot.Definition.Id.Value, snapshot.Definition.Version, canAssign, summaryLabels,
             snapshot.Definition.Nodes.Where(candidate => candidate.HumanTask is not null).ToDictionary(candidate => candidate.Id.Value,
-                candidate => candidate.DisplayLabel ?? candidate.Id.Value, StringComparer.Ordinal),
+                candidate => LocalizedNodeLabel(candidate, candidate.Id.Value), StringComparer.Ordinal),
             await ReadRequestAsync(snapshot.InstanceId, cancellationToken).ConfigureAwait(false),
             await ProjectStateAsync(snapshot.Definition, snapshot.State, actor, cancellationToken).ConfigureAwait(false));
     }
@@ -488,7 +492,7 @@ public sealed partial class WorkflowPortalService(
     private static WorkflowPortalTaskActionResult ToPortalResult(HumanTaskCommandResult result) =>
         result.Succeeded
             ? new(true, result.WasReplay, [])
-            : new(false, false, (result.Errors ?? (result.ErrorCode == "runtime.comment-required" ? [new WorkflowValidationError("runtime.comment-required", "Un commentaire est obligatoire pour cette action.", "comment")] : [])).Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message)).ToArray(), result.ErrorCode);
+            : new(false, false, (result.Errors ?? (result.ErrorCode == "runtime.comment-required" ? [new WorkflowValidationError("runtime.comment-required", "Un commentaire est obligatoire pour cette action.", "comment")] : [])).Select(error => new WorkflowFormError(error.Field ?? "$", error.Code, error.Message) { LocalizedMessage = error.LocalizedMessage }).ToArray(), result.ErrorCode);
 
     private static WorkflowPortalOptions Validate(WorkflowPortalOptions options)
     {

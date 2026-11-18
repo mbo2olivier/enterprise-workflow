@@ -1,3 +1,4 @@
+using static EnterpriseWorkflow.Sdk.WorkflowTexts;
 using EnterpriseWorkflow.Core.Serialization;
 using EnterpriseWorkflow.Abstractions;
 using System.ComponentModel.DataAnnotations;
@@ -16,7 +17,7 @@ namespace EnterpriseWorkflow.LeaveRequest;
 /// <summary>Complete L8b example; permissions are independent of installation profile names.</summary>
 public sealed class LeaveRequestModule : WorkflowModule
 {
-    public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.leave-request", "1.8.0", 9)
+    public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.leave-request", "1.9.0", 10)
         .WithName("Gestion des congés")
         .WithDescription("Demande, confirmation, approbation hiérarchique puis validation RH.");
 
@@ -39,27 +40,27 @@ public sealed class LeaveRequestModule : WorkflowModule
             })
             .AddHumanTask<ConfirmLeaveRequestHandler>("confirm")
             .AddService<CloseRequestHandler>("close-request")
-            .AddForm("request-form", "Demande de congé", form => form
+            .AddForm("request-form", Text("process.title", "Leave request"), form => form
                 .HandledBy<ConfirmLeaveRequestHandler>()
                 .WithComponent<LeaveRequestSummary>("leave-request.summary")
                 .ReadableBy(WorkflowFieldAudience.Initiator | WorkflowFieldAudience.TaskParticipant | WorkflowFieldAudience.InstanceReader)
                 .Fields(fields =>
                 {
-                    fields.Date("startDate", "Date de début").Required();
-                    fields.Date("endDate", "Date de fin").Required();
-                    fields.Choice("leaveType", "Type de congé").Required()
-                        .Options(("paid", "Congé payé"), ("family", "Congé familial"), ("unpaid", "Congé sans solde"));
-                    fields.LongText("reason", "Motif").Required().Length(3, 1000)
+                    fields.Date("startDate", Text("field.startDate", "Start date")).Required();
+                    fields.Date("endDate", Text("field.endDate", "End date")).Required();
+                    fields.Choice("leaveType", Text("field.leaveType", "Leave type")).Required()
+                        .Options(("paid", Text("choice.paid", "Paid leave")), ("family", Text("choice.family", "Family leave")), ("unpaid", Text("choice.unpaid", "Unpaid leave")));
+                    fields.LongText("reason", Text("field.reason", "Reason")).Required().Length(3, 1000)
                         .ReadableBy(WorkflowFieldAudience.Initiator | WorkflowFieldAudience.TaskParticipant)
-                        .Help("Expliquez brièvement le motif de la demande.");
-                    fields.File("documents", "Justificatifs").UseMediaPolicy("supporting-documents").MaximumFiles(3);
-                    fields.LongText("privateNote", "Note personnelle").Length(0, 500)
+                        .Help(Text("help.reason", "Briefly explain the reason for your request."));
+                    fields.File("documents", Text("field.documents", "Supporting documents")).UseMediaPolicy("supporting-documents").MaximumFiles(3);
+                    fields.LongText("privateNote", Text("field.privateNote", "Personal note")).Length(0, 500)
                         .ReadableBy(WorkflowFieldAudience.Initiator);
                 }))
-            .AddForm("confirmation-form", "Confirmation du demandeur", form => form
+            .AddForm("confirmation-form", Text("form.confirmation", "Requester confirmation"), form => form
                 .HandledBy<ConfirmLeaveRequestHandler>()
                 .WithComponent<LeaveRequestSummary>("leave-confirmation.summary")
-                .Fields(fields => fields.LongText("comment", "Commentaire facultatif")))
+                .Fields(fields => fields.LongText("comment", Text("field.comment", "Optional comment"))))
             .AddProcess<LeaveRequestProcess>();
     }
 }
@@ -70,8 +71,8 @@ public sealed class LeaveRequestProcess : IWorkflowProcess
     {
         var flow = process.WithState<LeaveRequestState>();
         flow.WithId("leave-request")
-            .WithName("Demande de congé")
-            .WithDescription("Confirmer sa demande, puis la soumettre au responsable choisi avant la validation RH.")
+            .WithName(Text("process.title", "Leave request"))
+            .WithDescription(Text("process.description", "Confirm the request, then submit it to the selected manager before HR review."))
             .InitializedBy<LeaveRequestInitializer>()
             .WithStateSchemaVersion(4)
             .RequiresPermission("request")
@@ -79,7 +80,7 @@ public sealed class LeaveRequestProcess : IWorkflowProcess
             .StartWithForm("request-form").Then("draft");
 
         // A business confirmation stage after creation, not a framework draft feature.
-        flow.Input("draft", "Confirmation du demandeur", task => task
+        flow.Input("draft", Text("form.confirmation", "Requester confirmation"), task => task
             .UsesForm("confirmation-form")
             .RequiresPermission("request")
             .AssignedToInitiator()
@@ -87,28 +88,28 @@ public sealed class LeaveRequestProcess : IWorkflowProcess
             .ShowFields("startDate", "endDate", "leaveType", "reason")
             .Actions(actions =>
             {
-                actions.Add("submit", "Confirmer", action => action.SelectAssigneeFor("validation-manager").Then("validation-manager"));
-                actions.Add("cancel", "Annuler", action => action.Then("cancelled"));
+                actions.Add("submit", Text("action.submit", "Confirm"), action => action.SelectAssigneeFor("validation-manager").Then("validation-manager"));
+                actions.Add("cancel", Text("action.cancel", "Cancel"), action => action.Then("cancelled"));
             }));
 
-        flow.Approval("validation-manager", "Validation du responsable", task => task
+        flow.Approval("validation-manager", Text("stage.manager", "Manager approval"), task => task
             .RequiresPermission("manager.approve")
             .AssignedFromPreviousTask()
             .ShowFields("startDate", "endDate", "leaveType", "reason")
             .Actions(actions =>
             {
-                actions.Add("validate", "Approuver", action => action.CommentAt(state => state.Comments).Then("validation-rh"));
-                actions.Add("decline", "Refuser", action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
+                actions.Add("validate", Text("action.approve", "Approve"), action => action.CommentAt(state => state.Comments).Then("validation-rh"));
+                actions.Add("decline", Text("action.decline", "Decline"), action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
             }));
 
-        flow.Approval("validation-rh", "Validation RH", task => task
+        flow.Approval("validation-rh", Text("stage.hr", "HR approval"), task => task
             .RequiresPermission("hr.review")
             .ClaimedByEligibleParticipant()
             .ShowFields("startDate", "endDate", "leaveType", "reason")
             .Actions(actions =>
             {
-                actions.Add("validate", "Valider", action => action.CommentAt(state => state.Comments).Then("close-request"));
-                actions.Add("decline", "Refuser", action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
+                actions.Add("validate", Text("action.validate", "Validate"), action => action.CommentAt(state => state.Comments).Then("close-request"));
+                actions.Add("decline", Text("action.decline", "Decline"), action => action.RequireCommentAt(state => state.Comments).Then("rejected"));
             }));
 
         flow.Service<CloseRequestHandler>("close-request").Then("completed");
@@ -139,12 +140,12 @@ public sealed class CloseRequestHandler(IWorkflowMediaService media) : IServiceN
 [StateValidator(typeof(LeaveDatesValidator))]
 public sealed class LeaveRequestState
 {
-    [JsonPropertyName("closed"), Label("Clôturée")] public bool Closed { get; set; }
-    [CommentState, JsonPropertyName("comments"), Label("Commentaires")] public List<WorkflowComment> Comments { get; init; } = [];
-    [JsonPropertyName("startDate"), Label("Date de début")] public DateOnly StartDate { get; init; }
-    [JsonPropertyName("endDate"), Label("Date de fin")] public DateOnly EndDate { get; init; }
-    [JsonPropertyName("leaveType"), Label("Type de congé"), Required] public string LeaveType { get; init; } = string.Empty;
-    [JsonPropertyName("reason"), Label("Motif"), Required, StringLength(1000, MinimumLength = 3)] public string Reason { get; init; } = string.Empty;
+    [JsonPropertyName("closed"), LabelKey("field.closed", "Closed")] public bool Closed { get; set; }
+    [CommentState, JsonPropertyName("comments"), LabelKey("field.comments", "Comments")] public List<WorkflowComment> Comments { get; init; } = [];
+    [JsonPropertyName("startDate"), LabelKey("field.startDate", "Start date")] public DateOnly StartDate { get; init; }
+    [JsonPropertyName("endDate"), LabelKey("field.endDate", "End date")] public DateOnly EndDate { get; init; }
+    [JsonPropertyName("leaveType"), LabelKey("field.leaveType", "Leave type"), Required] public string LeaveType { get; init; } = string.Empty;
+    [JsonPropertyName("reason"), LabelKey("field.reason", "Reason"), Required, StringLength(1000, MinimumLength = 3)] public string Reason { get; init; } = string.Empty;
     [JsonPropertyName("privateNote"), HiddenField] public string? PrivateNote { get; init; }
 }
 
@@ -178,7 +179,7 @@ public sealed class LeaveDatesValidator : IWorkflowStateValidator
     public ValueTask<IReadOnlyList<WorkflowValidationError>> ValidateErrorsAsync(WorkflowStateValidationContext context, CancellationToken cancellationToken)
     {
         var state = context.State.Value.ToJsonElement();
-        IReadOnlyList<WorkflowValidationError> errors = state.GetProperty("endDate").Deserialize<DateOnly>() < state.GetProperty("startDate").Deserialize<DateOnly>() ? [new("leave.invalid-dates", "La date de fin doit être postérieure ou égale à la date de début.")] : [];
+        IReadOnlyList<WorkflowValidationError> errors = state.GetProperty("endDate").Deserialize<DateOnly>() < state.GetProperty("startDate").Deserialize<DateOnly>() ? [new("leave.invalid-dates", Text("validation.dates", "End date must be on or after start date."))] : [];
         return ValueTask.FromResult(errors);
     }
 }

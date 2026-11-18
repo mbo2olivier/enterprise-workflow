@@ -24,7 +24,11 @@ public enum WorkflowFieldAudience
     InstanceReader = 4,
 }
 
-public sealed record WorkflowChoiceOption(string Value, string Label);
+public sealed record WorkflowChoiceOption(string Value, string Label)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedLabel { get; init; }
+}
 
 public sealed record WorkflowFormField(
     TechnicalId Id,
@@ -40,7 +44,13 @@ public sealed record WorkflowFormField(
     string? HelpText = null,
     ImmutableArray<WorkflowChoiceOption> Options = default,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    WorkflowFileFieldSpecification? FileSpecification = null);
+    WorkflowFileFieldSpecification? FileSpecification = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedLabel { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedHelp { get; init; }
+}
 
 public sealed record WorkflowFileFieldSpecification(long MaximumBytes, int MaximumFiles, string[] AllowedContentTypes, string[] AllowedExtensions,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? PolicyId = null,
@@ -51,7 +61,11 @@ public sealed record WorkflowFormDefinition(
     string Title,
     ImmutableArray<WorkflowFormField> Fields,
     TechnicalId? CustomComponentId = null,
-    string? Description = null);
+    string? Description = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedTitle { get; init; }
+}
 
 /// <summary>
 /// Trusted factory invoked only after the loader knows the module's exact immutable artifact identity.
@@ -70,7 +84,13 @@ public sealed record WorkflowProcessDeclaration(
     ImmutableArray<TechnicalId> DesignatedAssignmentNodes = default,
     string? IconResourcePath = null,
     Type? StateInitializerType = null,
-    Type[]? StateValidatorTypes = null);
+    Type[]? StateValidatorTypes = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedTitle { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedDescription { get; init; }
+}
 
 public sealed record WorkflowProcessDescriptor(
     WorkflowDefinition Definition,
@@ -82,4 +102,10 @@ public sealed record WorkflowProcessDescriptor(
     ImmutableArray<TechnicalId> DesignatedAssignmentNodes,
     string? IconResourcePath,
     Type? StateInitializerType = null,
-    Type[]? StateValidatorTypes = null);
+    Type[]? StateValidatorTypes = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedTitle { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public WorkflowText? LocalizedDescription { get; init; }
+}

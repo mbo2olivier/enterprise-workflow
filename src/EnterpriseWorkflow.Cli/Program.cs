@@ -56,7 +56,7 @@ internal static class WorkflowCli
         {
             if (args.Length == 0 || args[0] is "--help" or "-h")
             {
-                Console.WriteLine("ew validate|inspect|pack <project-or-directory> [--configuration Debug|Release] [--output path]\new dev [project | --artifact directory] [--environment name] [--config file] [--url http://localhost:5080] [--no-watch] [--reset]\new verify <artifact-directory>\new inspect <project> --format json");
+                Console.WriteLine("ew validate|inspect|pack <project-or-directory> [--configuration Debug|Release] [--output path]\new dev [project | --artifact directory] [--environment name] [--config file] [--url http://localhost:5080] [--no-watch] [--reset] [--env-file path | --no-env-file]\new verify <artifact-directory>\new inspect <project> --format json");
                 return 0;
             }
             if (args[0] == "--version")
@@ -68,21 +68,21 @@ internal static class WorkflowCli
             if (command is not ("validate" or "inspect" or "pack" or "verify" or "dev"))
                 throw new ArgumentException($"Unknown command '{command}'. Use ew --help.");
             var options = Parse(args[1..]);
-            if (command != "dev" && (options.Config is not null || options.Url is not null || options.NoWatch || options.Reset || options.Environment is not null || options.Artifact is not null))
-                throw new ArgumentException("--config, --url, --no-watch and --reset are development-only options.");
+            if (command != "dev" && (options.Config is not null || options.Url is not null || options.NoWatch || options.Reset || options.Environment is not null || options.Artifact is not null || options.EnvFile is not null || options.NoEnvFile))
+                throw new ArgumentException("Configuration, environment-file, URL, watch and reset options are development-only.");
             if (command is "verify" or "validate" && options.Output is not null)
                 throw new ArgumentException("--output is supported by inspect and pack only.");
             if (command == "verify")
             {
                 await VerifySetAsync(options.ModuleDirectories.Append(Path.GetFullPath(options.Project)).ToArray());
-                Console.WriteLine("Artifact verified.");
+                Console.WriteLine(CliText.Get("Artefact vérifié.", "Artifact verified."));
                 return 0;
             }
             if (command == "dev")
             {
                 if (options.Artifact is not null && (options.HasProject || options.Configuration is not null || options.NoWatch))
                     throw new ArgumentException("--artifact cannot be combined with a source project, --configuration or --no-watch.");
-                await DevelopmentRunner.RunAsync(options.Artifact is null ? ResolveProject(options.Project) : string.Empty, options.Config, options.Url, options.NoWatch, options.Configuration, options.Reset, options.ModuleDirectories, options.Environment, options.Artifact);
+                await DevelopmentRunner.RunAsync(options.Artifact is null ? ResolveProject(options.Project) : string.Empty, options.Config, options.Url, options.NoWatch, options.Configuration, options.Reset, options.ModuleDirectories, options.Environment, options.Artifact, options.EnvFile, options.NoEnvFile);
                 return 0;
             }
             var project = ResolveProject(options.Project);
@@ -120,7 +120,7 @@ internal static class WorkflowCli
                     }
                     else Console.WriteLine(preview);
                 }
-                else Console.WriteLine("Module validation succeeded.");
+                else Console.WriteLine(CliText.Get("Validation du module réussie.", "Module validation succeeded."));
             }
             finally
             {
@@ -137,7 +137,8 @@ internal static class WorkflowCli
 
     private static Options Parse(string[] args)
     {
-        string? project = null, output = null, config = null, url = null, environment = null, artifact = null;
+        string? project = null, output = null, config = null, url = null, environment = null, artifact = null, envFile = null;
+        var noEnvFile = false;
         var noWatch = false;
         var reset = false;
         var json = false;
@@ -146,11 +147,12 @@ internal static class WorkflowCli
         for (var index = 0; index < args.Length; index++)
         {
             var argument = args[index];
-            if (argument is "--configuration" or "--output" or "--project" or "--format" or "--config" or "--url" or "--module-directory" or "--environment" or "--artifact")
+            if (argument is "--configuration" or "--output" or "--project" or "--format" or "--config" or "--url" or "--module-directory" or "--environment" or "--artifact" or "--env-file")
             {
                 if (++index >= args.Length) throw new ArgumentException($"Missing value for {argument}.");
                 switch (argument)
                 {
+                    case "--env-file": envFile = args[index]; break;
                     case "--environment": environment = args[index]; break;
                     case "--artifact": artifact = Path.GetFullPath(args[index]); break;
                     case "--module-directory": moduleDirectories.Add(Path.GetFullPath(args[index])); break;
@@ -167,6 +169,7 @@ internal static class WorkflowCli
                         break;
                 }
             }
+            else if (argument == "--no-env-file") noEnvFile = true;
             else if (argument == "--reset") reset = true;
             else if (argument == "--no-watch") noWatch = true;
             else if (argument.StartsWith('-')) throw new ArgumentException($"Unknown option '{argument}'.");
@@ -174,7 +177,8 @@ internal static class WorkflowCli
             else project = argument;
         }
         if (configuration is not (null or "Debug" or "Release")) throw new ArgumentException("Configuration must be Debug or Release.");
-        return new(project ?? ".", configuration, output, config, url, noWatch, reset, json, moduleDirectories.ToArray(), environment, artifact, project is not null);
+        if (noEnvFile && envFile is not null) throw new ArgumentException("--env-file and --no-env-file cannot be combined.");
+        return new(project ?? ".", configuration, output, config, url, noWatch, reset, json, moduleDirectories.ToArray(), environment, artifact, project is not null, envFile, noEnvFile);
     }
 
     private static string RenderPreview(string preview)
@@ -185,9 +189,9 @@ internal static class WorkflowCli
             text.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"Module : {module.GetProperty("id").GetString()} / {module.GetProperty("release").GetString()} / {module.GetProperty("sha256").GetString()}");
         foreach (var process in document.RootElement.GetProperty("processes").EnumerateArray())
         {
-            text.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"Processus : {process.GetProperty("id").GetString()} / révision {process.GetProperty("version").GetInt32()}");
+            text.AppendLine(CliText.Format("Processus : {0} / révision {1}", "Process: {0} / revision {1}", process.GetProperty("id").GetString(), process.GetProperty("version").GetInt32()));
             foreach (var node in process.GetProperty("nodes").EnumerateArray())
-                text.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  Étape {node.GetProperty("id").GetString()}: {node.GetRawText()}");
+                text.AppendLine(CliText.Format("  Étape {0}: {1}", "  Step {0}: {1}", node.GetProperty("id").GetString(), node.GetRawText()));
             foreach (var edge in process.GetProperty("transitions").EnumerateArray())
                 text.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  Transition : {edge.GetRawText()}");
         }
@@ -327,5 +331,5 @@ internal static class WorkflowCli
         if (process.ExitCode != 0) throw new InvalidOperationException($"dotnet subprocess failed (exit {process.ExitCode}).");
     }
 
-    private sealed record Options(string Project, string? Configuration, string? Output, string? Config, string? Url, bool NoWatch, bool Reset, bool Json, string[] ModuleDirectories, string? Environment, string? Artifact, bool HasProject);
+    private sealed record Options(string Project, string? Configuration, string? Output, string? Config, string? Url, bool NoWatch, bool Reset, bool Json, string[] ModuleDirectories, string? Environment, string? Artifact, bool HasProject, string? EnvFile, bool NoEnvFile);
 }

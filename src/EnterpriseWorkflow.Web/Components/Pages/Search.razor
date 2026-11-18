@@ -1,19 +1,20 @@
+@inject WorkflowUiLocalizer Ui
 @page "/search"
 @attribute [Authorize]
 @inject IWorkflowPortalService Portal
 @inject WorkflowWebIdentityAccessor Identity
 @inject IAuthorizationProvider Authorization
 @inject IPresentationSettingsStore Settings
-<PageTitle>Recherche de demandes · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["Recherche de demandes · Enterprise Workflow"]</PageTitle>
 <div class="content content-medium">
-<div class="page-intro"><h1>Rechercher des demandes</h1><p>Seules les demandes que vous pouvez consulter apparaissent.</p></div>
+<div class="page-intro"><h1>@Ui["Rechercher des demandes"]</h1><p>@Ui["Seules les demandes que vous pouvez consulter apparaissent."]</p></div>
 <form method="get" class="panel filter-form" role="search">
 <div class="compact-form filter-fields">
     <WorkflowSearchFields Status="@string.Join(',', Status ?? [])" From="@From" Until="@Until" Process="@Process" Version="@Version" Instance="@Instance" Reference="@Reference" Provider="@Provider" Initiator="@Initiator" CanFilterInitiator="@_canInitiator" />
 </div><footer class="filter-actions">
-    <button class="primary-button" type="submit">Rechercher</button>
+    <button class="primary-button" type="submit">@Ui["Rechercher"]</button>
 </footer></form>
-@if (_page?.ErrorCode is not null) { <p role="alert" class="form-error">Recherche impossible. Vérifiez les filtres et vos droits, puis relancez la recherche.</p> }
+@if (_page?.ErrorCode is not null) { <p role="alert" class="form-error">@Ui["Recherche impossible. Vérifiez les filtres et vos droits, puis relancez la recherche."]</p> }
 else if (_page is not null)
 {
     <section class="panel request-list">
@@ -21,9 +22,9 @@ else if (_page is not null)
     {
         <WorkflowRequestRow Request="item" Href="@($"/instances/{item.InstanceId.Value}")" />
     }
-    @if (_page.Items.Count == 0) { <div class="search-empty"><span class="row-icon large"><PhosphorIcon Name="magnifying-glass" Size="24" /></span><h2>Aucune demande trouvée</h2><p>Aucune demande accessible ne correspond à ces critères.</p><p class="field-help">Essayez d’élargir la période ou de retirer un filtre.</p></div> }
+    @if (_page.Items.Count == 0) { <div class="search-empty"><span class="row-icon large"><PhosphorIcon Name="magnifying-glass" Size="24" /></span><h2>@Ui["Aucune demande trouvée"]</h2><p>@Ui["Aucune demande accessible ne correspond à ces critères."]</p><p class="field-help">@Ui["Essayez d’élargir la période ou de retirer un filtre."]</p></div> }
     </section>
-    @if (_page.NextCursor is not null) { <a class="secondary-button" href="@NextUrl()">Continuer la recherche</a> }
+    @if (_page.NextCursor is not null) { <a class="secondary-button" href="@NextUrl()">@Ui["Continuer la recherche"]</a> }
 }
 </div>
 @code {

@@ -4,6 +4,7 @@ public static class SecurityProviderIds { public const string Local = "local"; }
 
 public readonly record struct IdentityReference
 {
+    [System.Text.Json.Serialization.JsonConstructor]
     public IdentityReference(string providerId, string subjectId)
     {
         ProviderId = Required(providerId, nameof(providerId));
@@ -32,6 +33,8 @@ public readonly record struct PermissionId
 
 public static class WorkflowPermissions
 {
+    public static readonly PermissionId SubmitIdentity = new("security.identity.submit");
+    public static readonly PermissionId ApproveIdentity = new("security.identity.approve");
     public static readonly PermissionId ManageAccess = new("security.access.manage");
     public static readonly PermissionId SearchByInitiator = new("workflow.instance.search.initiator");
     public static readonly PermissionId ExportAudit = new("security.audit.export");
@@ -178,7 +181,10 @@ public sealed record SecuritySession(
     DateTimeOffset ExpiresAtUtc,
     DateTimeOffset RemoteStatusCheckedAtUtc,
     bool Revoked,
-    long Revision);
+    long Revision)
+{
+    public bool SecondFactorVerified { get; init; }
+}
 
 public enum SessionValidationStatus { Valid, NotFound, Expired, Revoked, RevalidationRequired, Unavailable }
 public sealed record SessionValidationResult(SessionValidationStatus Status, IdentityReference? Identity = null, string? ErrorCode = null);

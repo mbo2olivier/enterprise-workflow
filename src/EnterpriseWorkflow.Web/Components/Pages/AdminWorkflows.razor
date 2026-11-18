@@ -1,3 +1,4 @@
+@inject WorkflowUiLocalizer Ui
 @page "/admin/workflows"
 @attribute [Authorize]
 @inject IWorkflowPresentationCatalog Catalog
@@ -6,18 +7,18 @@
 @inject IAuthorizationProvider Authorization
 @inject WorkflowWebIdentityAccessor Identity
 
-<PageTitle>Habilitations · Enterprise Workflow</PageTitle>
+<PageTitle>@Ui["Habilitations · Enterprise Workflow"]</PageTitle>
 <div class="content content-medium admin-content">
-    <div class="page-intro"><p class="eyebrow">Administration</p><h1>Habilitations workflow</h1><p>Les permissions métier sont attribuées aux profils. Les processus historiques conservent leurs habilitations exactes.</p></div>
-    @if (Saved) { <div class="notice success" role="status">Politique d’accès enregistrée.</div> }
+    <div class="page-intro"><p class="eyebrow">@Ui["Administration"]</p><h1>@Ui["Habilitations workflow"]</h1><p>@Ui["Les permissions métier sont attribuées aux profils. Les processus historiques conservent leurs habilitations exactes."]</p></div>
+    @if (Saved) { <div class="notice success" role="status">@Ui["Politique d’accès enregistrée."]</div> }
     @if (!string.IsNullOrWhiteSpace(Error)) { <div class="form-error" role="alert">La politique n’a pas été modifiée (@Error).</div> }
     @if (!_allowed)
     {
-        <section class="panel empty-state"><h2>Accès refusé</h2><p>La permission de gestion des accès est requise.</p></section>
+        <section class="panel empty-state"><h2>@Ui["Accès refusé"]</h2><p>@Ui["La permission de gestion des accès est requise."]</p></section>
     }
     else if (_rows.Count == 0)
     {
-        <section class="panel empty-state"><h2>Aucun processus installé</h2><p>Les habilitations apparaîtront après chargement d’un module métier.</p></section>
+        <section class="panel empty-state"><h2>@Ui["Aucun processus installé"]</h2><p>@Ui["Les habilitations apparaîtront après chargement d’un module métier."]</p></section>
     }
     else
     {
@@ -26,42 +27,42 @@
             @if (UsesBusinessPermissions(row.Process))
             {
                 <section class="panel data-panel">
-                    <div class="section-heading"><h2>@row.Process.Title</h2><span class="status progress">Permissions métier</span></div>
-                    <p>Les exigences sont définies par le module. Attribuez les permissions depuis les profils de votre installation.</p>
-                    <div class="table-wrap"><table><thead><tr><th>Étape</th><th>Action</th><th>Permissions requises</th></tr></thead><tbody>
+                    <div class="section-heading"><h2>@row.Process.Title</h2><span class="status progress">@Ui["Permissions métier"]</span></div>
+                    <p>@Ui["Les exigences sont définies par le module. Attribuez les permissions depuis les profils de votre installation."]</p>
+                    <div class="table-wrap"><table><thead><tr><th>@Ui["Étape"]</th><th>@Ui["Action"]</th><th>@Ui["Permissions requises"]</th></tr></thead><tbody>
                         @foreach (var requirement in PermissionRows(row.Process))
                         {
                             <tr><td>@requirement.Stage</td><td>@requirement.Action</td><td>@requirement.Requirements</td></tr>
                         }
                     </tbody></table></div>
-                    <a class="secondary-button" href="/admin/access">Gérer les profils</a>
+                    <a class="secondary-button" href="/admin/access">@Ui["Gérer les profils"]</a>
                 </section>
             }
             else
             {
             <section class="panel data-panel">
                 <div class="section-heading"><div><p class="eyebrow">@row.Process.Definition.Id.Value · v@row.Process.Definition.Version</p><h2>@row.Process.Title</h2></div><span class="status progress">@row.Grants.Count grant(s)</span></div>
-                <div class="readonly-note"><span><strong>Définition publiée</strong><small>Modes d’affectation et séparation des acteurs en lecture seule. Seuls les grants exacts ci-dessous sont modifiables.</small></span></div>
-                <div class="table-wrap"><table><thead><tr><th>Portée</th><th>Action</th><th>Bénéficiaire</th><th>Révision</th><th></th></tr></thead><tbody>
+                <div class="readonly-note"><span><strong>@Ui["Définition publiée"]</strong><small>@Ui["Modes d’affectation et séparation des acteurs en lecture seule. Seuls les grants exacts ci-dessous sont modifiables."]</small></span></div>
+                <div class="table-wrap"><table><thead><tr><th>@Ui["Portée"]</th><th>@Ui["Action"]</th><th>@Ui["Bénéficiaire"]</th><th>@Ui["Révision"]</th><th></th></tr></thead><tbody>
                 @foreach (var grant in row.Grants)
                 {
                     <tr><td>@(grant.Scope.NodeId ?? "Workflow")</td><td>@grant.Scope.Action.Value</td><td>@Recipient(grant.Recipient)</td><td>@grant.PolicyRevision</td><td>
-                        <form method="post" action="/admin/workflows/grants/revoke"><AntiforgeryToken />@GrantHidden(grant)<button class="text-button danger-button" type="submit">Retirer</button></form>
+                        <form method="post" action="/admin/workflows/grants/revoke"><AntiforgeryToken />@GrantHidden(grant)<button class="text-button danger-button" type="submit">@Ui["Retirer"]</button></form>
                     </td></tr>
                 }
                 </tbody></table></div>
                 <div class="grant-editors">
                     <form method="post" action="/admin/workflows/grants" class="compact-form">
                         <AntiforgeryToken /><input type="hidden" name="workflowId" value="@row.Process.Definition.Id.Value" /><input type="hidden" name="definitionVersion" value="@row.Process.Definition.Version" /><input type="hidden" name="recipientKind" value="profile" />
-                        <label>Portée exacte<select name="scope" required>@foreach (var scope in Scopes(row.Process)) { <option value="@scope.Value">@scope.Label</option> }</select></label>
-                        <label>Profil<select name="recipientProfileId" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label>
-                        <button class="primary-button" type="submit">Accorder au profil</button>
+                        <label>@Ui["Portée exacte"]<select name="scope" required>@foreach (var scope in Scopes(row.Process)) { <option value="@scope.Value">@scope.Label</option> }</select></label>
+                        <label>@Ui["Profil"]<select name="recipientProfileId" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label>
+                        <button class="primary-button" type="submit">@Ui["Accorder au profil"]</button>
                     </form>
                     <form method="post" action="/admin/workflows/grants" class="compact-form">
                         <AntiforgeryToken /><input type="hidden" name="workflowId" value="@row.Process.Definition.Id.Value" /><input type="hidden" name="definitionVersion" value="@row.Process.Definition.Version" /><input type="hidden" name="recipientKind" value="identity" />
-                        <label>Portée exacte<select name="scope" required>@foreach (var scope in Scopes(row.Process)) { <option value="@scope.Value">@scope.Label</option> }</select></label>
-                        <label>Fournisseur<input name="recipientProviderId" required maxlength="128" /></label><label>Identifiant stable<input name="recipientSubjectId" required maxlength="256" /></label>
-                        <button class="primary-button" type="submit">Accorder à l’identité</button>
+                        <label>@Ui["Portée exacte"]<select name="scope" required>@foreach (var scope in Scopes(row.Process)) { <option value="@scope.Value">@scope.Label</option> }</select></label>
+                        <label>@Ui["Fournisseur"]<input name="recipientProviderId" required maxlength="128" /></label><label>@Ui["Identifiant stable"]<input name="recipientSubjectId" required maxlength="256" /></label>
+                        <button class="primary-button" type="submit">@Ui["Accorder à l’identité"]</button>
                     </form>
                 </div>
             </section>
@@ -115,7 +116,7 @@
     {
         var labels = groups.Select(group => string.Join(" OU ", group.Select(permission =>
             Catalog.Permissions.FirstOrDefault(item => item.Id.Value == permission)?.Label ?? permission))).ToArray();
-        return labels.Length == 0 ? "Non autorisé" : string.Join(" ET ", labels.Select(label => $"({label})"));
+        return labels.Length == 0 ? Ui["Non autorisé"] : string.Join(" ET ", labels.Select(label => $"({label})"));
     }
     private sealed record PermissionRow(string Stage, string Action, string Requirements);
 

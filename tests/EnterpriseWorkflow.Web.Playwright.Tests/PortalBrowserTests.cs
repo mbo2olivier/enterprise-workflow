@@ -52,7 +52,8 @@ public sealed class PortalBrowserTests
             await page.GetByRole(AriaRole.Button, new() { Name = "Se connecter" }).ClickAsync();
             await Expect(page).ToHaveURLAsync(baseAddress + "/");
 
-            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Hello, browser-admin" })).ToBeVisibleAsync();
+            await Expect(page.Locator("html")).ToHaveAttributeAsync("lang", "fr");
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Bonjour, browser-admin", Exact = true })).ToBeVisibleAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "À faire maintenant" })).ToBeVisibleAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Mes demandes récentes" })).ToBeVisibleAsync();
             Assert.Equal(4, await page.Locator(".sidebar .nav-item svg").CountAsync());
@@ -135,6 +136,19 @@ public sealed class PortalBrowserTests
             await page.Keyboard.PressAsync("Tab");
             var activeTag = await page.EvaluateAsync<string>("document.activeElement && document.activeElement.tagName");
             Assert.Contains(activeTag, FocusableTags);
+
+            var languageToggle = page.Locator(".topbar-actions .language-toggle");
+            var settingsUrl = page.Url;
+            await languageToggle.Locator("button[value=en]").ClickAsync();
+            await Expect(page).ToHaveURLAsync(settingsUrl);
+            await Expect(page.Locator("html")).ToHaveAttributeAsync("lang", "en");
+            await Expect(languageToggle.Locator("button[value=en]")).ToHaveAttributeAsync("aria-pressed", "true");
+            await page.ReloadAsync();
+            await Expect(page.Locator("html")).ToHaveAttributeAsync("lang", "en");
+            await languageToggle.Locator("button.language-reset").ClickAsync();
+            await Expect(page).ToHaveURLAsync(settingsUrl);
+            await Expect(page.Locator("html")).ToHaveAttributeAsync("lang", "fr");
+            await Expect(page.Locator("a[href='/profile']")).ToHaveCountAsync(0);
         }
         finally
         {
@@ -177,6 +191,8 @@ public sealed class PortalBrowserTests
         start.Environment["Database__MigrationMode"] = "Apply";
         start.Environment["ConnectionStrings__EnterpriseWorkflow"] = $"Data Source={database};Pooling=False";
         start.Environment["Security__AuthenticationProvider"] = "local";
+        start.Environment["Localization__DefaultCulture"] = "fr";
+        start.Environment["Localization__FallbackCulture"] = "en";
         start.Environment["DOTNET_ENVIRONMENT"] = "Production";
         if (baseAddress is not null) start.Environment["ASPNETCORE_URLS"] = baseAddress;
         return new Process { StartInfo = start };

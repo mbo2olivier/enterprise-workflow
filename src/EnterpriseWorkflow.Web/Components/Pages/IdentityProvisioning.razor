@@ -1,0 +1,69 @@
+@inject WorkflowUiLocalizer Ui
+@page "/admin/identity-provisioning"
+@attribute [Authorize]
+@inject IEnumerable<IIdentityProvisioningProvider> Providers
+@inject IAuthorizationProvider Authorization
+@inject WorkflowWebIdentityAccessor Identity
+@inject ISecurityProfileStore Profiles
+
+<PageTitle>Identity approval · Enterprise Workflow</PageTitle>
+<div class="content content-medium">
+    <h1>@Ui["Identity approval"]</h1>
+    @if (!_submit && !_approve) { <p>@Ui["Access denied."]</p> }
+    else
+    {
+        @foreach (var provider in Providers)
+        {
+            <section class="panel request-form">
+                <h2>@provider.ProviderId</h2>
+                @if (_submit)
+                {
+                    <form method="post" action="@($"/admin/identities/{Uri.EscapeDataString(provider.ProviderId)}/submit")">
+                        <AntiforgeryToken />
+                        <label>@Ui["Identifier"]<input name="identifier" required maxlength="256" /></label>
+                        <label>@Ui["Initial profile"]<select name="profiles" required>@foreach (var profile in _profiles) { <option value="@profile.Id">@profile.DisplayName</option> }</select></label>
+                        <button type="submit">@Ui["Submit for approval"]</button>
+                    </form>
+                }
+                @if (_pending.TryGetValue(provider.ProviderId, out var requests))
+                {
+                    @foreach (var request in requests)
+                    {
+                        <article class="panel">
+                            <h3>@request.Identity.DisplayName</h3>
+                            <p>@request.Identity.Identity.SubjectId · @request.Identity.Email</p>
+                            <p>@Ui["Maker:"] @request.Maker.SubjectId · Profiles: @string.Join(", ", request.ProfileIds)</p>
+                            @if (_approve && request.Maker != _actor)
+                            {
+                                <form method="post" action="@($"/admin/identities/{Uri.EscapeDataString(provider.ProviderId)}/decide")">
+                                    <AntiforgeryToken />
+                                    <input type="hidden" name="requestId" value="@request.Id" />
+                                    <input type="hidden" name="revision" value="@request.Revision" />
+                                    <label>@Ui["Reason"]<input name="reason" maxlength="1024" /></label>
+                                    <button name="decision" value="approve">@Ui["Approve"]</button>
+                                    <button name="decision" value="reject">@Ui["Reject"]</button>
+                                </form>
+                            }
+                        </article>
+                    }
+                }
+            </section>
+        }
+    }
+</div>
+@code {
+    private bool _submit, _approve;
+    private IdentityReference _actor;
+    private IReadOnlyList<SecurityProfile> _profiles = [];
+    private readonly Dictionary<string, IReadOnlyList<IdentityProvisioningRequest>> _pending = new(StringComparer.Ordinal);
+    protected override async Task OnInitializedAsync()
+    {
+        _actor = await Identity.GetRequiredAsync();
+        _submit = (await Authorization.AuthorizeAsync(new(_actor, WorkflowPermissions.SubmitIdentity), CancellationToken.None)).Allowed;
+        _approve = (await Authorization.AuthorizeAsync(new(_actor, WorkflowPermissions.ApproveIdentity), CancellationToken.None)).Allowed;
+        if (!_submit && !_approve) return;
+        _profiles = (await Profiles.ListProfilesAsync(500, CancellationToken.None)).Value ?? [];
+        foreach (var provider in Providers)
+            _pending[provider.ProviderId] = ((await provider.ListPendingAsync(100, CancellationToken.None)).Value ?? []).Where(request => _approve || request.Maker == _actor).ToArray();
+    }
+}
