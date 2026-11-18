@@ -19,7 +19,7 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 | EF-12 CLI/templates et `ew dev` | 0010, 0025 ; [spécification L9](l9-spec.md) | L9 | T14, T16, T12, T18, T20 |
 | EF-13 Versions | 0009, 0022 | L7a/b | T12, T13 |
 | EF-14 Audit/diagnostic | 0008 ; exploitation | L3 à L10 | T06, T10, T13, T21 |
-| EF-15 Studio différé | 0004, 0007 | L11 | T15, T16 |
+| EF-15 Studio différé | 0004, 0007 | L13 | T15, T16 |
 | ENF-01 Plateformes | 0001, 0010 | L1, L10 | T14 |
 | ENF-02 Infrastructure minimale | 0006, 0008 | L4, L7b | T14, T17 |
 | ENF-03 Concurrence | 0008 | L3a/b, L4, L6 | T04–T09, T19 |
@@ -81,3 +81,15 @@ EF-05/09/11, L9b-1/5 : [sélecteur distant de candidats éligibles](l9b-spec.md)
 ## Implémentation et qualification locale L9b
 
 La [preuve du 25 octobre 2026](evidence/l9b.md) remplace le statut « non implémenté » des sections de cadrage précédentes pour EF-17 à EF-21, le state DTO et la dette UX des destinataires. Elle associe aux tests les contrats/migrations SQLite/Oracle, le parcours Chromium et les limites encore ouvertes. Le [guide](l9b-sdk.md) documente DTO, validation/migrations, médias, capacités, TAT et sauvegarde. Les critères non couverts ne sont pas déclarés acquis.
+
+## L12 — périmètre planifié, non implémenté
+
+Le [plan L12](l12-cli-distributions-branding-plan.md), approuvé le 18 novembre 2026, complète les exigences d’outillage, d’extension et de présentation ; les rattachements PRD et ADR détaillés seront formalisés en L12-0. Aucun résultat de qualification n’est acquis.
+
+| Besoin accepté | Sous-lots | Preuve attendue |
+| --- | --- | --- |
+| Builder CLI et extensions compilées sans collisions | L12-0/1/6 | ew et CLI personnalisée sur le même socle, conventions communes et collisions refusées |
+| Services métier communs dev/Kernel, configuration distincte | L12-2/6 | Même implémentation versionnée ; identités dev exclusivement ; aucun secret exposé |
+| Contrats partagés et compatibilité | L12-3/6 | Même artefact dans les deux hôtes ; absence/incompatibilité diagnostiquée |
+| Templates et distribution organisationnelle privée | L12-4/6 | Installation feed de test, commande nommée et module préconfiguré |
+| Identité visuelle et localisation L11 | L12-5/6 | Marque/palette cohérentes, réglages contrôlés et rendu bilingue |

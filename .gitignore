@@ -21,3 +21,4 @@ tests/oracle/.env
 /wiki/dist/
 /wiki/.astro/
 /output/
+/tmp/

@@ -103,7 +103,7 @@ La référence sera structurée par usage et alignée sur les signatures publiqu
 - Un tutoriel minimal court d’abord, puis LeaveRequest comme fil rouge plus complet.
 - Chaque page indique les prérequis utiles, les étapes, le résultat observable et les erreurs courantes lorsque cela s’applique.
 - Vérifier commandes, signatures et configuration contre le code livré et les packages publiés ; ne pas recopier comme acquis les anciennes propositions internes.
-- Présenter les limites près de la fonctionnalité concernée ; ne pas annoncer le Studio L11 comme disponible.
+- Présenter les limites près de la fonctionnalité concernée ; ne pas annoncer le Studio L13 comme disponible.
 - Le README racine deviendra une entrée courte en anglais : présentation, installation rapide, liens vers les trois parcours et le wiki ; sa réécriture relève de l’implémentation après validation.
 
 ## Séquence de réalisation après validation

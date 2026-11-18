@@ -6,7 +6,7 @@ Date : 20 octobre 2026. **Spécification retenue et implémentée localement ; q
 
 Un auteur doit pouvoir générer un module, explorer son rendu et exécuter ses parcours métier dans un navigateur avec `ew dev`, puis produire un artefact déployable. Aucun projet Kernel ni application embarquée à écrire pour cette boucle locale. L’hôte fourni par l’outil réutilise les bibliothèques runtime, application, sécurité, loader et UI ; il ne crée pas un second moteur.
 
-L9 comprend templates, CLI, packaging reproductible, runtime de développement et exemple embedded distinct. L10 conserve qualification de distribution, publication effective des packages publics (bibliothèques/adaptateurs retenus, CLI et templates) sur NuGet.org, archives RID et runbooks ; L11 conserve le Studio. Les commandes ci-dessous sont implémentées ; voir le [guide CLI](l9-cli.md) et la [preuve locale](evidence/l9.md).
+L9 comprend templates, CLI, packaging reproductible, runtime de développement et exemple embedded distinct. L10 conserve qualification de distribution, publication effective des packages publics (bibliothèques/adaptateurs retenus, CLI et templates) sur NuGet.org, archives RID et runbooks ; L13 conserve le Studio. Les commandes ci-dessous sont implémentées ; voir le [guide CLI](l9-cli.md) et la [preuve locale](evidence/l9.md).
 
 ## Parcours et commandes cibles
 
