@@ -1,4 +1,5 @@
 @inject WorkflowUiLocalizer Ui
+@inject IWorkflowTextLocalizer TextLocalizer
 @page "/admin/workflows"
 @attribute [Authorize]
 @inject IWorkflowPresentationCatalog Catalog
@@ -27,7 +28,7 @@
             @if (UsesBusinessPermissions(row.Process))
             {
                 <section class="panel data-panel">
-                    <div class="section-heading"><h2>@row.Process.Title</h2><span class="status progress">@Ui["Permissions métier"]</span></div>
+                    <div class="section-heading"><h2>@TextLocalizer.Resolve(row.Process.LocalizedTitle, row.Process.Title)</h2><span class="status progress">@Ui["Permissions métier"]</span></div>
                     <p>@Ui["Les exigences sont définies par le module. Attribuez les permissions depuis les profils de votre installation."]</p>
                     <div class="table-wrap"><table><thead><tr><th>@Ui["Étape"]</th><th>@Ui["Action"]</th><th>@Ui["Permissions requises"]</th></tr></thead><tbody>
                         @foreach (var requirement in PermissionRows(row.Process))
@@ -41,7 +42,7 @@
             else
             {
             <section class="panel data-panel">
-                <div class="section-heading"><div><p class="eyebrow">@row.Process.Definition.Id.Value · v@row.Process.Definition.Version</p><h2>@row.Process.Title</h2></div><span class="status progress">@row.Grants.Count grant(s)</span></div>
+                <div class="section-heading"><div><p class="eyebrow">@row.Process.Definition.Id.Value · v@row.Process.Definition.Version</p><h2>@TextLocalizer.Resolve(row.Process.LocalizedTitle, row.Process.Title)</h2></div><span class="status progress">@row.Grants.Count grant(s)</span></div>
                 <div class="readonly-note"><span><strong>@Ui["Définition publiée"]</strong><small>@Ui["Modes d’affectation et séparation des acteurs en lecture seule. Seuls les grants exacts ci-dessous sont modifiables."]</small></span></div>
                 <div class="table-wrap"><table><thead><tr><th>@Ui["Portée"]</th><th>@Ui["Action"]</th><th>@Ui["Bénéficiaire"]</th><th>@Ui["Révision"]</th><th></th></tr></thead><tbody>
                 @foreach (var grant in row.Grants)

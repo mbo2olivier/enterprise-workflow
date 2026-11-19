@@ -27,6 +27,8 @@ environment.update({
     'Database__MigrationMode': 'Validate',
     'Modules__Directories__0': str(artifact),
     'ASPNETCORE_URLS': base,
+    'Localization__DefaultCulture': 'fr',
+    'Localization__FallbackCulture': 'en',
     'DOTNET_ENVIRONMENT': 'Production',
     'ASPNETCORE_ENVIRONMENT': 'Production',
 })

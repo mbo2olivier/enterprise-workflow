@@ -27,6 +27,8 @@ python3 - "$repo_root" "$qualification_root" "$base_url" "$package_root" <<'PY'
 import json,sys,shutil,xml.etree.ElementTree as ET
 from pathlib import Path
 repo,output,url,packages=map(str,sys.argv[1:])
+sys.path.insert(0, str(Path(repo)/'tests/cli'))
+from qualification_checks import copy_localization_catalogs
 config=ET.Element('configuration')
 sources=ET.SubElement(config,'packageSources')
 ET.SubElement(sources,'clear')
@@ -43,6 +45,7 @@ sample.mkdir()
 for file in source.iterdir():
  if file.is_file() and (file.suffix in ('.cs','.razor','.csproj') or file.name == 'ew.dev.json'):
   shutil.copy2(file,sample/file.name)
+copy_localization_catalogs(source,sample)
 project=next(sample.glob('*.csproj'))
 tree=ET.parse(project)
 for reference in tree.findall('.//ProjectReference'):
@@ -80,7 +83,15 @@ exec 3<> "$qualification_root/dev.stdin"
 trap cleanup EXIT
 docker compose -f "$compose_path" up -d --wait
 "$cli_path" pack "$qualification_root/LeaveRequest.Module" --configuration Release --output "$qualification_root/leave-artifacts"
-"$cli_path" verify "$qualification_root/leave-artifacts/sample.leave-request/1.8.0"
+artifact_path="$(python3 - "$repo_root" "$qualification_root/leave-artifacts" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1])/'tests/cli'))
+from qualification_checks import resolve_packed_module
+print(resolve_packed_module(sys.argv[2], 'sample.leave-request'))
+PY
+)"
+"$cli_path" verify "$artifact_path"
 "$cli_path" dev "$qualification_root/LeaveRequest.Module" --config "$qualification_root/ew.smtp.json" --configuration Release --no-watch --url "$base_url" < "$qualification_root/dev.stdin" > "$qualification_root/dev.log" 2>&1 &
 runtime_pid=$!
 for attempt in {1..60}; do
@@ -91,4 +102,4 @@ done
 EW_DEV_TEST_URL="$base_url" EW_SMTP_TEST_URL="http://127.0.0.1:8025" EW_SMTP_COMPOSE_FILE="$compose_path" EW_DEV_TEST_DB="$qualification_root/LeaveRequest.Module/.ew/environments/default/workflow.db" \
   dotnet test --project "$repo_root/tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj" --configuration Release --no-build --no-restore -- --filter-method '*LeaveRequest*'
 
-python3 "$repo_root/tests/cli/qualify-kernel.py" "$repo_root/src/EnterpriseWorkflow.Kernel/bin/Release/net10.0/EnterpriseWorkflow.Kernel.dll" "$qualification_root/leave-artifacts/sample.leave-request/1.8.0" "$qualification_root/kernel-qualification"
+python3 "$repo_root/tests/cli/qualify-kernel.py" "$repo_root/src/EnterpriseWorkflow.Kernel/bin/Release/net10.0/EnterpriseWorkflow.Kernel.dll" "$artifact_path" "$qualification_root/kernel-qualification"
