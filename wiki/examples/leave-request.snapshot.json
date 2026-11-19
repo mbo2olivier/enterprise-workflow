@@ -1,0 +1,14 @@
+{
+  "frameworkVersion": "1.0.0-rc.1",
+  "module": {
+    "id": "sample.leave-request",
+    "release": "1.8.0",
+    "revision": 9
+  },
+  "files": {
+    "LeaveRequestModule.cs": "029eb053a24e40b2a90ec10681700d9859b5a2fbed3368241843c60149760a95",
+    "LeaveRequestSummary.razor": "1fbf22d5281cf7c7feeaa9ce7531389589300d9ec5735af5db4f1454459d3e32",
+    "ew.dev.json": "525bb7ed66923c636371448c08bd2944f2df6dddc0b3d34c361468df8b398011",
+    "LeaveRequest.csproj": "40f32cccd7c5e775b2e59c2a5056f7171ab4aaf60e3639c66f5a3079d1404bd8"
+  }
+}

@@ -10,7 +10,7 @@ on:
       - 'release/catalog.json'
       - 'global.json'
       - 'scripts/qualify-l9.sh'
-      - 'tests/cli/qualify-dev.py'
+      - 'tests/cli/**'
       - '.github/workflows/documentation.yml'
   pull_request:
     paths:
@@ -20,7 +20,7 @@ on:
       - 'release/catalog.json'
       - 'global.json'
       - 'scripts/qualify-l9.sh'
-      - 'tests/cli/qualify-dev.py'
+      - 'tests/cli/**'
       - '.github/workflows/documentation.yml'
   workflow_dispatch:
 
@@ -75,6 +75,7 @@ jobs:
           cache: npm
           cache-dependency-path: wiki/package-lock.json
       - run: npm ci
+      - run: node --test scripts/check-examples.test.mjs
       - run: node scripts/check-examples.mjs
       - run: npm run check
       - run: npm run build

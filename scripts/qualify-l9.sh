@@ -5,6 +5,7 @@ if command -v cygpath >/dev/null 2>&1; then repo_root="$(cygpath -m "$repo_root"
 qualification_root="${1:?Usage: qualify-l9.sh <new-output-directory>}"
 source_mode="${2:-local}"
 python_bin="$(command -v python3 || command -v python)"
+"$python_bin" -m unittest discover -s "$repo_root/tests/cli" -p test_qualification_checks.py
 release_version="$("$python_bin" -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$repo_root/release/catalog.json")"
 if [ "$source_mode" != local ] && [ "$source_mode" != public ]; then
   echo "Source mode must be local or public." >&2

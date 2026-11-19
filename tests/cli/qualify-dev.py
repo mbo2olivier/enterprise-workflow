@@ -1,5 +1,6 @@
 import subprocess,time,urllib.request,urllib.parse,http.cookiejar,re,sqlite3,socket,sys
 from pathlib import Path
+from qualification_checks import compilation_failure_retained_runtime, identity_selector_available
 if len(sys.argv) != 3:
  raise SystemExit('Usage: qualify-dev.py <ew-executable> <generated-Acme.Leave-project>')
 cli=str(Path(sys.argv[1]).resolve())
@@ -31,7 +32,7 @@ def post(path,data):
  request=urllib.request.Request(base+path,urllib.parse.urlencode(data).encode())
  return opener.open(request,timeout=5)
 try:
- wait(lambda:'Développement' in get('/__ew/dev'),'Initial runtime ready')
+ wait(lambda:identity_selector_available(get('/__ew/dev')),'Initial runtime ready')
  fields=form_fields(get('/__ew/dev'));fields['identity']='ew-dev-alice';post('/__ew/dev/identity',fields)
  start_path=re.search(r'href="(/start/acme\.leave\.request/\d+)"',get('/start')).group(1)
  first_version=int(start_path.rsplit('/',1)[1])
@@ -41,8 +42,9 @@ try:
  db=project/'.ew/environments/qualification/workflow.db'
  wait(lambda:sqlite3.connect(db).execute('select count(*) from EwHumanTasks').fetchone()[0]==1,'Durable task created')
  source.write_text(original+'\nBROKEN CSHARP\n',encoding='utf-8')
- wait(lambda:'Ancienne génération toujours active' in read_log(),'Compilation failure retained old runtime')
- assert 'Développement' in get('/__ew/dev')
+ wait(lambda:compilation_failure_retained_runtime(read_log()),'Compilation failure retained old runtime')
+ assert identity_selector_available(get('/__ew/dev'))
+ assert re.findall(r'href="/start/acme\.leave\.request/(\d+)"',get('/start')) == [str(first_version)], 'Compilation failure changed the exposed generation'
  # Source changes create a new immutable generation without a manual release bump.
  source.write_text(original.replace('.WithName("Acme.Leave")','.WithName("Changed preview")'),encoding='utf-8')
  def new_generation_ready():
