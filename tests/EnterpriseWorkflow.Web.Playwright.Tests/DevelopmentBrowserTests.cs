@@ -158,14 +158,9 @@ public sealed class DevelopmentBrowserTests
         if (!string.IsNullOrWhiteSpace(capture))
         {
             using var client = new HttpClient();
-            var delivered = false;
-            for (var attempt = 0; attempt < 60; attempt++)
-            {
-                var messages = await client.GetStringAsync(capture + "/api/v1/messages", TestContext.Current.CancellationToken);
-                if (messages.Contains("bob@example.test", StringComparison.Ordinal) && messages.Contains(page.Url, StringComparison.Ordinal)) { delivered = true; break; }
-                await Task.Delay(500, TestContext.Current.CancellationToken);
-            }
-            Assert.True(delivered, "SMTP capture did not receive the RH notification for this task.");
+            await SmtpCaptureProbe.WaitForMessagesAsync(client, capture,
+                messages => messages.Contains("bob@example.test", StringComparison.Ordinal) && messages.Contains(page.Url, StringComparison.Ordinal),
+                TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
         }
         Assert.DoesNotContain("SECRET-L9-NOTE", await page.Locator("main").InnerTextAsync(), StringComparison.Ordinal);
         var rhTaskUrl = page.Url;
@@ -233,14 +228,9 @@ public sealed class DevelopmentBrowserTests
         if (!string.IsNullOrWhiteSpace(smtp))
         {
             using var client = new HttpClient();
-            string messages = "";
-            for (var attempt = 0; attempt < 30; attempt++)
-            {
-                messages = await client.GetStringAsync(smtp + "/api/v1/messages", TestContext.Current.CancellationToken);
-                if (messages.Contains("bob@example.test", StringComparison.Ordinal)) break;
-                await Task.Delay(500, TestContext.Current.CancellationToken);
-            }
-            Assert.Contains("bob@example.test", messages, StringComparison.Ordinal);
+            var messages = await SmtpCaptureProbe.WaitForMessagesAsync(client, smtp,
+                content => content.Contains("bob@example.test", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15), TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
             Assert.DoesNotContain("SECRET-L9-NOTE", messages, StringComparison.Ordinal);
         }
         await page.ScreenshotAsync(new() { Path = Path.Combine(Path.GetTempPath(), "ew-l9-browser.png"), FullPage = true });

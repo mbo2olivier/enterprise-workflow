@@ -99,7 +99,15 @@ for attempt in {1..60}; do
   if ! kill -0 "$runtime_pid" 2>/dev/null || [ "$attempt" -eq 60 ]; then cat "$qualification_root/dev.log"; exit 1; fi
   sleep 1
 done
-EW_DEV_TEST_URL="$base_url" EW_SMTP_TEST_URL="http://127.0.0.1:8025" EW_SMTP_COMPOSE_FILE="$compose_path" EW_DEV_TEST_DB="$qualification_root/LeaveRequest.Module/.ew/environments/default/workflow.db" \
-  dotnet test --project "$repo_root/tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj" --configuration Release --no-build --no-restore -- --filter-method '*LeaveRequest*'
+if EW_DEV_TEST_URL="$base_url" EW_SMTP_TEST_URL="http://127.0.0.1:8025" EW_SMTP_COMPOSE_FILE="$compose_path" EW_DEV_TEST_DB="$qualification_root/LeaveRequest.Module/.ew/environments/default/workflow.db" \
+  dotnet test --project "$repo_root/tests/EnterpriseWorkflow.Web.Playwright.Tests/EnterpriseWorkflow.Web.Playwright.Tests.csproj" --configuration Release --no-build --no-restore -- --filter-method '*LeaveRequest*'; then
+  :
+else
+  test_exit=$?
+  # Preserve evidence before the cleanup trap removes the SMTP container.
+  docker compose -f "$compose_path" logs --no-color --tail 200 smtp || true
+  tail -n 200 "$qualification_root/dev.log" || true
+  exit "$test_exit"
+fi
 
 python3 "$repo_root/tests/cli/qualify-kernel.py" "$repo_root/src/EnterpriseWorkflow.Kernel/bin/Release/net10.0/EnterpriseWorkflow.Kernel.dll" "$artifact_path" "$qualification_root/kernel-qualification"
