@@ -4,6 +4,7 @@
     <RootNamespace>EnterpriseWorkflow.Extensions</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="NuGet.Versioning" />
     <ProjectReference Include="../EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj" />
     <ProjectReference Include="../EnterpriseWorkflow.Runtime/EnterpriseWorkflow.Runtime.csproj" />
     <ProjectReference Include="../EnterpriseWorkflow.Persistence.Abstractions/EnterpriseWorkflow.Persistence.Abstractions.csproj" />

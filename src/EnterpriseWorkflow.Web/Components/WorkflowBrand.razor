@@ -1,0 +1,18 @@
+@inject IPresentationSettingsStore SettingsStore
+@inject WorkflowBrandingOptions Branding
+<span class="brand-mark" title="@_settings.DisplayName">
+    @if (_settings.LogoResourcePath is { } logo)
+    {
+        <img src="@logo" alt="@(Branding.LogoAccessibleLabel ?? _settings.DisplayName)" />
+    }
+    else
+    {
+        <PhosphorIcon Name="sparkle" Size="20" />
+    }
+</span>
+@if (ShowName) { <span class="brand-name">@_settings.DisplayName</span> }
+@code {
+    [Parameter] public bool ShowName { get; set; }
+    private PresentationSettings _settings = PresentationSettings.Default;
+    protected override async Task OnInitializedAsync() => _settings = (await SettingsStore.ReadAsync(CancellationToken.None)).Value ?? Branding.Defaults;
+}

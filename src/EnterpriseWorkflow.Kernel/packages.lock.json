@@ -114,7 +114,8 @@
         "dependencies": {
           "EnterpriseWorkflow.Extensions.Abstractions": "[1.0.0-rc.1, )",
           "EnterpriseWorkflow.Persistence.Abstractions": "[1.0.0-rc.1, )",
-          "EnterpriseWorkflow.Runtime": "[1.0.0-rc.1, )"
+          "EnterpriseWorkflow.Runtime": "[1.0.0-rc.1, )",
+          "NuGet.Versioning": "[6.14.0, )"
         }
       },
       "enterpriseworkflow.extensions.abstractions": {
@@ -270,6 +271,12 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "2.1.12",
           "SQLitePCLRaw.core": "2.1.12"
         }
+      },
+      "NuGet.Versioning": {
+        "type": "CentralTransitive",
+        "requested": "[6.14.0, )",
+        "resolved": "6.14.0",
+        "contentHash": "4v4blkhCv8mpKtfx+z0G/X0daVCzdIaHSC51GkUspugi5JIMn2Bo8xm5PdZYF0U68gOBfz/+aPWMnpRd85Jbow=="
       },
       "Oracle.EntityFrameworkCore": {
         "type": "CentralTransitive",

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0-rc.1</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Contracts/Example.Workflow.Contracts.csproj" />
+    <ProjectReference Include="../../../src/EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

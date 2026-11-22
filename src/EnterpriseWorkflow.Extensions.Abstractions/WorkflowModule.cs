@@ -16,6 +16,7 @@ public abstract class WorkflowModule : IWorkflowModule
         return builder;
     });
     public abstract WorkflowModuleInfo Info { get; }
+    public virtual WorkflowRuntimeRequirement? RuntimeRequirement => null;
     private WorkflowModuleInfo? _developmentInfo;
     internal WorkflowModuleInfo EffectiveInfo => _developmentInfo ?? Info;
     WorkflowModuleInfo? IWorkflowModule.Info => EffectiveInfo;

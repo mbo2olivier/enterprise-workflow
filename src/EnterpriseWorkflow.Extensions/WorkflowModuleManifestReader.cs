@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using EnterpriseWorkflow.Abstractions;
+using NuGet.Versioning;
 
 namespace EnterpriseWorkflow.Extensions;
 
@@ -67,6 +68,15 @@ internal static partial class WorkflowModuleManifestReader
         if (string.IsNullOrWhiteSpace(dto.EntryType) || dto.EntryType.Length > 512)
             Fail("EW7003_INVALID_MODULE_MANIFEST", "Module entry type is missing or too long.");
 
+        WorkflowRuntimeRequirement? requirement = null;
+        if (dto.Runtime is { } runtime)
+        {
+            if (string.IsNullOrWhiteSpace(runtime.Id) || runtime.Id.Length > 160 ||
+                !VersionRange.TryParse(runtime.VersionRange ?? "", out _))
+                Fail("EW7054_INVALID_RUNTIME_REQUIREMENT", "A runtime ID and valid NuGet version range are required.");
+            requirement = new(runtime.Id, runtime.VersionRange!);
+        }
+
         var entryRelativePath = RequiredPath(dto.EntryAssembly, "entryAssembly");
         var expectedEntryHash = RequiredSha256(dto.EntryAssemblySha256, "entryAssemblySha256");
         var entryPath = ResolveFile(root, entryRelativePath, options.MaximumAssemblyBytes, "entry assembly");
@@ -116,7 +126,7 @@ internal static partial class WorkflowModuleManifestReader
         var manifest = new WorkflowModuleManifest(dto.SchemaVersion, new TechnicalId(dto.Id!), dto.Version,
             dto.ContractVersion, entryRelativePath, dto.EntryType!, expectedEntryHash,
             parsedDependencies.Select(item => item.Model).ToImmutableArray(),
-            parsedResources.Select(item => item.Model).ToImmutableArray(), parsedComponents, dto.DevelopmentGeneration);
+            parsedResources.Select(item => item.Model).ToImmutableArray(), parsedComponents, dto.DevelopmentGeneration, requirement);
         return new ParsedModuleArtifact(root, manifest, entryPath, parsedDependencies, parsedResources,
             ComputeArtifactHash(manifest));
     }
@@ -145,6 +155,10 @@ internal static partial class WorkflowModuleManifestReader
         {
             Append(hash, item.Id.Value);
             Append(hash, item.TypeName);
+        }
+        if (manifest.RuntimeRequirement is { } runtime)
+        {
+            Append(hash, "runtime"); Append(hash, runtime.Id); Append(hash, runtime.VersionRange);
         }
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
@@ -220,8 +234,15 @@ internal static partial class WorkflowModuleManifestReader
     private static partial Regex SemanticVersion();
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    private sealed class RuntimeDto
+    {
+        [JsonPropertyName("id")] public string? Id { get; set; }
+        [JsonPropertyName("versionRange")] public string? VersionRange { get; set; }
+    }
+
     private sealed class ManifestDto
     {
+        [JsonPropertyName("runtime")] public RuntimeDto? Runtime { get; set; }
         [JsonPropertyName("developmentGeneration")] public int? DevelopmentGeneration { get; set; }
         [JsonPropertyName("schemaVersion")] public int SchemaVersion { get; set; }
         [JsonPropertyName("id")] public string? Id { get; set; }

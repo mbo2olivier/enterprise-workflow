@@ -36,7 +36,7 @@ internal static class DevelopmentRunner
         Console.WriteLine(CliText.Format("Environnement : {0} — {1}", "Environment: {0} — {1}", config.EnvironmentName, stateRoot));
         if (Directory.Exists(Path.Combine(root, ".ew", "dev"))) Console.WriteLine(CliText.Get("Ancien espace .ew/dev conservé ; il n’est ni importé ni réinitialisé automatiquement.", "Legacy .ew/dev workspace preserved; it is not imported or reset automatically."));
         var projectRoot = root;
-        using var stop = new CancellationTokenSource();
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(EnterpriseWorkflow.Cli.WorkflowCliExecution.CancellationToken);
         ConsoleCancelEventHandler handler = (_, eventArgs) => { eventArgs.Cancel = true; stop.Cancel(); };
         Console.CancelKeyPress += handler;
         if (Console.IsInputRedirected)
@@ -100,7 +100,7 @@ internal static class DevelopmentRunner
                     else
                     {
                         primary = Path.Combine(artifacts, "g" + next.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                        await WorkflowCli.RunDotnetAsync(new[] { typeof(DevelopmentRunner).Assembly.Location, "__verify-dev-set" }.Concat(config.ModuleDirectories).Append(staging).ToArray());
+                        await WorkflowCli.RunDotnetAsync(new[] { EnterpriseWorkflow.Cli.WorkflowCliExecution.EntryAssemblyPath, "__verify-dev-set" }.Concat(config.ModuleDirectories).Append(staging).ToArray());
                         Directory.Move(staging, primary);
                         generations.Add(new(next, fingerprint));
                         var index = Path.Combine(stateRoot, "generations.json");
@@ -115,11 +115,11 @@ internal static class DevelopmentRunner
                 if (!sourceMode) primary = DevelopmentArtifacts.CacheArtifact(stateRoot, primary, allowDevelopment: false);
                 var dependencies = config.ModuleDirectories.Select(path => DevelopmentArtifacts.CacheArtifact(stateRoot, path, allowDevelopment: true)).ToArray();
                 var modules = await DevelopmentArtifacts.RequiredAsync(stateRoot, config.Storage.Path!, primary, dependencies, allowDevelopment: true);
-                try { await WorkflowCli.RunDotnetAsync(new[] { typeof(DevelopmentRunner).Assembly.Location, "__verify-dev-set" }.Concat(modules).ToArray()); }
+                try { await WorkflowCli.RunDotnetAsync(new[] { EnterpriseWorkflow.Cli.WorkflowCliExecution.EntryAssemblyPath, "__verify-dev-set" }.Concat(modules).ToArray()); }
                 catch (InvalidOperationException exception) { var requirements = await DevelopmentArtifacts.DescribeRequirementsAsync(config.Storage.Path!); throw new InvalidOperationException($"Environment {config.EnvironmentName}: required artifacts cannot be loaded ({string.Join(", ", modules)}). Instances: {requirements}. {exception.Message}", exception); }
                 Stop(host);
                 var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardInput = true };
-                foreach (var argument in new[] { typeof(DevelopmentRunner).Assembly.Location, "__host-session", runtimeConfig, stateRoot, bool.TrueString, primary }.Concat(modules)) start.ArgumentList.Add(argument);
+                foreach (var argument in new[] { EnterpriseWorkflow.Cli.WorkflowCliExecution.EntryAssemblyPath, "__host-session", runtimeConfig, stateRoot, bool.TrueString, primary }.Concat(modules)) start.ArgumentList.Add(argument);
                 foreach (var pair in DevelopmentEnvironment.HostValues(environmentValues))
                     start.Environment[DevelopmentEnvironment.HostPrefix + pair.Key] = pair.Value;
                 var nextHost = Process.Start(start) ?? throw new InvalidOperationException("Could not start development host.");

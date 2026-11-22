@@ -1,0 +1,13 @@
+{
+  "id": "Example.Workflow",
+  "version": "1.0.0-rc.1",
+  "frameworkVersion": "1.0.0-rc.1",
+  "packages": {
+    "Example.Workflow.Cli": "1.0.0-rc.1",
+    "Example.Workflow.Sdk": "1.0.0-rc.1",
+    "Example.Workflow.Contracts": "1.0.0-rc.1",
+    "Example.Workflow.Hosting": "1.0.0-rc.1",
+    "Example.Workflow.Kernel": "1.0.0-rc.1",
+    "Example.Workflow.Templates": "1.0.0-rc.1"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Enterprise Workflow",
+  "identity": "Example.Workflow.module",
+  "name": "Example Workflow module",
+  "shortName": "few-example-module",
+  "sourceName": "WorkflowSample",
+  "preferNameDirectory": true,
+  "symbols": {
+    "module-id": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "sample.workflow",
+      "replaces": "sample.workflow"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [
+            "**/bin/**",
+            "**/obj/**",
+            "**/.ew/**"
+          ]
+        }
+      ]
+    }
+  ]
+}

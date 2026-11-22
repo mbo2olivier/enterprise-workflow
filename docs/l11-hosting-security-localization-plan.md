@@ -1,6 +1,6 @@
 # L11 — hôtes personnalisés, extensions de sécurité et localisation
 
-Date : 18 novembre 2026. Nomenclature décidée par le porteur : ce lot porte le numéro L11, le Studio, initialement repoussé à L12 lors de l’ajout de L11, est désormais prévu en L13 après validation du lot L12 et la série L10 reste close. Statut : implémentation démarrée le 18 novembre 2026 à la demande du porteur ; qualification en cours. Voir la [spécification](l11-spec.md) et la [preuve](evidence/l11.md). Les orientations produit ci-dessous reprennent les arbitrages de la conversation. Les noms d’API, le découpage des packages et les mécanismes détaillés restent à formaliser dans les spécifications et ADR avant implémentation. Ce plan ne modifie pas les contrats actuellement livrés et ne constitue pas une preuve de qualification.
+Date : 18 novembre 2026. Nomenclature décidée par le porteur : ce lot porte le numéro L11, le Studio, initialement repoussé à L12 lors de l’ajout de L11, est désormais prévu en L13 après validation du lot L12 et la série L10 reste close. Statut : **clos le 19 novembre 2026**, sur confirmation par le porteur de la réussite des tests locaux et de la CI. Voir la [spécification](l11-spec.md) et la [preuve](evidence/l11.md). Les orientations produit ci-dessous reprennent les arbitrages de la conversation. Les mécanismes effectivement livrés sont décrits dans la spécification L11 et l’ADR 0029 ; la preuve consigne la confirmation de clôture. Les propositions initiales ci-dessous restent conservées comme historique de planification.
 
 ## Périmètre et limites
 

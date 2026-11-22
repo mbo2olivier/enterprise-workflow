@@ -19,7 +19,7 @@ internal static class DevelopmentHost
         {
             Args = [],
             EnvironmentName = "Development",
-            ApplicationName = typeof(DevelopmentHost).Assembly.GetName().Name,
+            ApplicationName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name,
             ContentRootPath = AppContext.BaseDirectory,
         });
         builder.Configuration.Sources.Clear();
@@ -42,7 +42,7 @@ internal static class DevelopmentHost
         var timeProvider = TimeProvider.System;
         var securityStore = securityDatabase.CreateStore(timeProvider);
         var localAuthentication = new LocalAuthenticationProvider(securityStore, policy, timeProvider);
-        var moduleCatalog = WorkflowModuleCatalog.Load(moduleDirectories, options => options.AllowDevelopmentGenerations = allowDevelopment);
+        var moduleCatalog = WorkflowModuleCatalog.Load(moduleDirectories, options => { EnterpriseWorkflow.Cli.WorkflowCliExecution.ConfigureModules(options); options.AllowDevelopmentGenerations = allowDevelopment; });
         await WorkflowModuleKernel.ReconcileAsync(moduleCatalog, workflowStore);
         var configuredDirectories = new Dictionary<string, IIdentityDirectory>(StringComparer.Ordinal);
         IAuthenticationProvider selectedAuthentication = localAuthentication;
@@ -117,10 +117,12 @@ internal static class DevelopmentHost
             options.MediaRoot = Path.Combine(stateRoot, "media");
         });
         builder.Services.AddEnterpriseWorkflowLocalization(builder.Configuration.GetSection("Localization").Get<WorkflowLocalizationOptions>() ?? new());
+        builder.Services.AddSingleton(new WorkflowBrandingOptions { EditableFields = WorkflowBrandingFields.All });
         builder.Services.AddEnterpriseWorkflowWeb();
         builder.Services.AddSingleton(new WorkflowDevelopmentEnvironment(string.Join(", ", moduleCatalog.Modules.Select(module =>
             $"{module.Manifest.Id.Value} / {module.Manifest.Version} / {module.ArtifactSha256[..12]}"))));
 
+        EnterpriseWorkflow.Cli.WorkflowCliExecution.ConfigureDevelopment(builder.Configuration, builder.Services);
         var app = builder.Build();
         await DevelopmentSeed.ApplyAsync(app.Services, configuration, stateRoot);
         DevelopmentSeed.MapSelector(app, configuration, moduleCatalog);

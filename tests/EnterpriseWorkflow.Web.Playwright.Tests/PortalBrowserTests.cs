@@ -128,7 +128,7 @@ public sealed class PortalBrowserTests
             Assert.True(await status.CountAsync() > 0,
                 $"Settings submission did not render a success status. POST status: {mutationStatus}. URL: {page.Url}. Alerts: {string.Join(" | ", alerts)}. Kernel log: {ReadLog(hostLog)}");
             await Expect(status).ToContainTextAsync("Réglages enregistrés");
-            await Expect(page.Locator("body")).ToHaveAttributeAsync("style", "--accent:#2457A7");
+            await Expect(page.Locator("body")).ToHaveCSSAsync("--accent", "#2457A7");
 
             await page.SetViewportSizeAsync(390, 844);
             var fitsViewport = await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth + 1");

@@ -4,6 +4,7 @@
 @inject IAuthorizationProvider Authorization
 @inject NavigationManager Navigation
 @inject WorkflowWebIdentityAccessor Identity
+@inject IPresentationSettingsStore SettingsStore
 @inject ILocalAccountStore LocalAccounts
 @inject IReadOnlyDictionary<string, IIdentityDirectory> Directories
 
@@ -17,8 +18,8 @@
 }
 <div class="app-shell">
     <aside class="sidebar @(IsAdmin ? "admin-mode" : null)">
-        <a class="brand" href="/" aria-label="Enterprise Workflow">
-            <span class="brand-mark"><PhosphorIcon Name="sparkle" Size="20" /></span>
+        <a class="brand" href="/" aria-label="@_brandName">
+            <WorkflowBrand />
         </a>
         <nav class="main-nav" aria-label="@(IsAdmin ? Ui["Navigation de l’administration"] : Ui["Navigation principale"])">
             @if (IsAdmin)
@@ -98,10 +99,12 @@
     private bool _canAdmin;
     private bool _canProvision;
     private bool _canSearchInitiator;
+    private string _brandName = "Enterprise Workflow";
     private string _displayName = "Utilisateur";
 
     protected override async Task OnInitializedAsync()
     {
+        _brandName = (await SettingsStore.ReadAsync(CancellationToken.None)).Value?.DisplayName ?? "Enterprise Workflow";
         var identity = await Identity.GetRequiredAsync();
         _canProvision = Services.GetService(typeof(IEnumerable<IIdentityProvisioningProvider>)) is IEnumerable<IIdentityProvisioningProvider> providers && providers.Any()
             && ((await Authorization.AuthorizeAsync(new(identity, WorkflowPermissions.SubmitIdentity), CancellationToken.None)).Allowed

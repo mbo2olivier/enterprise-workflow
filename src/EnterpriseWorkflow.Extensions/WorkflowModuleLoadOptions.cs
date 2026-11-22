@@ -6,6 +6,13 @@ public sealed class WorkflowModuleLoadOptions
     public const int CurrentManifestSchemaVersion = 1;
     public const int CurrentContractVersion = 1;
 
+    public string RuntimeId { get; set; } = "EnterpriseWorkflow";
+    public string RuntimeVersion { get; set; } = typeof(WorkflowModuleLoadOptions).Assembly
+        .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+        .Cast<System.Reflection.AssemblyInformationalVersionAttribute>().Single().InformationalVersion.Split('+')[0];
+    public bool RequireRuntimeDeclaration { get; set; }
+    public IList<System.Reflection.Assembly> SharedAssemblies { get; } = new List<System.Reflection.Assembly>();
+
     public bool AllowDevelopmentGenerations { get; set; }
     public long MaximumManifestBytes { get; set; } = 256 * 1024;
     public long MaximumAssemblyBytes { get; set; } = 128 * 1024 * 1024;

@@ -13,6 +13,7 @@ namespace WorkflowModuleProject;
 
 public sealed class Module : WorkflowModule
 {
+    public override WorkflowRuntimeRequirement RuntimeRequirement => new("EnterpriseWorkflow", "[1.0.0-rc.1,2.0.0)");
     public override WorkflowModuleInfo Info { get; } = new WorkflowModuleInfo("sample.workflow", "1.0.0", 1)
         .WithName("WorkflowSample");
 

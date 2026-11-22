@@ -43,11 +43,14 @@ public sealed class WorkflowModuleCatalog
             throw new WorkflowModuleLoadException("EW7012_DUPLICATE_MODULE_VERSION",
                 $"Module '{duplicate.Key.Value}' version '{duplicate.Key.Version}' is configured more than once.");
 
-        var shared = SharedAssemblies();
+        var shared = SharedAssemblies().Concat(options.SharedAssemblies).Distinct().ToArray();
+        if (shared.GroupBy(assembly => assembly.GetName().Name, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1))
+            throw new WorkflowModuleLoadException("EW7057_SHARED_ASSEMBLY_COLLISION", "The host supplied several shared assemblies with the same simple name.");
         var loaded = ImmutableArray.CreateBuilder<LoadedWorkflowModule>(artifacts.Length);
         var resources = ImmutableDictionary.CreateBuilder<ResourceKey, ParsedResource>();
         foreach (var artifact in artifacts)
         {
+            WorkflowRuntimeCompatibility.Validate(artifact.Manifest.RuntimeRequirement, options);
             var context = new WorkflowModuleLoadContext(artifact.Manifest, artifact.Dependencies, shared);
             try
             {
@@ -66,6 +69,8 @@ public sealed class WorkflowModuleCatalog
                     return new WorkflowModuleComponent(component.Id, component.TypeName, type);
                 }).ToImmutableArray();
                 var entryPoint = (IWorkflowModule)Activator.CreateInstance(entryType)!;
+                if (entryPoint is WorkflowModule authored && authored.RuntimeRequirement != artifact.Manifest.RuntimeRequirement)
+                    throw new WorkflowModuleLoadException("EW7056_RUNTIME_METADATA_MISMATCH", "Module runtime requirement differs from its manifest.");
                 if (artifact.Manifest.DevelopmentGeneration is { } generation)
                 {
                     if (entryPoint is not WorkflowModule fluent) throw new WorkflowModuleLoadException("EW7052_INVALID_DEVELOPMENT_MODULE", "Development generations require a fluent WorkflowModule.");

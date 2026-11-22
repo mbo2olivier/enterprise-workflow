@@ -46,6 +46,7 @@ public sealed class EnterpriseWorkflowApplicationBuilder
 {
     private readonly IHostApplicationBuilder _builder;
     private WorkflowDatabaseRuntime? _database;
+    private readonly WorkflowBrandingOptions _branding = new();
     private bool _web;
     private bool _built;
     private readonly List<Action<WorkflowRuntimeOptions>> _runtimeConfiguration = [];
@@ -59,6 +60,9 @@ public sealed class EnterpriseWorkflowApplicationBuilder
     public IHostEnvironment Environment => _builder.Environment;
     public IWebHostBuilder WebHost => (_builder as WebApplicationBuilder)?.WebHost
         ?? throw new InvalidOperationException("This builder does not host a web server.");
+
+    public EnterpriseWorkflowApplicationBuilder ConfigureBranding(Action<WorkflowBrandingOptions> configure)
+    { ArgumentNullException.ThrowIfNull(configure); configure(_branding); return this; }
 
     public EnterpriseWorkflowApplicationBuilder ConfigureRuntime(Action<WorkflowRuntimeOptions> configure)
     { ArgumentNullException.ThrowIfNull(configure); _runtimeConfiguration.Add(configure); return this; }
@@ -127,6 +131,8 @@ public sealed class EnterpriseWorkflowApplicationBuilder
     {
         if (_built) throw new InvalidOperationException("The host builder can only be built once.");
         _built = true;
+        _branding.Validate();
+        Services.AddSingleton(_branding);
         var localization = Configuration.GetSection("Localization").Get<WorkflowLocalizationOptions>() ?? new();
         localization.Validate();
         Services.AddSingleton(new WorkflowTextLocalizationOptions { FallbackCulture = localization.FallbackCulture });
@@ -163,7 +169,7 @@ public sealed class EnterpriseWorkflowApplicationBuilder
         builder.Services.AddSingleton<ISecuritySessionStore>(securityStore);
         builder.Services.AddSingleton<ILocalSecurityProvisioningStore>(securityStore);
         builder.Services.AddSingleton<IWorkflowAccessStore>(securityStore);
-        builder.Services.AddSingleton<IPresentationSettingsStore>(securityStore);
+        builder.Services.AddSingleton<IPresentationSettingsStore>(new WorkflowBrandedSettingsStore(securityStore, _branding));
                 builder.Services.AddSingleton<IUserCulturePreferenceStore>(securityStore);
         builder.Services.TryAddSingleton<IReadOnlyDictionary<string, IIdentityDirectory>>(services =>
             CreateDirectories(services, configuredDirectories));

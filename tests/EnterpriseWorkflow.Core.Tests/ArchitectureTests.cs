@@ -13,7 +13,8 @@ public sealed class ArchitectureTests
         var expectedReferences = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["EnterpriseWorkflow.Abstractions"] = [],
-            ["EnterpriseWorkflow.Cli"] = ["EnterpriseWorkflow.Extensions", "EnterpriseWorkflow.Persistence.Sqlite", "EnterpriseWorkflow.Security.Persistence.Sqlite", "EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Web"],
+            ["EnterpriseWorkflow.Cli"] = ["EnterpriseWorkflow.Cli.Core"],
+            ["EnterpriseWorkflow.Cli.Core"] = ["EnterpriseWorkflow.Extensions", "EnterpriseWorkflow.Persistence.Sqlite", "EnterpriseWorkflow.Security.Persistence.Sqlite", "EnterpriseWorkflow.Presentation", "EnterpriseWorkflow.Web"],
             ["EnterpriseWorkflow.Core"] = ["EnterpriseWorkflow.Abstractions"],
             ["EnterpriseWorkflow.Extensions.Abstractions"] =
                 ["EnterpriseWorkflow.Presentation.Abstractions", "EnterpriseWorkflow.Runtime", "EnterpriseWorkflow.Sdk"],
@@ -86,6 +87,8 @@ public sealed class ArchitectureTests
 
         Assert.Equal(
             [
+                (Project: "EnterpriseWorkflow.Cli.Core", Package: "NuGet.Versioning"),
+                (Project: "EnterpriseWorkflow.Extensions", Package: "NuGet.Versioning"),
                 (Project: "EnterpriseWorkflow.Extensions.Abstractions", Package: "Microsoft.Extensions.DependencyInjection.Abstractions"),
                 (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "Oracle.EntityFrameworkCore"),
                 (Project: "EnterpriseWorkflow.Persistence.Oracle", Package: "System.Security.Cryptography.Pkcs"),

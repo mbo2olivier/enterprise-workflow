@@ -1,7 +1,8 @@
 using EnterpriseWorkflow.Hosting;
 using EnterpriseWorkflow.Security;
 
-var builder = EnterpriseWorkflowApplication.CreateKernelBuilder().AddWebPresentation();
+var builder = EnterpriseWorkflowApplication.CreateKernelBuilder().AddWebPresentation()
+    .ConfigureBranding(options => options.EditableFields = WorkflowBrandingFields.All);
 if (args is ["migrate"])
 {
     await builder.MigrateAsync();

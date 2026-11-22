@@ -1,6 +1,6 @@
 # L12 — SDK de CLI extensible, distributions organisationnelles et identité visuelle
 
-Date : 18 novembre 2026. Statut : briefing et arbitrages approuvés par le porteur, intégrés au plan ; implémentation non démarrée. L12 suit L11 et repousse `ew studio` à L13. La série L10 reste close. Cette autorisation concerne la planification ; les spécifications et ADR précèdent l’implémentation. Les noms d’API et de packages ci-dessous sont indicatifs, aucune capacité future n’est annoncée comme livrée.
+Date : 18 novembre 2026. Statut : orientations approuvées ; préparation L12-0 engagée le 19 novembre 2026 après clôture de L11. Les [arbitrages de mécanismes](l12-arbitrages.md) D12-1 à D12-5 sont décidés par le porteur ; implémentation autorisée et engagée ; voir [spécification](l12-spec.md), [ADR 0030](adr/0030-distributions-cli-runtime-et-marque.md) et [preuve](evidence/l12.md). L12 suit L11 et repousse `ew studio` à L13. La série L10 reste close. Le porteur autorise maintenant les spécifications et l’implémentation ; les décisions sont formalisées avant le code. Les noms d’API et de packages ci-dessous sont indicatifs, aucune capacité future n’est annoncée comme livrée.
 
 ## Objectif et répartition public/privé
 
@@ -69,13 +69,13 @@ Ne pas imposer les dépendances du Kernel, ses providers de connexion ou ses sec
 
 Permettre à l’hôte de déclarer explicitement les assemblies de contrats organisationnels partagées avec les modules ; même identité CLR, règles de résolution/version et diagnostics définis. Distinguer les dépendances fournies par l’hôte de celles privées du module et préserver leur isolation/coexistence. Aucun fallback silencieux sur une version de contrat incompatible.
 
-Définir les exigences des modules envers les contrats/services de la distribution et signaler les services absents ou incompatibles avant l’exécution du handler. Le mécanisme exact de déclaration, la validation des dépendances DI et les formats restent à spécifier.
+Les modules consomment les interfaces par injection .NET ordinaire, sans déclaration supplémentaire de services requis dans leur manifeste. L’hôte fournit les implémentations ; un service absent produit une erreur à sa résolution. Aucune validation exhaustive avant exécution des handlers n’est imposée. Le module déclare une plage SemVer de compatibilité avec le runtime complet ciblé (framework ou distribution organisationnelle), traitée par les mécanismes existants .NET/NuGet ; aucune compatibilité par service n’est déclarée (D12-1).
 
 Une distribution publie un ensemble cohérent de versions CLI/SDK/contrats/intégrations/Kernel. Sa version est distincte des releases métier, versions de définition et schémas d’état. Le même artefact métier fonctionne dans les deux hôtes compatibles sans recompilation par environnement, sans endpoints/secrets embarqués et sans altération des hashes historiques. Toute évolution de manifeste ou de format exige sa politique explicite de compatibilité.
 
 ## Templates et distribution
 
-Après installation initiale, la génération fournit références SDK/contrats, handler consommant un service partagé, configuration dev, `.env.example` sans secret, ressources de localisation L11, exigences de compatibilité et commandes documentées. Le développeur configure ses accès test ; il n’installe pas les intégrations une à une pour chaque module.
+Après installation initiale, la génération fournit références SDK/contrats, handler consommant un service partagé, configuration dev, `.env.example` sans secret, ressources de localisation L11, références .NET aux contrats et commandes documentées. Le développeur configure ses accès test ; il n’installe pas les intégrations une à une pour chaque module.
 
 Définir le packaging d’un outil .NET personnalisable, son nom de commande, les métadonnées, l’installation/mise à jour via un feed privé et l’installation des templates orchestrable. Azure Artifacts est un exemple de cible, pas une dépendance imposée au framework. L’authentification au feed utilise les mécanismes du registre sans embarquer ses secrets dans l’outil ou les templates.
 
@@ -92,7 +92,7 @@ Une marque par installation. Définir la priorité entre défauts framework, val
 | L12-0 — spécifications et ADR | Builder, commandes, composition dev, frontières L11, contrats, compatibilité, configuration et thème | Décisions produit reprises ; signatures, formats, responsabilités et migrations nécessaires spécifiés avant code |
 | L12-1 — socle CLI | Builder et API d’extension ; adaptation de ew | CLI standard compatible ; CLI personnalisée compilable ; aide, annulation, localisation et diagnostics communs ; collisions refusées |
 | L12-2 — services métier dev | Composition compilée et configuration | Même implémentation versionnée en dev/Kernel ; endpoints différents ; identité dev conservée ; remplacement des services réservés refusé ; aucun secret exposé |
-| L12-3 — contrats et artefacts | Assemblies partagées et exigences des modules | Identité CLR cohérente, versions compatibles, isolation des dépendances privées et diagnostics avant handler |
+| L12-3 — contrats et artefacts | Assemblies partagées et injection des services | Types partagés cohérents, plage SemVer du runtime complet, isolation des dépendances privées et diagnostics de résolution sans déclaration de services |
 | L12-4 — templates/distribution | Génération préconfigurée et outil .NET privé | Installation depuis feed de test, nom personnalisé, création/dev/validation/pack/vérification sans ajout manuel des dépendances usuelles |
 | L12-5 — identité visuelle | Marque, palette, styles et réglages contrôlés | Portail/connexion/administration cohérents, deux langues et contrôles visuels responsive/accessibilité pertinents |
 | L12-6 — qualification | Distribution fictive, documentation et preuves | Même artefact dans dev et Kernel compatible ; non-régression CLI ; matrice plateforme/navigateur concernée ; SQLite/Oracle si persistance modifiée |

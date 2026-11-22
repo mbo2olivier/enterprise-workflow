@@ -20,6 +20,7 @@ public static class EnterpriseWorkflowWebExtensions
         services.AddEnterpriseWorkflowLocalization();
         services.AddDataProtection();
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<WorkflowBrandingOptions>();
         services.TryAddSingleton<SecondFactorOptions>();
         services.AddSingleton<WorkflowSecondFactorFlow>();
         services.AddRazorComponents().AddInteractiveServerComponents();

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0-rc.1</Version>
+  </PropertyGroup>
+  <ItemGroup />
+</Project>

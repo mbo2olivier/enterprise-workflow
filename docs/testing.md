@@ -117,3 +117,7 @@ La compilation de solution et les tests locaux couvrent composition web/non-web,
 Les migrations Oracle disposent d’un contrôle de génération de SQL hors ligne. La qualification sur Oracle 19 réel reste distincte, requiert un schéma jetable et ne doit jamais être remplacée par ce contrôle. La recette navigateur inclut le changement/restauration de la préférence de langue ; la recette native de `ew dev` reste opt-in. Voir [preuve L11](evidence/l11.md).
 
 Recette lourde déléguée au porteur le 18 novembre 2026 pour limiter les tokens : [L11 — étapes détaillées](validation/l11-recette-porteur.md). Ne pas relancer ces campagnes automatiquement ; consolider les résultats retournés dans la preuve L11.
+
+## L12 — vérifications ciblées et campagnes déléguées
+
+Les tests légers du builder CLI, des plages runtime, de la marque et des frontières d’architecture sont consignés dans la [preuve L12](evidence/l12.md). La [recette L12](validation/l12-recette-porteur.md) fournit les étapes et le script de qualification lourde ; les phases de packaging, dev, Kernel et navigateur restent à exécuter par le porteur.

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <Version>1.0.0-rc.1</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Sdk/Example.Workflow.Sdk.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Compile Include="../Templates/module/WorkflowSampleModule.cs" Link="WorkflowSampleModule.cs" />
+    <EmbeddedResource Include="../Templates/module/Localization/*.json" Link="Localization/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

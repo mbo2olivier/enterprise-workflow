@@ -440,5 +440,6 @@
   "Suspended": "Suspended",
   "Skipped": "Skipped",
   "octets": "bytes",
-  "génération locale g{0}": "local generation g{0}"
+  "génération locale g{0}": "local generation g{0}",
+  "Chemin du logo": "Logo path"
 }

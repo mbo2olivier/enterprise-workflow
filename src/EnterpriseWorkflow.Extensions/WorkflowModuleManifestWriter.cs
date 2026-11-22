@@ -25,6 +25,7 @@ public static class WorkflowModuleManifestWriter
         }
         return JsonSerializer.Serialize(new
         {
+            runtime = entryPoint.RuntimeRequirement is { } requirement ? new { id = requirement.Id, versionRange = requirement.VersionRange } : null,
             developmentGeneration,
             schemaVersion = WorkflowModuleLoadOptions.CurrentManifestSchemaVersion,
             id = metadata.Id.Value,

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <Version>1.0.0-rc.1</Version>
+    <OutputType>Exe</OutputType>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>few-example</ToolCommandName>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Hosting/Example.Workflow.Hosting.csproj" />
+    <ProjectReference Include="../../../src/EnterpriseWorkflow.Cli.Core/EnterpriseWorkflow.Cli.Core.csproj" />
+  </ItemGroup>
+</Project>

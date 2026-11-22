@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0-rc.1</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../Contracts/Example.Workflow.Contracts.csproj" />
+    <ProjectReference Include="../../../src/EnterpriseWorkflow.Extensions/EnterpriseWorkflow.Extensions.csproj" />
+  </ItemGroup>
+</Project>

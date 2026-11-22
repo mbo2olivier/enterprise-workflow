@@ -6,6 +6,7 @@
   "repositoryUrl": "https://github.com/mbo2olivier/enterprise-workflow",
   "projects": [
     "src/EnterpriseWorkflow.Abstractions/EnterpriseWorkflow.Abstractions.csproj",
+    "src/EnterpriseWorkflow.Cli.Core/EnterpriseWorkflow.Cli.Core.csproj",
     "src/EnterpriseWorkflow.Cli/EnterpriseWorkflow.Cli.csproj",
     "src/EnterpriseWorkflow.Core/EnterpriseWorkflow.Core.csproj",
     "src/EnterpriseWorkflow.Extensions.Abstractions/EnterpriseWorkflow.Extensions.Abstractions.csproj",

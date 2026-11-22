@@ -142,3 +142,7 @@ Le porteur autorise l’implémentation du [lot L11](l11-hosting-security-locali
 Sans statut distant disponible, les sessions restent soumises à l’expiration et à la révocation locales. Les rôles et permissions restent locaux. Le maker/checker importe uniquement dans EW, approuve conjointement identité/profils et relit la source avant activation. `ew dev` charge le seul `.env` facultatif ou un fichier explicite, garde ses identités JSON et exclut la seconde authentification. Les langues par défaut/de repli de l’instance sont configurables ; une préférence utilisateur locale est proposée. Les traductions métier sont résolues à l’affichage sans modifier les identifiants ou les valeurs métier.
 
 Cette entrée décrit le périmètre autorisé, pas une clôture de qualification ou une publication.
+
+## L12 — distributions organisationnelles
+
+Le porteur autorise l’implémentation le 19 novembre 2026 : CLI compilée réutilisable, composition métier commune dev/Kernel, compatibilité SemVer du runtime complet, préparation explicite des templates, ensemble exact de versions et marque verrouillée par défaut dans les hôtes personnalisés. Aucun manifeste de services requis. Les spécifications sont dans [L12](l12-spec.md), décisions dans l’ADR 0030 ; qualification lourde déléguée selon la recette. Studio reste L13.

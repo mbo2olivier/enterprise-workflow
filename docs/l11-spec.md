@@ -1,6 +1,6 @@
 # L11 — contrats d’hébergement, identité, secrets et localisation
 
-Statut : implémentation démarrée le 18 novembre 2026 à la demande du porteur. La série L10 reste close. Le plan [L11](l11-hosting-security-localization-plan.md) porte les critères de sortie ; L12 reste distinct.
+Statut : **L11 clos le 19 novembre 2026**, après confirmation par le porteur de la validation locale et CI. La série L10 reste close. Le plan [L11](l11-hosting-security-localization-plan.md) porte les critères de sortie ; L12 reste distinct.
 
 ## Composition
 

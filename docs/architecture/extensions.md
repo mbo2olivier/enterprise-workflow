@@ -68,3 +68,7 @@ Les références d’anciens handlers/formulaires vérifient leur artefact propr
 Le formulaire initial crée l’instance. Les tâches simples disposent d’un formulaire standard versionné, remplaçable par un formulaire métier ; son handler peut être remplacé explicitement. Les composants personnalisés ne modifient ni la validation serveur ni les projections autorisées. La tâche de confirmation `draft` reste une étape métier.
 
 Voir l’[ADR 0024](../adr/0024-sdk-fluent-permissions-affectation.md) pour les décisions et la [validation restante](../l8b-validation.md) pour les environnements non encore qualifiés.
+
+## Distributions L12
+
+`EnterpriseWorkflow.Cli` devient le point d’entrée minimal de `EnterpriseWorkflow.Cli.Core`. Le socle contient commandes et développement ; les CLI organisationnelles construisent la même application publique et leurs enfants relancent leur assembly d’entrée. Les callbacks de composition restent compilés. Les assemblies de contrats partagées sont désignées par l’hôte ; la compatibilité produit porte sur le runtime complet via NuGet.Versioning. La DI ne demande pas de déclaration supplémentaire des services utilisés. Voir [ADR 0030](../adr/0030-distributions-cli-runtime-et-marque.md) et [guide](../l12-cli-sdk.md).

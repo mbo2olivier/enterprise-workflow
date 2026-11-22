@@ -105,3 +105,5 @@ Le [plan L12](l12-cli-distributions-branding-plan.md), approuvé le 18 novembre 
 | Langues d’instance et préférence locale ; modules bilingues | L11-6 | Catalogues immuables, migrations SQLite/Oracle, projections et navigateur |
 
 Statut et limites de qualification : [preuve L11](evidence/l11.md). Le plan et les spécifications ne constituent pas une preuve d’exécution.
+
+L12 : décisions formalisées dans l’[ADR 0030](adr/0030-distributions-cli-runtime-et-marque.md), [spécification](l12-spec.md), [guide SDK CLI](l12-cli-sdk.md), [preuve](evidence/l12.md) et [recette déléguée](validation/l12-recette-porteur.md). La compatibilité vise une plage du runtime complet ; un service absent échoue à sa résolution normale.
