@@ -1,0 +1,89 @@
+---
+title: "5. Connect corporate authentication and identities"
+description: "Implement the organization gateway and register compiled identity capabilities."
+sidebar:
+  order: 5
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import identities from "../../../../../wiki/examples/OrganizationSecurity/IdentityAdapters.cs?raw";
+import composition from "../../../../../wiki/examples/OrganizationSecurity/SecurityComposition.cs?raw";
+
+## Goal and execution boundary
+
+Use the custom kernel for corporate login. The organization CLI’s `dev` command still uses `ew.dev.json` identities; shared business-service composition does not replace that authentication model.
+
+The code in this chapter is a **compilable adapter library**, not a working corporate identity server. Your organization implements `IOrganizationIdentityGateway` against its service. Until that implementation exists, continue exercising the runnable sample with local accounts.
+
+## Create a Security project
+
+Copy the files from `wiki/examples/OrganizationSecurity` into an organization-owned `Security` project. In this source checkout you can verify the API integration with:
+
+```sh
+dotnet build wiki/examples/OrganizationSecurity/OrganizationSecurity.csproj -c Release
+```
+
+**Expected:** build succeeds. This checks contract compatibility, not real authentication.
+
+## Implement the gateway and adapters
+<Code code={identities} lang="csharp" title="Security/IdentityAdapters.cs" />
+
+The gateway receives the cancellation token and returns framework result types after translating the organization service’s protocol. Supply all four methods. Its implementation must:
+
+- Authenticate against the real primary credential service; return `Rejected` for invalid credentials and `Unavailable` for an unavailable service.
+- Return `(example-corporate, stable-subject-id)` for a successful identity. A login name is searchable data, not a durable subject ID.
+- Resolve identity details and optional groups without changing identity ownership.
+- Enforce the requested search bound on the service side and the returned result count.
+- Report account status explicitly; do not turn a service outage into an enabled account.
+
+For example, a successful service response for immutable employee ID `employee-0042` maps to:
+
+```csharp
+new AuthenticationResult(
+    AuthenticationStatus.Succeeded,
+    new IdentityReference(OrganizationAuthentication.Id, "employee-0042"));
+```
+
+This is a mapping example inside your gateway, not an authentication implementation. Only return it after your service has verified the supplied credential.
+
+Set finite network timeouts, preserve cancellation and map transport failures to `Unavailable`. Never record passwords or proofs in logs. These providers and their gateways are registered as singletons: use thread-safe implementations and no captured request-scoped dependencies.
+
+## Register the capabilities in the kernel
+
+The sample registration method receives your gateway instances explicitly:
+<Code code={composition} lang="csharp" title="Security/SecurityComposition.cs" />
+
+Call `builder.AddOrganizationSecurity(identityGateway, challengeGateway)` in `Kernel/Program.cs` before `BuildAsync`, after constructing your real gateway implementations. The extension method belongs to `Example.Workflow.Security`; reference the Security project and import that namespace in your kernel. Chapter 6 explains the challenge gateway. For an identity-only deployment, register the identity gateway and the first two provider calls, and leave second authentication disabled.
+
+Configuration can enable capabilities, but does not load arbitrary provider types. Keep one primary authentication provider registration.
+
+## Add only the identity capabilities you need
+
+| Capability | Contract | Implement when |
+| --- | --- | --- |
+| Resolve details | `IIdentityResolver` | Display names, groups or identity details come from the organization |
+| Search | `IIdentitySearchProvider` | Users select remote identities |
+| Remote account status | `IIdentityStatusProvider` | Sessions must revalidate remote enablement |
+| Local admission | `IIdentityAdmissionProvider` | Corporate identity still needs local approval/activation |
+| Import | `IIdentityImportProvider` | Import a known remote identity without creating a remote account |
+| Maker/checker provisioning | `IIdentityProvisioningProvider` | One operator submits and another approves local activation |
+
+`AddIdentityProvider<T>` discovers the implemented interfaces. Authentication does not grant workflow permissions: configure local profiles, group mappings and module permissions separately.
+
+For maker/checker, persist the request and revision in your organization implementation. Approval must atomically enforce distinct maker/checker, uniqueness, expected revision, source revalidation, initial profile activation and audit. Pending, rejected and suspended identities must fail admission. The administration UI requires a provisioning provider; `security.identity.submit` and `security.identity.approve` are distinct permissions. See [security capabilities](../../guides/custom-kernel/#optional-identity-capabilities).
+
+## Verify against the actual identity service
+
+| Action | Expected evidence |
+| --- | --- |
+| Valid credential | Stable corporate identity returned; local permissions still applied |
+| Invalid credential | Rejected, no session |
+| Identity service unavailable | Unavailable, no successful fallback identity |
+| Login renamed | Existing instances still refer to the same stable subject |
+| Account disabled remotely | Status revalidation blocks continued access according to session policy |
+| Search requests 10 results | At most 10 authorized candidates returned |
+| Authenticated user without module permission | Workflow action denied |
+| Pending admission | Login/session authorization does not activate the identity |
+
+These are integration checks for your gateway, not claims established by compiling the adapters. Continue with [the second factor](../second-factor/).

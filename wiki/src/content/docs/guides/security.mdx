@@ -5,6 +5,11 @@ sidebar:
   order: 4
 ---
 
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import sample from "../../../../../wiki/examples/OrganizationSecurity/IdentityAdapters.cs?raw";
+
+
 Declare module permissions with `ConfigurePermissions`, then require those local IDs on start/actions/tasks. A module does not hard-code an installation's profile names, LDAP group names or account passwords.
 
 The Kernel supports local authentication and a configured LDAP directory provider. Profiles in the installation map permissions to provider-qualified identities or directory groups. Stable subjects survive display-name changes; use the configured unique directory attribute rather than email as the identity key.
@@ -20,3 +25,9 @@ Configure host/port, transport, base DN, user/group filters and attribute mappin
 Qualification covers OpenLDAP on Linux with LDAPS; it does not establish Active Directory, StartTLS or nested-group support. Directory timeouts and paged search failures must remain visible rather than becoming permissive access.
 
 Verify denied access, deactivated identities, revoked permissions and self-approval in addition to the happy path. See [authorization concepts](../../core-concepts/authorization/).
+
+## Register a corporate authentication adapter
+
+<Code code={excerpt(sample, 'public sealed class OrganizationAuthentication', 'public sealed class OrganizationIdentities')} lang="csharp" title="OrganizationSecurity — primary authentication" />
+
+The injected gateway must implement the real credential check; this adapter does not fabricate identities. The [identity tutorial](../../organization/identity/) provides the complete gateway interface, identity capabilities, registration and acceptance matrix. Use the [second-factor chapter](../../organization/second-factor/) when a second proof is required.

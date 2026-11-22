@@ -7,9 +7,14 @@ on:
       - 'wiki/**'
       - 'README.md'
       - 'samples/LeaveRequest.Module/**'
+      - 'samples/OrganizationWorkflow/**'
+      - 'samples/CustomKernel/**'
+      - 'src/EnterpriseWorkflow.Security.Abstractions/**'
+      - 'src/EnterpriseWorkflow.Hosting/**'
       - 'release/catalog.json'
       - 'global.json'
       - 'scripts/qualify-l9.sh'
+      - 'scripts/qualify-l12.py'
       - 'tests/cli/**'
       - '.github/workflows/documentation.yml'
   pull_request:
@@ -17,9 +22,14 @@ on:
       - 'wiki/**'
       - 'README.md'
       - 'samples/LeaveRequest.Module/**'
+      - 'samples/OrganizationWorkflow/**'
+      - 'samples/CustomKernel/**'
+      - 'src/EnterpriseWorkflow.Security.Abstractions/**'
+      - 'src/EnterpriseWorkflow.Hosting/**'
       - 'release/catalog.json'
       - 'global.json'
       - 'scripts/qualify-l9.sh'
+      - 'scripts/qualify-l12.py'
       - 'tests/cli/**'
       - '.github/workflows/documentation.yml'
   workflow_dispatch:
@@ -85,6 +95,29 @@ jobs:
         with:
           path: wiki/dist
 
+  source-examples:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Compile source-track organization and security examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          for project in \
+            samples/OrganizationWorkflow/Kernel/Example.Workflow.Kernel.csproj \
+            samples/OrganizationWorkflow/Cli/Example.Workflow.Cli.csproj \
+            samples/OrganizationWorkflow/Module/Example.Workflow.Module.csproj \
+            samples/OrganizationWorkflow/PolicyApi/Example.Workflow.PolicyApi.csproj \
+            samples/CustomKernel/CustomKernel.csproj \
+            samples/LeaveRequest.Module/EnterpriseWorkflow.LeaveRequest.Module.csproj \
+            wiki/examples/OrganizationSecurity/OrganizationSecurity.csproj; do
+            dotnet restore "$project" --locked-mode
+            dotnet build "$project" --configuration Release --no-restore
+          done
+
   public-examples:
     runs-on: ubuntu-24.04
     steps:
@@ -106,7 +139,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [pages-configuration, build, public-examples]
+    needs: [pages-configuration, build, source-examples, public-examples]
     runs-on: ubuntu-24.04
     permissions:
       pages: write

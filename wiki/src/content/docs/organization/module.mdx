@@ -1,0 +1,70 @@
+---
+title: "4. Write and exercise the business module"
+description: "Follow state, input, approval and injected business work through one process."
+sidebar:
+  order: 4
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import module from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSampleModule.cs?raw";
+import dev from "../../../../../samples/OrganizationWorkflow/Templates/module/ew.dev.json?raw";
+
+## The process you will execute
+
+![A request is reviewed, declined or approved; approval runs a closing service.](/enterprise-workflow/diagrams/organization-request.svg)
+
+Work in the `Generated` project from chapter 3. The source below comes from its template. The repository’s `Module` project compiles that exact template file rather than maintaining a second copy.
+
+## Register the module’s capabilities
+<Code code={excerpt(module, 'public sealed class ExampleModule', 'public sealed class RequestProcess')} lang="csharp" title="WorkflowSampleModule.cs — module" />
+
+Permission names declared here are module-local: the resolved IDs are `sample.workflow.request`, `sample.workflow.review` and `sample.workflow.read`. The form explicitly selects its completion handler and readable audience.
+
+## Declare state and map submission
+<Code code={excerpt(module, 'public sealed class RequestState')} lang="csharp" title="WorkflowSampleModule.cs — state and initializer" />
+
+`RequestInitializer` copies the submitted reason into typed business state. Matching field names do not perform this mapping automatically. JSON names, validation attributes, comment mapping and the schema version are part of the persisted contract.
+
+## Connect the nodes and actions
+<Code code={excerpt(module, 'public sealed class RequestProcess', 'public sealed class ConfirmHandler')} lang="csharp" title="WorkflowSampleModule.cs — process" />
+
+The reviewer must hold `review` and claim the task. Declining requires a comment and ends with a declined business outcome. Approving runs the closing service before the accepted end node.
+
+## Inject the organization service
+<Code code={excerpt(module, 'public sealed class ConfirmHandler', 'public sealed class RequestState')} lang="csharp" title="WorkflowSampleModule.cs — handlers" />
+
+The constructor receives `IApprovalPolicy` from shared host composition. `ReadState` returns the typed state for this attempt. The handler returns a complete replacement with `NodeStateUpdate.Replace`.
+
+Notice the demonstration’s semantics: a policy result of `false` sets `Closed` to false but still returns service success. If your business rule must refuse completion, model a decision or appropriate failure explicitly; do not assume a false state field changes the graph outcome.
+
+## Run and observe
+
+Keep the policy API from chapter 2 running. In the terminal that holds `EW_ORG_ROOT`:
+
+```sh
+"$EW_ORG_ROOT/tools/few-example" dev "$EW_ORG_ROOT/Generated" --url http://127.0.0.1:5080
+```
+
+Open `http://127.0.0.1:5080/__ew/dev`.
+
+<Steps>
+1. Select Alice and start a request with a reason of at least three characters.
+2. Switch to Bob, open the eligible task and claim it if needed.
+3. Approve. Inspect the completed request and the policy API’s request log.
+4. Start another request and decline it with a comment.
+</Steps>
+
+**Expected:** approval invokes `/policy?reason=...` and produces `closed: true`; decline ends without calling the closing service. Alice and Bob receive different capabilities from this development configuration:
+<Code code={dev} lang="json" title="ew.dev.json" />
+
+## Try the failure paths
+
+- Submit a two-character reason: validation must reject it.
+- Try to review as Alice: her seed grants no review permission.
+- Stop the policy API before approving: the service must not report a fabricated successful HTTP response. Inspect failure/retry diagnostics, restart the API, then observe recovery according to runtime policy.
+- Introduce a C# error in the disposable generated project: the previous valid development generation remains available. Correct the error before packaging.
+
+This HTTP example reads a policy. For remote **writes**, define receiver-side idempotency before using the same approach; a crash after remote success can repeat the call. See [service integration](../../examples/service-integration/).
+
+Stop the development host with Ctrl+C. Continue with [corporate authentication](../identity/) or go directly to [artifact delivery](../delivery/) for the local-account sample.

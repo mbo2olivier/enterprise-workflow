@@ -5,6 +5,11 @@ sidebar:
   order: 3
 ---
 
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import sample from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSampleModule.cs?raw";
+
+
 Every authored process declares a root DTO, an initializer and an explicit schema version. Use `WithState<TState>().InitializedBy<TInitializer>().WithStateSchemaVersion(version)` and keep the returned typed builder.
 
 The initializer maps validated submission values into durable state. There is no automatic field-name mapping from form to state. It must be deterministic for the submitted input and avoid external side effects. Inject `IWorkflowSerializer` to serialize the initial DTO.
@@ -28,3 +33,9 @@ The read returns a detached object. Editing it alone changes nothing. `Replace<T
 `Label` controls display labels; `HiddenField` excludes a field from the detail projection. `VisibleFor` and `VisibleForAll` restrict projections by declared module permissions. Newly declared fields are visible to authorized instance readers by default. Review this before publishing sensitive fields.
 
 Form audiences, DTO visibility and media policies are independent. See [forms](../../guides/forms/) and [media](../../guides/media/).
+
+## Follow input into persisted state
+
+<Code code={excerpt(sample, 'public sealed class RequestState')} lang="csharp" title="Organization template — state and initializer" />
+
+Try a reason shorter than three characters, then a valid reason. The rejected input must not create valid business state. [Run the full module exercise](../../organization/module/) to see how the form, initializer and service connect.

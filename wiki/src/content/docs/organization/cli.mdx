@@ -1,0 +1,69 @@
+---
+title: "3. Build the CLI and project templates"
+description: "Create an organization tool that generates modules with the right SDK and services."
+sidebar:
+  order: 3
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import cli from "../../../../../samples/OrganizationWorkflow/Cli/Program.cs?raw";
+import project from "../../../../../samples/OrganizationWorkflow/Cli/Example.Workflow.Cli.csproj?raw";
+import template from "../../../../../samples/OrganizationWorkflow/Templates/module/.template.config/template.json?raw";
+import moduleProject from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSample.csproj?raw";
+
+## Create the organization tool
+<Code code={cli} lang="csharp" title="Cli/Program.cs" />
+
+The tool name is `few-example`. Standard commands remain available. `distribution` is an additional compiled command; it prints the platform release. `ConfigureDevelopmentServices` supplies the same HTTP implementation used in the kernel.
+
+The project must be packable as a .NET tool:
+<Code code={project} lang="xml" title="Cli/Example.Workflow.Cli.csproj" />
+
+Keep `IsPackable` as well as `PackAsTool`. The Web SDK and web asset property are part of this development-host tool, not an accidental console-project setting.
+
+## Define what the tool generates
+
+The template metadata selects a stable short name and replaces the module ID:
+<Code code={template} lang="json" title="Templates/module/.template.config/template.json" />
+
+The generated module references the organization SDK at an exact version:
+<Code code={moduleProject} lang="xml" title="Templates/module/WorkflowSample.csproj" />
+
+Do not reference the kernel executable from the generated module. The SDK brings its shared contracts and module base class. Keep its package version aligned with the templates registered by the CLI.
+
+## Install and generate from local packages
+
+The repository supplies a local-feed helper so this tutorial does not depend on an unpublished package. It builds the framework and example platform, installs the tool into the disposable workspace, and keeps its NuGet cache separate.
+
+```sh
+export EW_ORG_ROOT="$(mktemp -d -t ew-org.XXXXXX)"
+export EW_ORG_ROOT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$EW_ORG_ROOT")"
+python3 scripts/qualify-l12.py packages "$EW_ORG_ROOT"
+python3 scripts/qualify-l12.py generate "$EW_ORG_ROOT"
+"$EW_ORG_ROOT/tools/few-example" distribution
+```
+
+**Expected:** the last command prints `Example.Workflow 1.0.0-rc.1`. `Generated/` contains a module derived from `ExampleWorkflowModule`, an exact SDK package reference and `ew.dev.json`. Keep `EW_ORG_ROOT` in this terminal for the next chapters. On Windows the installed tool has an `.exe` suffix.
+
+The `generate` helper deliberately checks that generation fails before setup, then runs setup and new. When using your own published tool, the developer sequence is:
+
+```sh
+few-example setup
+few-example new few-example-module -n MyWorkflow
+```
+
+Run this manual sequence in a **separate empty directory**, not over the helper’s `Generated` project. Template setup is explicit; `new` does not silently install missing templates.
+
+## What changes for your organization
+
+Replace the command name, package IDs, template identity/short name and SDK reference together. Publish your SDK, contracts and templates to your private feed, and use ordinary NuGet credential mechanisms. Never embed feed passwords in generated projects.
+
+| Failure | Recovery |
+| --- | --- |
+| Missing template | Run the tool’s `setup` command in the intended environment |
+| Local package hash mismatch | Use the helper’s isolated NuGet configuration; do not delete the lockfile to bypass it |
+| Tool still behaves like an old build | Repack and reinstall the tool; rebuilding source does not replace an installed tool |
+| CLI has services but kernel does not | Use the shared `Hosting` composition in both entry points |
+
+Continue with [the business module](../module/).

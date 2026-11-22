@@ -13,6 +13,7 @@ This documentation targets **1.0.0-rc.1**, the first public release candidate. O
 
 | You want to… | Start here |
 | --- | --- |
+| Build your organization’s kernel, CLI and SDK | [Build an organization platform](organization/) |
 | Build a business module with a ready-made UI | [Run your first workflow](getting-started/first-workflow/) |
 | Host the engine inside your own application | [Use embedded hosting](getting-started/embedded/) |
 | Deploy the modular host | [Install the Kernel](operations/install/) |
@@ -26,6 +27,6 @@ A typical process moves from a submission to a human task, through a decision or
 
 ## Read in order, or solve a specific problem
 
-**Getting Started** gets you to a working application. **Basics** covers daily development. **Core Concepts** explains the execution model. **Guides** solves individual implementation problems. **Tutorials & Examples** follows complete cases. **Deployment & Operations** covers installation and maintenance. **Advanced Topics** explains compatibility and recovery. **Reference** lists commands and contracts.
+**Getting Started** gets you to a working application. **Basics** covers daily development. **Core Concepts** explains the execution model. **Guides** solves individual implementation problems. **Tutorials & Examples** follows complete cases. **Build an Organization Platform** is a source-based, code-first tutorial for custom kernels, developer tools, identity providers and second factors. **Deployment & Operations** covers installation and maintenance. **Advanced Topics** explains compatibility and recovery. **Reference** lists commands and contracts.
 
 The delivered graph model is sequential with exclusive decisions; loops, parallel branches and a visual Studio are outside this release. Read [compatibility and limits](reference/compatibility/) before choosing a deployment target. The project uses [Apache-2.0](https://github.com/mbo2olivier/enterprise-workflow/blob/main/LICENSE); third-party dependencies retain their own terms.

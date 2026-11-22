@@ -5,6 +5,11 @@ sidebar:
   order: 3
 ---
 
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import sample from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSampleModule.cs?raw";
+
+
 Start from the generated module. Authoring has four connected parts:
 
 1. Declare the business state DTO, its JSON names and validation attributes.
@@ -19,3 +24,9 @@ Keep the typed builder returned by `WithState<T>()` when configuring typed expre
 Run `ew validate .` after changing the declaration and `ew inspect .` to review its resolved structure. Missing handler bindings, unknown permissions, incompatible declarations and invalid contracts must be corrected before packaging.
 
 Continue with [typed state](../../core-concepts/state/) and [handlers](../../guides/handlers/). For a complete declaration with multiple actors, follow [LeaveRequest](../../examples/leave-request/).
+
+## See the complete process declaration
+
+<Code code={excerpt(sample, 'public sealed class RequestProcess', 'public sealed class ConfirmHandler')} lang="csharp" title="Organization template — RequestProcess" />
+
+This source-track example has an input form, eligible reviewer, required decline comment, injected closing service and two outcomes. The [organization module chapter](../../organization/module/) supplies its state, initializer, handlers and executable exercise.

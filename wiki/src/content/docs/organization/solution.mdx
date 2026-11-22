@@ -1,0 +1,72 @@
+---
+title: "1. Structure the solution and contracts"
+description: "Separate framework, organization platform and business modules."
+sidebar:
+  order: 1
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import contract from "../../../../../samples/OrganizationWorkflow/Contracts/IApprovalPolicy.cs?raw";
+import sdk from "../../../../../samples/OrganizationWorkflow/Sdk/ExampleWorkflowModule.cs?raw";
+import hosting from "../../../../../samples/OrganizationWorkflow/Hosting/ExampleWorkflowServices.cs?raw";
+import project from "../../../../../samples/OrganizationWorkflow/Hosting/Example.Workflow.Hosting.csproj?raw";
+
+## Goal and prerequisites
+
+Use .NET SDK `10.0.401` (see `global.json`), Python 3, Git and a disposable local workspace. Run the source commands in this tutorial from the repository root, unless a step says otherwise. Shell examples use macOS/Linux or Git Bash.
+
+```sh
+git clone https://github.com/mbo2olivier/enterprise-workflow.git
+cd enterprise-workflow
+dotnet --version
+dotnet restore EnterpriseWorkflow.slnx --locked-mode
+dotnet build samples/OrganizationWorkflow/Kernel/Example.Workflow.Kernel.csproj -c Release --no-restore
+dotnet build samples/OrganizationWorkflow/Cli/Example.Workflow.Cli.csproj -c Release --no-restore
+dotnet build samples/OrganizationWorkflow/Module/Example.Workflow.Module.csproj -c Release --no-restore
+```
+
+**Expected:** each build exits with code 0. A package-feed or SDK error must be resolved before moving on. These source projects use `ProjectReference`; do not substitute an older public package with the same version number.
+
+## Create these project boundaries
+
+```text
+samples/OrganizationWorkflow/
+├── Contracts/       IApprovalPolicy: shared business contract
+├── Sdk/             ExampleWorkflowModule: runtime compatibility
+├── Hosting/         shared service registrations and HTTP implementation
+├── Kernel/          deployed executable and brand resources
+├── Cli/             developer executable, few-example
+├── Templates/       packaged module skeleton, config and localization
+├── Module/          compiles the exact template source
+├── PolicyApi/       local external-service demonstration
+└── distribution.json
+```
+
+In your own repository, add `Security/` for the providers in chapters 5–6 and `Tests/` for their gateway contract tests. Keep business modules in separate projects or repositories as your teams grow. Do not put corporate authentication implementations in every module.
+
+## Write the contract
+
+The module needs a business capability, not a reference to the HTTP client or the kernel executable.
+<Code code={contract} lang="csharp" title="Contracts/IApprovalPolicy.cs" />
+
+`Contracts` has no framework dependency in this example. The module and host share this assembly so the injected interface has the same CLR identity across the module loading boundary.
+
+## Declare the organization runtime
+<Code code={sdk} lang="csharp" title="Sdk/ExampleWorkflowModule.cs" />
+
+A module derives from this base class. The requirement is for the **complete platform**, not a list of individual services. This range accepts the declared prerelease and compatible versions below 2.0.0; advertise only versions you actually test.
+
+The host must declare the matching runtime and register the contract assembly:
+<Code code={excerpt(hosting, '    public static void ConfigureModules', '\n}\n')} lang="csharp" title="Hosting/ExampleWorkflowServices.cs" />
+
+`RequireRuntimeDeclaration` rejects modules that do not declare a runtime. `SharedAssemblies` keeps `IApprovalPolicy` shared instead of loading a private incompatible copy.
+
+## Reference projects during platform development
+<Code code={project} lang="xml" title="Hosting/Example.Workflow.Hosting.csproj" />
+
+When you publish your platform, business modules use your versioned SDK package instead of repository-relative paths. The template’s exact package reference is covered in [chapter 3](../cli/).
+
+**Check your understanding:** `Contracts` defines the capability, `Hosting` supplies it, `Sdk` states compatibility, and `Module` consumes it. Changing an HTTP URL should not require changing the business contract.
+
+Continue with [the kernel and shared services](../kernel/).

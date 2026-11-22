@@ -1,0 +1,67 @@
+---
+title: "2. Compose the kernel and shared services"
+description: "Build the host, inject an HTTP policy service and set the organization brand."
+sidebar:
+  order: 2
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import services from "../../../../../samples/OrganizationWorkflow/Hosting/ExampleWorkflowServices.cs?raw";
+import kernel from "../../../../../samples/OrganizationWorkflow/Kernel/Program.cs?raw";
+import api from "../../../../../samples/OrganizationWorkflow/PolicyApi/Program.cs?raw";
+
+## Create the shared service composition
+
+Put services used by both the custom CLI development host and deployed kernel in `Hosting`. This prevents a module from working locally with a dependency missing in deployment.
+<Code code={services} lang="csharp" title="Hosting/ExampleWorkflowServices.cs" />
+
+The typed HTTP client implements `IApprovalPolicy`; its base URL comes from `Example:PolicyUrl`. The fallback is only the local demonstration endpoint. Set an explicit organization URL and timeouts for your real service.
+
+## Compose the executable
+<Code code={kernel} lang="csharp" title="Kernel/Program.cs" />
+
+Read this entry point in four parts:
+
+1. `CreateKernelBuilder` loads configuration beside the executable and preserves explicit `migrate`/`bootstrap` commands. It does not treat those words as generic configuration arguments.
+2. `ConfigureModules` applies the runtime identity and shared contracts from chapter 1.
+3. `ConfigureBranding` sets the name and resources. Only the time zone is editable through administration here; locked fields are enforced by the server.
+4. Shared services are registered before `BuildAsync`, then the application maps the workflow endpoints and runs.
+
+The referenced `/example-logo.svg` and `/example-brand.css` are files under `Kernel/wwwroot`. Copy or replace those resources when creating your own brand.
+
+## Run the demonstration dependency
+
+In one terminal:
+
+```sh
+dotnet run --project samples/OrganizationWorkflow/PolicyApi -c Release -- --urls http://127.0.0.1:5099
+```
+
+In another:
+
+```sh
+curl --fail 'http://127.0.0.1:5099/policy?reason=Equipment'
+```
+
+**Expected:** HTTP success with JSON `true`. The API source is deliberately small:
+<Code code={api} lang="csharp" title="PolicyApi/Program.cs" />
+
+It demonstrates actual network integration. It is not a business authorization policy for a bank.
+
+## Publish the kernel
+
+```sh
+dotnet publish samples/OrganizationWorkflow/Kernel/Example.Workflow.Kernel.csproj -c Release -o /tmp/example-workflow-kernel
+```
+
+**Expected:** `Example.Workflow.Kernel.dll`, dependencies and web assets in the output. Use a fresh output directory. [Chapter 8](../delivery/) configures its database, artifact paths and bootstrap before the first run.
+
+| Symptom | Check |
+| --- | --- |
+| Handler cannot resolve `IApprovalPolicy` | Shared service registration and the shared contract assembly |
+| HTTP connection refused | API process and `Example:PolicyUrl` |
+| Locked branding setting cannot be saved | `EditableFields`; this is deliberate server policy |
+| Database validation fails on a new installation | Explicit migration step before normal startup |
+
+Continue with [the CLI and templates](../cli/).

@@ -1,29 +1,31 @@
 ---
-title: "Custom CLI distributions (L12)"
-description: "Compiled CLI extensions, shared development services and instance branding."
+title: "Custom CLI distributions"
+description: "Build an organization CLI, shared services, templates and a branded kernel."
 ---
 
-This page describes the source implementation undergoing L12 qualification. It does not imply a new public NuGet release. The existing published examples remain pinned to their documented package versions.
+A distribution gives your organization a coherent kernel, developer tool, SDK, shared contracts and project templates. Use the repository-source track for the APIs shown here; publishing a new NuGet release is a separate operation.
 
-Reference `EnterpriseWorkflow.Cli.Core` from your .NET tool entry project:
+## Follow the complete tutorial
 
-```csharp
-using EnterpriseWorkflow.Cli;
-var builder = EnterpriseWorkflowCli.CreateBuilder(args)
-    .UseCommandName("few")
-    .ConfigureModules(OrganizationServices.ConfigureModules)
-    .ConfigureDevelopmentServices((context, services) =>
-        services.AddOrganizationServices(context.Configuration))
-    .AddTemplates("Organization.Workflow.Templates", "2.3.0", "few-module");
-return await builder.Build().RunAsync();
-```
+Start with [Build your organization’s workflow platform](../../organization/). The tutorial includes project trees, source-derived code panels, shell commands, expected results and failure exercises.
 
-Standard commands are included. `AddCommand` supports compiled commands and subcommands with declared options; `ReplaceCommand` is explicit. Internal development commands and authentication services remain reserved. Development continues to use test identities from `ew.dev.json`.
+| Task | Chapter |
+| --- | --- |
+| Separate contracts, SDK, hosting and modules | [Solution](../../organization/solution/) |
+| Share services between CLI and kernel | [Kernel](../../organization/kernel/) |
+| Name your CLI and distribute templates | [CLI](../../organization/cli/) |
+| Write and exercise the business workflow | [Module](../../organization/module/) |
+| Connect authentication and identities | [Identities](../../organization/identity/) |
+| Add second authentication | [Second factor](../../organization/second-factor/) |
+| Find the remaining extension points | [Extension catalog](../../organization/extensions/) |
+| Install the same artifact in your kernel | [Delivery](../../organization/delivery/) |
 
-The host registers its shared contract assemblies and its complete runtime identity/version. A module declares one `WorkflowRuntimeRequirement`, such as `Organization.Workflow` and `[2.3.0,3.0.0)`. Compatibility uses NuGet version ranges, without per-service declarations. Module authors own testing for their advertised range. Historical artifacts remain readable unless the host requires a declaration.
+## Composition rules
 
-Run `few setup` explicitly before `few new few-module`. Template versions are fixed by the distribution; project generation does not install missing templates automatically. Feed credentials use normal NuGet mechanisms.
+Standard CLI commands are included. `AddCommand` supports compiled commands and subcommands with declared options; `ReplaceCommand` is explicit. Internal development commands and authentication services remain reserved. Development continues to use test identities from `ew.dev.json`.
 
-Use the hosting builder’s `ConfigureBranding` to set instance defaults, logo, favicon, stylesheet and palette. Custom hosts lock administrative fields by default; `EditableFields` grants explicit permissions. Persisted values cannot override locked fields, and server writes enforce the same policy. The standard Kernel explicitly preserves its historical editable settings.
+The host registers shared contract assemblies and its complete runtime identity/version. Modules declare one runtime requirement using NuGet version ranges. Test the supported range; do not infer compatibility from matching service names.
 
-The repository’s `samples/OrganizationWorkflow` demonstrates contracts, SDK, HTTP services, CLI, templates, Kernel and an external demo API. The step-by-step qualification is maintained in `docs/validation/l12-recette-porteur.md` in the source repository.
+Run your tool’s `setup` explicitly before `new`. Keep the template’s SDK version fixed and aligned with your distribution. Configure feed credentials through ordinary NuGet mechanisms.
+
+Use `ConfigureBranding` for name, resources and palette. Custom hosts lock administrative fields by default; `EditableFields` explicitly permits selected fields. Server writes enforce that policy.

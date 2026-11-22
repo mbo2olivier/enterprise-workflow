@@ -1,0 +1,85 @@
+---
+title: "7. Extend presentation, storage and runtime behavior"
+description: "Find the right composition point and verify the behavior you replace."
+sidebar:
+  order: 7
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import leave from "../../../../../samples/LeaveRequest.Module/LeaveRequestModule.cs?raw";
+
+## Choose the boundary before writing an extension
+
+Use a module handler for domain work, the shared organization host for infrastructure, and a public adapter contract when replacing infrastructure behavior. A signature match alone does not establish equivalent durability or authorization.
+
+| Extension | Where you write it | Registration / next example | Verify |
+| --- | --- | --- | --- |
+| Service, decision, human input | Business module | Module builder and process graph; [chapter 4](../module/) | State, transitions, cancellation |
+| Module-local dependency | Business module | `ConfigureServices(IServiceCollection)` | Resolved in each execution scope |
+| Shared business service | Organization Hosting | Shared registration in CLI and kernel; [chapter 2](../kernel/) | Same contract resolves in both hosts |
+| Authentication and identities | Organization Security | Compiled provider registration; [chapter 5](../identity/) | Rejection, outage, status and local permissions |
+| Admission and maker/checker | Organization Security + durable store | `IIdentityAdmissionProvider`, `IIdentityProvisioningProvider` | Atomic approval, distinct actors, revision and audit |
+| Second factor | Organization Security + challenge service | `AddSecondFactorHandler<T>`; [chapter 6](../second-factor/) | Expiry, binding, bounded attempts and single consumption |
+| Brand and installation presentation | Kernel | `ConfigureBranding`, `ConfigurePresentation` | Resources load; locked fields rejected by server |
+| Forms and informative components | Business module | Form builder, `WithComponent<T>` | Submitted values, authorized projection and validation |
+| Human assignment | Business module | Initiator, eligible pool or previous-task selector | Candidate eligibility rechecked on the server |
+| Business text | Business module | Embedded catalogs and `WorkflowTexts` | French/English fallback and historical artifact isolation |
+| Binary media | Host adapter + module policy | `IWorkflowMediaStorageProvider`, scanner/inspector contracts | Private storage, quarantine, visibility and commit fencing |
+| Database | Organization host | `UseDatabase(WorkflowDatabaseRuntime)` or built-in SQLite/Oracle settings | Migrations, atomic commits, leases and revisions |
+| External effects | Organization host | `UseExternalEffectTransport<T>` | Retries, deduplication, permanent failure and notification preservation |
+| Runtime options and handlers | Organization host | `ConfigureRuntime`, `ConfigureHandlers` | Valid bindings and attempt budgets |
+| State evolution | Versioned module and migration registration | `IWorkflowStateMigrator`; [versioning](../../advanced-topics/versioning/) | Exact source/target, validation and restored-data test |
+| CLI and scaffolding | Organization tool | `AddCommand`, explicit `ReplaceCommand`, `AddTemplates` | Help, exit codes, fixed SDK and template versions |
+| Custom application endpoints | Organization kernel | `host.WebApplication.MapGet(...)` | Explicit access policy for sensitive routes |
+
+## Add a dependency owned only by one module
+
+Inside your module class, with `using Microsoft.Extensions.DependencyInjection`:
+
+```csharp
+public override void ConfigureServices(IServiceCollection services)
+{
+    services.AddScoped<IMyBusinessService, MyBusinessService>();
+}
+```
+
+Supply both types in that module. For an organization-wide contract, use the shared-assembly and host registration pattern from chapter 2 instead. Keep request-scoped dependencies out of singleton providers.
+
+## Compose forms, media and informative UI
+
+This excerpt from the **source** LeaveRequest sample shows several extension points together. It may differ from the separately pinned public LeaveRequest example.
+<Code code={excerpt(leave, '    protected override void Configure', 'public sealed class LeaveRequestProcess')} lang="csharp" title="LeaveRequestModule.cs — form composition" />
+
+Copy the form pattern into your module, then supply its own completion handler, state initializer, policies and component. A file field references a declared media policy; it does not independently authorize attachment access. `WithComponent` adds an informative view while retaining framework submission controls.
+
+**Try it:** add an optional text field, map it in the initializer, and verify it after submission. Then restrict its audience and inspect as another actor. Hiding an input does not automatically restrict a copied state property or an attached file.
+
+For assignment, the source LeaveRequest process connects a selector to a target task:
+<Code code={excerpt(leave, '        flow.Input("draft"', '        flow.Approval("validation-rh"')} lang="csharp" title="LeaveRequestModule.cs — selected manager" />
+
+Verify both a permitted manager and a candidate whose permission was revoked after selection. Continue with [forms](../../guides/forms/), [media](../../guides/media/) and [localization](../../guides/localization/) for their full contracts.
+
+## Configure the built-in database explicitly
+
+For a development SQLite installation, use a dedicated path and normal startup validation:
+
+```json
+{
+  "Database": { "Provider": "Sqlite", "MigrationMode": "Validate" },
+  "ConnectionStrings": {
+    "EnterpriseWorkflow": "Data Source=/srv/example-workflow/data/workflow.db"
+  },
+  "Media": { "Root": "/srv/example-workflow/media" }
+}
+```
+
+Create writable directories and run migration explicitly before startup. `UseDatabase` accepts a `WorkflowDatabaseRuntime` composed of workflow/maintenance stores, a relational security store factory and migration delegates. It is not a generic switch that makes any storage provider correct. Follow [adapter contracts](../../advanced-topics/adapters/) before replacing persistence.
+
+## Preserve notifications when replacing effects
+
+`UseExternalEffectTransport<T>` replaces the complete effect transport, including the default notification dispatch. Compose notification delivery explicitly if you replace it. A development SMTP example and an observable retry exercise are in [notifications](../../guides/notifications/).
+
+For remote writes, the receiver must deduplicate by a stable operation key; engine fencing does not turn an HTTP call and a local commit into one transaction. See [service integration](../../examples/service-integration/).
+
+Continue with [packaging and deployment](../delivery/).

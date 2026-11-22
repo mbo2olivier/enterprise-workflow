@@ -1,0 +1,116 @@
+---
+title: "8. Package, deploy and verify the platform"
+description: "Run the same immutable business artifact in the organization kernel."
+sidebar:
+  order: 8
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import distribution from "../../../../../samples/OrganizationWorkflow/distribution.json?raw";
+
+## Package the module you already exercised
+
+Use the same physical `EW_ORG_ROOT` workspace from chapter 3. Stop the development host first.
+
+```sh
+python3 scripts/qualify-l12.py artifact "$EW_ORG_ROOT"
+```
+
+The helper performs these standard organization CLI operations:
+
+```sh
+"$EW_ORG_ROOT/tools/few-example" validate "$EW_ORG_ROOT/Generated" --configuration Release
+"$EW_ORG_ROOT/tools/few-example" inspect "$EW_ORG_ROOT/Generated" --configuration Release --format json
+"$EW_ORG_ROOT/tools/few-example" pack "$EW_ORG_ROOT/Generated" --configuration Release --output "$EW_ORG_ROOT/artifacts"
+```
+
+**Expected:** validation, inspection, packaging and verification succeed. `artifact-path.txt` identifies the exact artifact directory. Its manifest declares the organization runtime requirement. No `.env`, database or local credential belongs in that artifact.
+
+The helper already executes these operations; the separate commands above explain what it does. Do not overwrite an immutable artifact by rerunning packaging into its existing release directory.
+
+## Publish, configure and migrate the sample kernel
+
+```sh
+python3 scripts/qualify-l12.py kernel "$EW_ORG_ROOT"
+```
+
+This publishes the kernel under the workspace, writes its local `appsettings.json` with the exact artifact path and a disposable SQLite database, then runs `migrate`. Normal startup remains `Validate`.
+
+For your own installation, the equivalent configuration has this shape; replace all example paths with actual absolute paths:
+
+```json
+{
+  "Database": { "Provider": "Sqlite", "MigrationMode": "Validate" },
+  "ConnectionStrings": {
+    "EnterpriseWorkflow": "Data Source=/srv/example-workflow/data/workflow.db"
+  },
+  "Modules": {
+    "Directories": ["/srv/example-workflow/modules/sample.workflow/1.0.0"]
+  },
+  "Example": { "PolicyUrl": "http://127.0.0.1:5099" },
+  "Media": { "Root": "/srv/example-workflow/media" },
+  "Localization": {
+    "DefaultCulture": "fr",
+    "FallbackCulture": "en",
+    "SupportedCultures": ["fr", "en"]
+  }
+}
+```
+
+`Modules:Directories` contains exact artifact directories, not source projects or a guessed release folder. Copy the actual path reported by packaging. Place this file beside the published kernel executable. Use valid paths for your operating system.
+
+## Bootstrap a disposable local administrator
+
+The runnable OrganizationWorkflow kernel uses local authentication. In Bash, read a fresh test password without placing a literal password in this guide:
+
+```sh
+read -r -s -p 'Disposable administrator password: ' EW_ORG_PASSWORD
+printf '\n'
+dotnet "$EW_ORG_ROOT/kernel/Example.Workflow.Kernel.dll" bootstrap tutorial-admin "$EW_ORG_PASSWORD"
+unset EW_ORG_PASSWORD
+```
+
+For Zsh, replace the `read` line with `read -r -s 'EW_ORG_PASSWORD?Disposable administrator password: '`. Use the password policy required by the installation. This bootstrap command receives the password as a process argument; use it only for this controlled local exercise and follow your organization’s provisioning procedure for a real installation.
+
+Restart the policy API from chapter 2 if needed. Then:
+
+```sh
+ASPNETCORE_URLS=http://127.0.0.1:5081 dotnet "$EW_ORG_ROOT/kernel/Example.Workflow.Kernel.dll"
+```
+
+## Verify from the browser
+
+<Steps>
+1. Open `http://127.0.0.1:5081/login`. Verify the Example Workflow name, logo, favicon and stylesheet.
+2. Sign in with the disposable administrator. Create or select local business test identities and configure profiles for `sample.workflow.request`, `sample.workflow.review` and `sample.workflow.read`.
+3. Submit and review a request with those actors. Confirm the call to the same policy API and the completed state, using the packaged module without recompiling it.
+4. In settings, change the time zone and reload. The name, logo and accent remain locked by the kernel’s branding policy.
+5. Verify a denied action with an actor lacking the corresponding business permission. Administrator access does not implicitly grant the module’s business permissions.
+</Steps>
+
+The JSON development identities Alice/Bob are not production accounts. To exercise the corporate providers from chapters 5–6, create your organization kernel with those registrations and real gateways, then repeat their acceptance matrices separately.
+
+## Publish your organization’s distribution
+
+The sample pins its component versions here:
+<Code code={distribution} lang="json" title="distribution.json" />
+
+In your own release, publish contracts, SDK, shared hosting, CLI and templates to your private NuGet feed; deliver the kernel through your deployment channel. `distribution.json` is a release inventory, not itself a publishing mechanism. Update package versions, template registration, generated SDK references and runtime compatibility together. The tutorial’s local helper does not publish packages.
+
+Retain artifacts referenced by active instances. A new module release must not overwrite an old one; test state migrations against a disposable restored dataset. Include media and database state in backup procedures.
+
+## Completion checklist
+
+| Check | Evidence to retain |
+| --- | --- |
+| CLI installation and templates | Tool release, successful setup and generated project build |
+| Business execution | Request/approval/decline results and actual policy call |
+| Artifact integrity | Successful verify and exact artifact path |
+| Compatibility | Matching declared runtime; incompatible runtimes rejected |
+| Custom kernel | Same artifact executes without module recompilation |
+| Branding | Resources load; locked settings cannot be overridden |
+| Corporate identity, if enabled | Gateway integration checks from chapter 5 |
+| Second factor, if enabled | Expiry, replay, cross-attempt and concurrent-consumption checks from chapter 6 |
+
+Stop the hosts before removing the disposable workspace. You now have the project boundaries and verification path to reproduce the platform in an organization-owned repository. Use the [extension catalog](../extensions/) when adding the next capability.

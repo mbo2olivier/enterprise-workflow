@@ -14,3 +14,7 @@ If you have completed the first tutorial, you have deployed an SDK-built module 
 - Review [Kernel installation](../../operations/install/) when preparing another environment or a managed deployment.
 
 A successful development run does not define your production topology. Choose the database, identity provider, private media storage and operational backup procedure for your installation. The [compatibility matrix](../../reference/compatibility/) describes the boundaries of the release.
+
+## Build an organization platform
+
+To create your organization’s own kernel, CLI, SDK, templates and shared services, follow [the organization platform tutorial](../../organization/). It also covers compiled identity and second-factor adapters, with explicit integration checks. This is the repository-source track, separate from the published-package quick start.

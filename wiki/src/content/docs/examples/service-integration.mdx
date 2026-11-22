@@ -5,6 +5,13 @@ sidebar:
   order: 3
 ---
 
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import contract from "../../../../../samples/OrganizationWorkflow/Contracts/IApprovalPolicy.cs?raw";
+import services from "../../../../../samples/OrganizationWorkflow/Hosting/ExampleWorkflowServices.cs?raw";
+import sample from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSampleModule.cs?raw";
+
+
 Use the generated module's closing service as the integration point. It already implements `IServiceNodeHandler` and participates in durable execution. Replace its trivial business operation with your installation's service dependency, registered through `ConfigureServices`.
 
 ## Define the receiving contract first
@@ -23,3 +30,13 @@ If the operation is modeled as an external effect, implement the `IExternalEffec
 - A cancelled or obsolete attempt must not commit a stale state update.
 
 Your service integration is ready only when the receiver's idempotency behavior is observed. Engine fencing alone cannot deduplicate the remote service. See [recovery and concurrency](../../advanced-topics/recovery/).
+
+## Trace a real read-only HTTP integration
+
+<Code code={contract} lang="csharp" title="Contracts/IApprovalPolicy.cs" />
+
+<Code code={services} lang="csharp" title="Hosting/ExampleWorkflowServices.cs" />
+
+<Code code={excerpt(sample, 'public sealed class CloseHandler', 'public sealed class RequestState')} lang="csharp" title="Module — CloseHandler" />
+
+These are source-track examples. Start the [policy API](../../organization/kernel/#run-the-demonstration-dependency), then [approve a request](../../organization/module/#run-and-observe): inspect the HTTP call and resulting state. This example reads policy; it does not establish idempotency for a remote write.

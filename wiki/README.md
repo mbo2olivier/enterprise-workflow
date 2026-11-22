@@ -48,3 +48,20 @@ search and assets at that URL.
 The root `docs/` directory is retained for maintainer/coding-agent specifications,
 ADRs, plans and evidence. The website build does not import it. Build output is
 only `wiki/dist/`; never upload the repository root as a Pages artifact.
+
+## Source-based organization tutorial
+
+`src/content/docs/organization/` follows `samples/OrganizationWorkflow`. MDX
+imports source files using Vite's `?raw`; excerpts use checked markers from
+`src/utils/source.ts`. Missing files or markers fail the site build. Keep the
+source checkout track distinct from the pinned published LeaveRequest example.
+
+`examples/OrganizationSecurity` is a compilable adapter library with explicit
+organization gateway interfaces, not a runnable identity/OTP server. Build it
+and the source sample projects when changing these examples. The documentation
+workflow performs these builds in addition to the existing public-package checks.
+
+Use the organization chapter pattern for new practical pages: goal, prerequisites,
+file path and code, run command, expected behavior, failure checks, next step.
+Use source imports for existing compilable examples; label illustrative fragments
+and organization-specific implementation boundaries explicitly.

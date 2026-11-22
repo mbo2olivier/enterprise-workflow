@@ -1,0 +1,97 @@
+---
+title: "6. Add a second authentication factor"
+description: "Connect a durable challenge service and verify failure, expiry and replay paths."
+sidebar:
+  order: 6
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import adapter from "../../../../../wiki/examples/OrganizationSecurity/SecondFactorAdapter.cs?raw";
+import contract from "../../../../../src/EnterpriseWorkflow.Security.Abstractions/SecondFactorContracts.cs?raw";
+
+## Understand the sequence
+
+```text
+Primary credential verified
+        │
+        ▼
+BeginAsync(identity, attempt) ───► challenge + expiry
+        │
+        ▼
+Pending login cookie (not a session)
+        │
+        ▼
+VerifyAsync(identity, attempt, challenge, proof)
+        │
+        ├── Rejected / Expired / Unavailable ──► no full session
+        ├── Pending ──────────────────────────► wait / poll
+        └── Succeeded, consumed once ─────────► full session
+```
+
+The host creates the attempt ID. The challenge handler never receives the primary password. The generic `/second-factor` page supports code entry or manual confirmation/polling.
+
+## Implement and register the adapter
+<Code code={adapter} lang="csharp" title="Security/SecondFactorAdapter.cs" />
+
+Supply `IOrganizationSecondFactorGateway` using your real challenge service and durable/shared storage. The adapter forwards context without inventing an OTP or accepting a fixed code. Register it through the composition in [chapter 5](../identity/).
+
+The complete framework contract is:
+<Code code={contract} lang="csharp" title="EnterpriseWorkflow.Security.Abstractions/SecondFactorContracts.cs" />
+
+## Define the challenge service behavior
+
+A useful organization-owned challenge record contains a challenge ID, provider/subject, attempt ID, expiration, attempt counter and consumed/cancelled state. Do not store or log plaintext proofs. Choose your storage and mechanism to match the real provider.
+
+| Gateway operation | Required behavior |
+| --- | --- |
+| Begin | Bind identity and attempt; issue a challenge expiring within ten minutes |
+| Verify | Check the full binding, expiry and attempt bound before accepting a proof |
+| Successful verify | Atomically mark consumed; concurrent requests cannot both succeed |
+| Pending confirmation | Return `Pending` without issuing a full session |
+| Cancel | Invalidate the challenge so later verification cannot succeed |
+| Service failure | Report unavailable; never manufacture success |
+
+A check followed by a separate update is insufficient for consumption across replicas. Use the challenge service’s atomic operation or an equivalent transactional/conditional write. The adapter alone supplies none of these storage guarantees.
+
+## Enable it in the custom kernel
+
+Merge into kernel configuration:
+
+```json
+{
+  "Security": {
+    "SecondFactor": { "Enabled": true }
+  }
+}
+```
+
+The default is false. Enabling the setting without a compiled handler fails startup. Registration belongs in the custom kernel, not in JSON and not in the `ew dev` identity seed.
+
+For replicated hosts, persist and share ASP.NET Core Data Protection keys through your organization’s protected storage. All replicas must reach the same challenge state. Existing simple sessions require reconnection when second authentication is enabled.
+
+## Try the existing unavailable demonstration
+
+For a disposable local setup, the existing `CustomKernel` sample intentionally reports unavailable:
+
+```sh
+dotnet run --project samples/CustomKernel -- --Database:MigrationMode=Apply --Security:SecondFactor:Enabled=true
+```
+
+Use a dedicated development database/media configuration and an initialized test account. `Apply` is an explicit schema operation for that disposable setup; keep normal deployments on `Validate`. The [custom kernel sample README](https://github.com/mbo2olivier/enterprise-workflow/blob/main/samples/CustomKernel/README.md) describes its boundary. This sample is useful for observing the unavailable path; it cannot demonstrate a successful OTP login.
+
+## Acceptance checks for your real gateway
+
+| Scenario | Expected |
+| --- | --- |
+| Valid primary credential + valid proof | Full session issued after proof succeeds |
+| Valid primary credential only | Pending state cannot access authenticated endpoints |
+| Wrong proof | Rejected; bounded attempts enforced |
+| Expired challenge | No session |
+| Proof reused | No second success |
+| Same proof verified simultaneously on two replicas | At most one succeeds |
+| Correct proof with another identity or attempt | Rejected |
+| Challenge cancelled | Later proof rejected |
+| Challenge service down | Unavailable, no bypass |
+
+Run these checks against the actual organization gateway before enabling it for users. Continue with [other extension points](../extensions/).

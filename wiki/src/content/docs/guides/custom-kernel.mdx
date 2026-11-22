@@ -3,7 +3,12 @@ title: Custom kernels and optional security capabilities
 description: Compose an Enterprise Workflow host with compiled organization-specific services.
 ---
 
-L11 introduces the `EnterpriseWorkflow.Hosting` SDK. The APIs below are under local qualification and are not included in the previously published `1.0.0-rc.1` packages. Build the repository to try them.
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import sample from "../../../../../samples/OrganizationWorkflow/Kernel/Program.cs?raw";
+
+
+The `EnterpriseWorkflow.Hosting` SDK composes custom hosts. The examples below follow the repository source; do not assume these additions are in the previously published `1.0.0-rc.1` packages. Build the repository to try them. For a complete project-by-project walkthrough, follow [the organization platform tutorial](../../organization/).
 
 ```csharp
 using EnterpriseWorkflow.Hosting;
@@ -51,3 +56,9 @@ The generic `/second-factor` page accepts a code or a manual confirmation/poll. 
 The browser receives an encrypted pending cookie that is never accepted as a session. A full session is issued only after success. Existing simple sessions require reconnection when second authentication is activated. Persist and share Data Protection keys for replicated hosts using standard ASP.NET Core services. Custom non-web login surfaces must enforce the same proof sequence before asserting second-factor verification to the session manager.
 
 `ew dev` supports neither corporate providers nor second authentication. It continues using only identities in `ew.dev.json`.
+
+## Start from an executable source example
+
+<Code code={sample} lang="csharp" title="samples/OrganizationWorkflow/Kernel/Program.cs" />
+
+This entry point compiles with the organization sample. Follow [kernel composition](../../organization/kernel/) for its shared services, then [delivery](../../organization/delivery/) for database configuration, migration, bootstrap and first login.

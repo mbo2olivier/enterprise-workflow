@@ -20,6 +20,7 @@ export default defineConfig({
       { label: 'Core Concepts', items: [{ autogenerate: { directory: 'core-concepts' } }] },
       { label: 'Guides', items: [{ autogenerate: { directory: 'guides' } }], collapsed: true },
       { label: 'Tutorials & Examples', items: [{ autogenerate: { directory: 'examples' } }] },
+      { label: 'Build an Organization Platform', items: [{ autogenerate: { directory: 'organization' } }] },
       { label: 'Deployment & Operations', items: [{ autogenerate: { directory: 'operations' } }], collapsed: true },
       { label: 'Advanced Topics', items: [{ autogenerate: { directory: 'advanced-topics' } }], collapsed: true },
       { label: 'Reference', items: [{ autogenerate: { directory: 'reference' } }], collapsed: true },

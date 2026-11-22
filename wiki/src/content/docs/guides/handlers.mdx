@@ -5,6 +5,11 @@ sidebar:
   order: 1
 ---
 
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import sample from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSampleModule.cs?raw";
+
+
 Start from the generated module. Register each handler with the module builder, for example `.AddService<CloseHandler>("close")`, and use `.Service<CloseHandler>("close")` in the process graph. The module resolves the stable reference associated with that type.
 
 A service handler implements `IServiceNodeHandler`. The generated `CloseHandler` reads the full typed state, marks it closed and returns a replacement. To inject your own business dependency, override the module's service configuration:
@@ -23,3 +28,11 @@ Use `context.ReadState<T>()` for detached state. An input-task handler can addit
 Honor the cancellation token and configure network timeouts below the attempt budget. External calls need an idempotency contract because a process crash can happen after remote success and before the local engine commit. Use the [service integration tutorial](../../examples/service-integration/) when adding remote operations.
 
 Initializers and state validators are not the place for external business side effects. They map or validate data deterministically before a durable commit.
+
+## Connect registration to the implementation
+
+<Code code={excerpt(sample, 'public sealed class ExampleModule', 'public sealed class RequestProcess')} lang="csharp" title="Organization template — handler registration" />
+
+<Code code={excerpt(sample, 'public sealed class CloseHandler', 'public sealed class RequestState')} lang="csharp" title="Organization template — CloseHandler" />
+
+The handler is bound in the module; its organization dependency is registered in the host. Follow [shared service composition](../../organization/kernel/) and [the module exercise](../../organization/module/) to verify both sides.

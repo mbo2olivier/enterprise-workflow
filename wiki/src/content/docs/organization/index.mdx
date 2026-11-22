@@ -1,0 +1,43 @@
+---
+title: "Build your organization’s workflow platform"
+description: "Create a custom kernel, CLI, SDK and modules with verifiable source examples."
+sidebar:
+  order: 0
+---
+
+import { Code, Steps, Aside } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+
+
+Build a reusable platform for your organization: its own executable kernel, developer CLI, shared service contracts, module SDK and project templates. Then connect corporate identities and a second factor through compiled extensions.
+
+<Aside type="note" title="Version and execution track">
+This tutorial uses the repository source and locally built packages. The source distribution uses version `1.0.0-rc.1`; this does not imply that all additions are available in previously published packages. Build the local distribution as shown in chapter 3. The published-package [first workflow](../getting-started/first-workflow/) remains a separate track.
+</Aside>
+
+## What you will build
+
+![The CLI and kernel share organization services and contracts; modules depend on the organization SDK.](/enterprise-workflow/diagrams/organization-platform.svg)
+
+The fictional `Example.Workflow` platform has no bank dependency or secret. Its request process lets Alice submit a reason, Bob approve or decline, and a service call an HTTP policy API. The same packaged module can run in development and in the custom kernel.
+
+| Chapter | You write or configure | Checkpoint |
+| --- | --- | --- |
+| [1. Solution and contracts](solution/) | Project boundaries, shared contracts and runtime requirement | Source projects compile |
+| [2. Kernel and shared services](kernel/) | Host composition, HTTP integration and branding | Kernel publishes; API returns a result |
+| [3. CLI and templates](cli/) | Tool entry point, template and generated project | Your CLI creates a compilable module |
+| [4. Business module](module/) | State, form, approval, permissions and handler | Alice and Bob complete a request |
+| [5. Authentication and identities](identity/) | Corporate gateway and provider adapters | Known, rejected and unavailable identities are distinguished |
+| [6. Second factor](second-factor/) | Challenge gateway and compiled handler | Replay, expiry and unavailable paths are explicit |
+| [7. Other extension points](extensions/) | Presentation, storage, notifications and evolution | Each customization has an integration location |
+| [8. Package, deploy and verify](delivery/) | Artifacts, kernel configuration and acceptance checks | The same artifact runs in your kernel |
+
+## How to use the examples
+
+Each source panel names its file. Panels are imported from source during the site build; missing files or excerpt markers fail the documentation build. Get the complete [organization sample sources](https://github.com/mbo2olivier/enterprise-workflow/tree/main/samples/OrganizationWorkflow) and the [security adapter library](https://github.com/mbo2olivier/enterprise-workflow/tree/main/wiki/examples/OrganizationSecurity). Their paths in the checkout are `samples/OrganizationWorkflow` and `wiki/examples/OrganizationSecurity`.
+
+Chapters 1–4 and 8 use the existing executable sample. Chapters 5–6 provide compilable adapters and define the gateway your organization must implement against its identity and challenge services. They do not claim to provide a bank integration or a production OTP server.
+
+For a bank, replace `Example` with your organization’s namespace and feed, then supply its identity, challenge and business-service gateways. Keep infrastructure credentials in host configuration; module developers consume contracts and the organization SDK.
+
+Start with [the solution and contracts](solution/).

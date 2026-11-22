@@ -3,7 +3,7 @@ title: Localization
 description: Installation languages, local user preferences and immutable business text catalogs.
 ---
 
-These L11 APIs are under local qualification; they are not in the previously published release.
+These APIs follow the repository source; they are not assumed to be included in the previously published release. The [organization tutorial](../../organization/extensions/) shows how localization fits into a custom platform.
 
 ```json
 {

@@ -5,6 +5,11 @@ sidebar:
   order: 3
 ---
 
+import { Code } from "@astrojs/starlight/components";
+import { excerpt } from "../../../utils/source";
+import sample from "../../../../../samples/OrganizationWorkflow/Templates/module/WorkflowSampleModule.cs?raw";
+
+
 Declare fields with the module's form builder. For example, the template uses `.Text("reason", "Motif").Required().Length(3, 200)`. LeaveRequest adds dates, choices, long text and a file field.
 
 A form's completion handler is declared independently of its registration. Register the handler in the module, use `.HandledBy<T>()` on the form/input task and map submitted values explicitly. Form values are not automatically merged into business state or prefilled by matching property names.
@@ -22,3 +27,9 @@ The framework retains generated fields and submission controls. The component is
 For assignment to a later task, declare `.SelectAssigneeFor("validation-manager")` on the requester confirmation action and `.AssignedFromPreviousTask()` on the target. Candidates are searched and validated against the target's eligibility. Test an unauthorized candidate and a permission revoked after selection; browser filtering alone is insufficient.
 
 [LeaveRequest](../../examples/leave-request/) demonstrates the view and the requester-to-manager selector.
+
+## Copy a complete small form registration
+
+<Code code={excerpt(sample, '    protected override void Configure', 'public sealed class RequestProcess')} lang="csharp" title="Organization template — form and handler" />
+
+This source example places a text field, validation and its completion handler together. The [module tutorial](../../organization/module/) includes the explicit submission-to-state initializer and verification steps.
