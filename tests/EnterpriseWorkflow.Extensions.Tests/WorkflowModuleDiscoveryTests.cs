@@ -10,10 +10,10 @@ public sealed class WorkflowModuleDiscoveryTests
     public void ScanIsOrderedStopsAtArtifactsAndIgnoresNonModules()
     {
         using var tree = new Tree();
-        var z = tree.Directory("z/2.0.0"); var a = tree.Directory("a/1.0.0");
+        var z = tree.Directory("z", "2.0.0"); var a = tree.Directory("a", "1.0.0");
         File.WriteAllText(Path.Combine(z, "module.json"), "{}");
         File.WriteAllText(Path.Combine(a, "module.json"), "{}");
-        var nested = tree.Directory("a/1.0.0/dependencies/nested");
+        var nested = tree.Directory("a", "1.0.0", "dependencies", "nested");
         File.WriteAllText(Path.Combine(nested, "module.json"), "invalid nested manifest must not be read");
         tree.Directory("non-module");
         var found = WorkflowModuleDiscovery.FindArtifacts(tree.Root);
@@ -121,7 +121,7 @@ public sealed class WorkflowModuleDiscoveryTests
     {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "ew-discovery-" + Guid.NewGuid().ToString("N"));
         public Tree() => System.IO.Directory.CreateDirectory(Root);
-        public string Directory(string relative) { var path = Path.Combine(Root, relative); System.IO.Directory.CreateDirectory(path); return path; }
+        public string Directory(params string[] segments) { var path = Path.Combine(Root, Path.Combine(segments)); System.IO.Directory.CreateDirectory(path); return path; }
         public void Dispose() => System.IO.Directory.Delete(Root, recursive: true);
     }
 }
