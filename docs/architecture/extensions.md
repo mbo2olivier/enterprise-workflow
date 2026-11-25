@@ -72,3 +72,11 @@ Voir l’[ADR 0024](../adr/0024-sdk-fluent-permissions-affectation.md) pour les 
 ## Distributions L12
 
 `EnterpriseWorkflow.Cli` devient le point d’entrée minimal de `EnterpriseWorkflow.Cli.Core`. Le socle contient commandes et développement ; les CLI organisationnelles construisent la même application publique et leurs enfants relancent leur assembly d’entrée. Les callbacks de composition restent compilés. Les assemblies de contrats partagées sont désignées par l’hôte ; la compatibilité produit porte sur le runtime complet via NuGet.Versioning. La DI ne demande pas de déclaration supplémentaire des services utilisés. Voir [ADR 0030](../adr/0030-distributions-cli-runtime-et-marque.md) et [guide](../l12-cli-sdk.md).
+
+## Évolutions spécifiées L13/L14 et Studio L15
+
+Décision du 24 novembre 2026 ; L13 est implémenté dans les sources, qualification lourde en attente ; L14 reste non implémenté. [L13](../l13-spec.md) découvre les manifestes sous une racine, avant de réutiliser le chargeur existant. `Modules:RootDirectory` configuré prend toute la priorité sur `Modules:Directories`, qui n’est utilisé qu’en l’absence de cette configuration. Une erreur de découverte ne réactive pas la liste. Le scan ne suit pas les liens et n’ajoute pas de chargement à chaud.
+
+Le contrôle décrit plus haut pour L7b reste le comportement actuel et demeure inchangé dans L13. [L14](../l14-spec.md) le remplacera par une séparation entre exigences d’exécution et références historiques : les anciennes définitions ne suffiront plus à imposer le chargement de leurs modules, après préparation d’une lecture historique autonome et autorisée. L14 doit spécifier les migrations et politiques de visibilité sans ancien code avant son implémentation. Voir [ADR 0031](../adr/0031-decouverte-modules-et-retrait-artefacts.md).
+
+Le Studio conserve son périmètre mais passe en L15, après ces deux lots. Les preuves et ADR historiques des lots clos ne sont pas réécrits comme si ces mécanismes existaient déjà.

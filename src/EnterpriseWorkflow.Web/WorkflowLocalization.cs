@@ -5,6 +5,7 @@ using EnterpriseWorkflow.Presentation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -15,6 +16,20 @@ public sealed class WorkflowLocalizationOptions
     public string DefaultCulture { get; set; } = "fr";
     public string FallbackCulture { get; set; } = "en";
     public string[] SupportedCultures { get; set; } = ["en", "fr"];
+    /// <summary>Reads the configured array separately so the binder does not append it to the built-in defaults.</summary>
+    public static WorkflowLocalizationOptions FromConfiguration(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var section = configuration.GetSection("Localization");
+        var options = new WorkflowLocalizationOptions();
+        options.DefaultCulture = section["DefaultCulture"] ?? options.DefaultCulture;
+        options.FallbackCulture = section["FallbackCulture"] ?? options.FallbackCulture;
+        if (section.GetChildren().Any(child => string.Equals(child.Key, nameof(SupportedCultures), StringComparison.OrdinalIgnoreCase)))
+            options.SupportedCultures = section.GetSection(nameof(SupportedCultures)).Get<string[]>() ?? [];
+        options.Validate();
+        return options;
+    }
+
     public void Validate()
     {
         if (SupportedCultures is null || SupportedCultures.Length is 0 or > 32 || SupportedCultures.Distinct(StringComparer.OrdinalIgnoreCase).Count() != SupportedCultures.Length)

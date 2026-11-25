@@ -40,3 +40,13 @@ The [LdapDirectoryOptions contract](https://github.com/mbo2olivier/enterprise-wo
 SMTP options include Host, Port, EnableSsl, UserName, Password, From, BaseUrl, PageSize, TimeoutSeconds and Addresses. See the [SMTP guide](../../guides/notifications/). The Kernel binds only the documented serialization subsection of runtime options; broader worker tuning is performed through a custom composition root.
 
 Migrate and bootstrap before starting a new installation. See [installation](../../operations/install/).
+
+## Module discovery (L13 source implementation)
+
+This addition is implemented in source and awaiting integrated qualification; it does not imply publication in an existing NuGet version. Set `Modules:RootDirectory` (environment: `Modules__RootDirectory`) to discover module manifests recursively at startup. Relative roots use the host content root. An artifact may be the root itself, or live under `module-id/release`.
+
+When the root is configured, `Modules:Directories` is completely ignored, without merging or fallback on errors. Omit the root key to retain explicit loading; empty/null/missing-on-disk configured roots are errors. Keep deployment staging and archives outside the scanned tree. Links/junctions are not followed, and production changes require restart.
+
+`Modules:Discovery` limits default to `MaximumDepth=8`, `MaximumDirectories=10000`, `MaximumCandidates=1024`, `MaximumEntries=100000`. Limit violations fail startup instead of accepting a partial catalog. Corrupted manifests/files and duplicate releases fail; intact artifacts targeting an incompatible complete runtime are excluded with a diagnostic. Multiple eligible releases can coexist.
+
+L13 preserves the existing durable artifact retention checks. Removing historical code while retaining independent historical consultation belongs to L14 and is not implemented by discovery.

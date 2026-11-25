@@ -126,7 +126,7 @@ def main():
         run(['dotnet', 'publish', SAMPLE / 'Kernel/Example.Workflow.Kernel.csproj', '-c', 'Release', '-o', root / 'kernel', '-m:1', '-p:UseSharedCompilation=false'], cwd=REPO)
         settings = {'Database': {'Provider': 'Sqlite', 'MigrationMode': 'Validate'},
                     'ConnectionStrings': {'EnterpriseWorkflow': 'Data Source=' + str(root / 'kernel.db')},
-                    'Modules': {'Directories': [str(artifact)]},
+                    'Modules': {'RootDirectory': str(root / 'artifacts'), 'Directories': [str(root / 'ignored-individual-path')]},
                     'Example': {'PolicyUrl': 'http://127.0.0.1:5099'},
                     'Localization': {'DefaultCulture': 'fr', 'FallbackCulture': 'en', 'SupportedCultures': ['fr', 'en']}}
         (root / 'kernel/appsettings.json').write_text(json.dumps(settings, indent=2))

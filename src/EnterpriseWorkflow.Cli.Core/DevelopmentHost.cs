@@ -26,6 +26,7 @@ internal static class DevelopmentHost
         builder.Configuration.AddInMemoryCollection(configuration.ToHostConfiguration());
         builder.Configuration.AddInMemoryCollection(DevelopmentEnvironment.ReadHostValues().Select(pair =>
             new KeyValuePair<string, string?>(pair.Key.Replace("__", ":", StringComparison.Ordinal), pair.Value)));
+        var localization = WorkflowLocalizationOptions.FromConfiguration(builder.Configuration);
         if (builder.Configuration["Localization:DefaultCulture"] is { } consoleCulture)
             System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo(consoleCulture);
         builder.WebHost.UseUrls(configuration.Server.Url);
@@ -105,9 +106,9 @@ internal static class DevelopmentHost
             services.GetRequiredService<ISecurityProfileStore>(), services.GetRequiredService<ILocalAccountStore>(),
             directories, smtp, new SmtpWorkflowMailSender(smtp), new DevelopmentExternalEffectTransport()) {
                 CulturePreferences = services.GetService<IUserCulturePreferenceStore>(),
-                DefaultCulture = builder.Configuration["Localization:DefaultCulture"] ?? "fr",
-                FallbackCulture = builder.Configuration["Localization:FallbackCulture"] ?? "en",
-                SupportedCultures = (builder.Configuration.GetSection("Localization:SupportedCultures").Get<string[]>() ?? ["en", "fr"]).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                DefaultCulture = localization.DefaultCulture,
+                FallbackCulture = localization.FallbackCulture,
+                SupportedCultures = localization.SupportedCultures.ToHashSet(StringComparer.OrdinalIgnoreCase),
             });
         builder.Services.AddEnterpriseWorkflowRuntime<DevelopmentExternalEffectTransport>(options => { options.NotifyHumanTaskPools = smtp.Enabled; options.Serialization = configuration.Serialization; });
         builder.Services.AddEnterpriseWorkflowPresentation(options =>
@@ -116,7 +117,7 @@ internal static class DevelopmentHost
             if (primaryArtifact is not null) options.StartArtifactSha256 = moduleCatalog.Modules.Single(module => module.RootPath == Path.GetFullPath(primaryArtifact)).ArtifactSha256;
             options.MediaRoot = Path.Combine(stateRoot, "media");
         });
-        builder.Services.AddEnterpriseWorkflowLocalization(builder.Configuration.GetSection("Localization").Get<WorkflowLocalizationOptions>() ?? new());
+        builder.Services.AddEnterpriseWorkflowLocalization(localization);
         builder.Services.AddSingleton(new WorkflowBrandingOptions { EditableFields = WorkflowBrandingFields.All });
         builder.Services.AddEnterpriseWorkflowWeb();
         builder.Services.AddSingleton(new WorkflowDevelopmentEnvironment(string.Join(", ", moduleCatalog.Modules.Select(module =>

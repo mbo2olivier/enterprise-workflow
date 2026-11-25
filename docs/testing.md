@@ -121,3 +121,11 @@ Recette lourde déléguée au porteur le 18 novembre 2026 pour limiter les token
 ## L12 — vérifications ciblées et campagnes déléguées
 
 Les tests légers du builder CLI, des plages runtime, de la marque et des frontières d’architecture sont consignés dans la [preuve L12](evidence/l12.md). La [recette L12](validation/l12-recette-porteur.md) fournit les étapes et le script de qualification lourde ; les phases de packaging, dev, Kernel et navigateur restent à exécuter par le porteur.
+
+## L13 : tests ciblés exécutés / L14 : stratégie planifiée
+
+[L13](l13-spec.md) doit tester la priorité exclusive de la racine sur les chemins individuels, le fallback sans racine, les limites de découverte, les liens et les manifestes/versions incompatibles. L13 seul conserve la rétention actuelle.
+
+[L14](l14-spec.md) doit qualifier les traitements durables encore exécutables même après fermeture des activations, les diagnostics de retrait, la préparation des historiques et leur consultation autorisée sans ancien code sur SQLite/Oracle et navigateur. Les deux lots exigent une recette lourde déléguée au porteur ; aucune campagne n’est lancée pour cette mise à jour documentaire.
+
+L13 est implémenté localement : résultats ciblés dans la [preuve L13](evidence/l13.md), étapes lourdes dans la [recette L13](validation/l13-recette-porteur.md). Aucune qualification navigateur/Oracle/matrice CI n’est inférée des tests locaux.

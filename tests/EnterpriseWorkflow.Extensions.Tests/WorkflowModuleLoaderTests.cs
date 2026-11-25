@@ -188,7 +188,7 @@ public sealed class WorkflowModuleLoaderTests
         }
     }
 
-    private sealed class ModuleArtifacts : IAsyncDisposable
+    internal sealed class ModuleArtifacts : IAsyncDisposable
     {
         private readonly string _root;
 
@@ -199,6 +199,7 @@ public sealed class WorkflowModuleLoaderTests
             VersionB = Path.Combine(root, "approval", "2.0.0");
         }
 
+        public string Root => _root;
         public string VersionA { get; }
         public string VersionB { get; }
 

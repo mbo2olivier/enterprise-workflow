@@ -63,3 +63,9 @@ Les migrations de sécurité ajoutent les préférences de langue et l’assuran
 ## L12 — runtime de distribution
 
 Le module peut annoncer une cible et une plage NuGet/SemVer dans `runtime`. L’hôte compare sa release complète avant activation, sans versions par service. Les anciens manifestes sans ce champ restent acceptés par défaut, avec leurs hashes historiques ; `RequireRuntimeDeclaration` permet un refus explicite. Les nouvelles déclarations participent au hash. Les lecteurs antérieurs stricts peuvent refuser le champ ajouté : les nouveaux artefacts doivent cibler un runtime L12 compatible. Aucune migration de base nouvelle ; la marque est résolue par composition. Le nouveau package `EnterpriseWorkflow.Cli.Core` doit figurer dans la prochaine release sans réutiliser un numéro déjà publié.
+
+## L13 dans les sources ; L14 encore spécifié
+
+L13 conserve la liste historique `Modules:Directories` uniquement comme fallback lorsqu’aucune racine `Modules:RootDirectory` n’est configurée. Avec une racine, la liste est ignorée sans fusion ; les API explicites du loader restent disponibles. Les manifestes et hashes d’artefacts ne sont pas modifiés par la seule découverte.
+
+L14 modifiera la réconciliation et préparera une consultation historique sans ancien code ; les migrations et le rattrapage des bases existantes devront être explicitement définis avant code. L13 n’autorise aucun retrait d’artefact actuellement requis : les garanties de retrait de L14 ne sont pas encore livrées. La qualification lourde de L13 reste en attente du porteur. Références : [L13](l13-spec.md), [L14](l14-spec.md), ADR 0031. Studio passe en L15.

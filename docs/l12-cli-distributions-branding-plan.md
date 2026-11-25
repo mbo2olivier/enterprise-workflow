@@ -1,6 +1,6 @@
 # L12 — SDK de CLI extensible, distributions organisationnelles et identité visuelle
 
-Date : 18 novembre 2026. Statut : orientations approuvées ; préparation L12-0 engagée le 19 novembre 2026 après clôture de L11. Les [arbitrages de mécanismes](l12-arbitrages.md) D12-1 à D12-5 sont décidés par le porteur ; implémentation autorisée et engagée ; voir [spécification](l12-spec.md), [ADR 0030](adr/0030-distributions-cli-runtime-et-marque.md) et [preuve](evidence/l12.md). L12 suit L11 et repousse `ew studio` à L13. La série L10 reste close. Le porteur autorise maintenant les spécifications et l’implémentation ; les décisions sont formalisées avant le code. Les noms d’API et de packages ci-dessous sont indicatifs, aucune capacité future n’est annoncée comme livrée.
+Date : 18 novembre 2026. Statut : orientations approuvées ; préparation L12-0 engagée le 19 novembre 2026 après clôture de L11. Les [arbitrages de mécanismes](l12-arbitrages.md) D12-1 à D12-5 sont décidés par le porteur ; implémentation autorisée et engagée ; voir [spécification](l12-spec.md), [ADR 0030](adr/0030-distributions-cli-runtime-et-marque.md) et [preuve](evidence/l12.md). L12 suit L11 ; le Studio, initialement repoussé à L13, est désormais L15 après ajout de L13/L14 le 24 novembre 2026. La série L10 reste close. Le porteur autorise maintenant les spécifications et l’implémentation ; les décisions sont formalisées avant le code. Les noms d’API et de packages ci-dessous sont indicatifs, aucune capacité future n’est annoncée comme livrée.
 
 ## Objectif et répartition public/privé
 
@@ -17,7 +17,7 @@ Le dépôt organisationnel demeure indépendant et conserve son historique initi
 - `ew dev` et ses variantes organisationnelles gardent exclusivement les identités de développement. Aucun mode d’authentification réelle, maker/checker ou seconde authentification dans la commande dev ; ces mécanismes demeurent dans le Kernel.
 - Templates préconfigurés ; installation orchestrable par la CLI ; nom de commande et feed choisis par l’organisation.
 - Une identité visuelle par installation ; l’hôte définit les paramètres administrables.
-- Nouveau L12 après L11, Studio en L13, sans réouverture des lots clos.
+- Nouveau L12 après L11 ; Studio désormais L15 après insertion de L13/L14, sans réouverture des lots clos.
 
 ## Builder et expérience d’extension
 

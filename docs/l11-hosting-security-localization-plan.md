@@ -1,6 +1,6 @@
 # L11 — hôtes personnalisés, extensions de sécurité et localisation
 
-Date : 18 novembre 2026. Nomenclature décidée par le porteur : ce lot porte le numéro L11, le Studio, initialement repoussé à L12 lors de l’ajout de L11, est désormais prévu en L13 après validation du lot L12 et la série L10 reste close. Statut : **clos le 19 novembre 2026**, sur confirmation par le porteur de la réussite des tests locaux et de la CI. Voir la [spécification](l11-spec.md) et la [preuve](evidence/l11.md). Les orientations produit ci-dessous reprennent les arbitrages de la conversation. Les mécanismes effectivement livrés sont décrits dans la spécification L11 et l’ADR 0029 ; la preuve consigne la confirmation de clôture. Les propositions initiales ci-dessous restent conservées comme historique de planification.
+Date : 18 novembre 2026. Nomenclature décidée par le porteur : ce lot porte le numéro L11, le Studio, initialement repoussé à L12 lors de l’ajout de L11, est désormais prévu en L15 après insertion de L13/L14 (actualisation du 24 novembre 2026) et la série L10 reste close. Statut : **clos le 19 novembre 2026**, sur confirmation par le porteur de la réussite des tests locaux et de la CI. Voir la [spécification](l11-spec.md) et la [preuve](evidence/l11.md). Les orientations produit ci-dessous reprennent les arbitrages de la conversation. Les mécanismes effectivement livrés sont décrits dans la spécification L11 et l’ADR 0029 ; la preuve consigne la confirmation de clôture. Les propositions initiales ci-dessous restent conservées comme historique de planification.
 
 ## Périmètre et limites
 
@@ -119,7 +119,7 @@ Résoudre à l’affichage, jamais pendant la compilation ou le chargement uniqu
 | L11-6 — localisation | Ressources socle, configuration et préférence utilisateur, contrats métier et exemple LeaveRequest bilingue | L11-0 et intégration au builder ; deux langues sur une même instance, replis configurables, formats, validations et notifications |
 | L11-7 — qualification et distribution | Tests appropriés, wiki, templates, exemples, compatibilité et preuves | Sous-lots précédents ; SQLite/Oracle pour toute évolution de persistance, matrice plateforme et navigateur pour les parcours concernés |
 
-Les implémentations réelles du provider et du second facteur bancaires constituent un projet consommateur distinct. Leur validation ne peut pas être revendiquée sur la seule base des doubles du framework. Le lot [L12](l12-cli-distributions-branding-plan.md) réutilise ces fondations pour les CLI et distributions organisationnelles ; il conserve les identités de développement et exclut l’authentification réelle de la commande dev. Le Studio L13 reste distinct et non démarré ; la séquence est L11 → L12 → L13.
+Les implémentations réelles du provider et du second facteur bancaires constituent un projet consommateur distinct. Leur validation ne peut pas être revendiquée sur la seule base des doubles du framework. Le lot [L12](l12-cli-distributions-branding-plan.md) réutilise ces fondations pour les CLI et distributions organisationnelles ; il conserve les identités de développement et exclut l’authentification réelle de la commande dev. Le Studio L15 reste distinct et non démarré ; la séquence est désormais L11 → L12 → L13 (découverte) → L14 (retrait/historique) → L15 (Studio).
 
 ## Documents à mettre à jour ensuite
 

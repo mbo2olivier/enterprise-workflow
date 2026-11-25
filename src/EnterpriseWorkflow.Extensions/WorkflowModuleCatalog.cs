@@ -37,12 +37,46 @@ public sealed class WorkflowModuleCatalog
             .OrderBy(item => item.Manifest.Id.Value, StringComparer.Ordinal)
             .ThenBy(item => item.Manifest.Version, StringComparer.Ordinal)
             .ToArray();
+        return LoadArtifacts(artifacts, options);
+    }
+
+    /// <summary>Discovers and validates all candidates before activating eligible module code.</summary>
+    public static WorkflowModuleCatalog Discover(string rootDirectory,
+        Action<WorkflowModuleLoadOptions>? configure = null,
+        Action<WorkflowModuleDiscoveryOptions>? configureDiscovery = null)
+    {
+        var options = new WorkflowModuleLoadOptions(); configure?.Invoke(options); options.Validate();
+        var discovery = new WorkflowModuleDiscoveryOptions(); configureDiscovery?.Invoke(discovery);
+        var artifacts = WorkflowModuleDiscovery.FindArtifacts(rootDirectory, discovery)
+            .Select(path => WorkflowModuleManifestReader.Read(path, options))
+            .OrderBy(item => item.Manifest.Id.Value, StringComparer.Ordinal)
+            .ThenBy(item => item.Manifest.Version, StringComparer.Ordinal).ToArray();
+        ValidateDuplicates(artifacts);
+        var eligible = new List<ParsedModuleArtifact>();
+        foreach (var artifact in artifacts)
+        {
+            try { WorkflowRuntimeCompatibility.Validate(artifact.Manifest.RuntimeRequirement, options); eligible.Add(artifact); }
+            catch (WorkflowModuleLoadException exception) when (exception.Code == "EW7055_INCOMPATIBLE_RUNTIME")
+            {
+                discovery.ReportDiagnostic?.Invoke(new(exception.Code, artifact.RootPath, exception.Message));
+            }
+        }
+        return LoadArtifacts(eligible.ToArray(), options);
+    }
+
+    private static void ValidateDuplicates(ParsedModuleArtifact[] artifacts)
+    {
         var duplicate = artifacts.GroupBy(item => (item.Manifest.Id.Value, item.Manifest.Version))
             .FirstOrDefault(group => group.Count() > 1);
         if (duplicate is not null)
             throw new WorkflowModuleLoadException("EW7012_DUPLICATE_MODULE_VERSION",
                 $"Module '{duplicate.Key.Value}' version '{duplicate.Key.Version}' is configured more than once.");
 
+    }
+
+    private static WorkflowModuleCatalog LoadArtifacts(ParsedModuleArtifact[] artifacts, WorkflowModuleLoadOptions options)
+    {
+        ValidateDuplicates(artifacts);
         var shared = SharedAssemblies().Concat(options.SharedAssemblies).Distinct().ToArray();
         if (shared.GroupBy(assembly => assembly.GetName().Name, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1))
             throw new WorkflowModuleLoadException("EW7057_SHARED_ASSEMBLY_COLLISION", "The host supplied several shared assemblies with the same simple name.");

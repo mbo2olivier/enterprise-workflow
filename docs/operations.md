@@ -76,3 +76,11 @@ Avant déploiement d’un kernel personnalisé L11, appliquer explicitement les 
 La seconde authentification reste désactivée par défaut. Un hôte peut ne fournir aucun handler ; l’activer sans handler compilé empêche le démarrage. L’activation impose la reconnexion des anciennes sessions simples. Partager/persister les clés Data Protection et le stockage des challenges entre réplicas ; le handler personnalisé doit assurer expiration, nombre d’essais et consommation atomique. Sans capacité de statut distant, les sessions respectent expiration et révocation locales ; une panne d’un statut effectivement enregistré n’est pas ignorée.
 
 Les fichiers `.env` sont réservés à `ew dev`, jamais chargés automatiquement par le kernel de production. La préférence de langue se conserve localement par identité ; la configuration définit les langues disponibles/par défaut/de repli. Les données métier, IDs et timestamps persistés ne sont pas traduits.
+
+## Découverte des modules (L13, sources en qualification)
+
+Configurer `Modules:RootDirectory` ou `Modules__RootDirectory` pour scanner une racine au démarrage. Cette option prime intégralement sur `Modules:Directories`, même si la liste est valide. Une racine invalide bloque le démarrage ; seule l’absence de la clé conserve le fallback explicite. Ne pas définir une chaîne vide comme valeur par défaut de RootDirectory.
+
+Les chemins relatifs de découverte partent du content root de l’hôte (base de l’application pour le Kernel publié). Les limites `Modules:Discovery` bornent le scan ; les liens/jonctions ne sont pas suivis. Déposer les versions immuables sous `module-id/release`, et conserver staging/sauvegardes hors de la racine scannée. Déployer à l’arrêt ou en préparant une racine stable avant redémarrage. Une modification du disque ne recharge pas le catalogue en production.
+
+L13 conserve la rétention des versions requises par les définitions persistées ; ne pas retirer un ancien artefact en supposant L14 déjà livré. [Spécification](l13-spec.md), [diagnostics et qualification](validation/l13-recette-porteur.md).

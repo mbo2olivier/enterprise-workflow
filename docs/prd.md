@@ -145,4 +145,10 @@ Cette entrée décrit le périmètre autorisé, pas une clôture de qualificatio
 
 ## L12 — distributions organisationnelles
 
-Le porteur autorise l’implémentation le 19 novembre 2026 : CLI compilée réutilisable, composition métier commune dev/Kernel, compatibilité SemVer du runtime complet, préparation explicite des templates, ensemble exact de versions et marque verrouillée par défaut dans les hôtes personnalisés. Aucun manifeste de services requis. Les spécifications sont dans [L12](l12-spec.md), décisions dans l’ADR 0030 ; qualification lourde déléguée selon la recette. Studio reste L13.
+Le porteur autorise l’implémentation le 19 novembre 2026 : CLI compilée réutilisable, composition métier commune dev/Kernel, compatibilité SemVer du runtime complet, préparation explicite des templates, ensemble exact de versions et marque verrouillée par défaut dans les hôtes personnalisés. Aucun manifeste de services requis. Les spécifications sont dans [L12](l12-spec.md), décisions dans l’ADR 0030 ; qualification lourde déléguée selon la recette. Studio est désormais planifié en L15 (décision du 24 novembre 2026).
+
+## L13/L14 — découverte et retrait des anciens artefacts
+
+Décision du 24 novembre 2026 : L13 découvre les modules depuis `Modules:RootDirectory` au démarrage. Si la racine est configurée, les chemins individuels de `Modules:Directories` sont ignorés ; sinon le mode historique reste le fallback. Aucun fallback après une erreur de racine. Voir [spécification L13](l13-spec.md).
+
+L14 permet le retrait du chargement des versions anciennes sans purge de l’historique. Les traitements encore exécutables imposent leur artefact exact ; les dossiers clos doivent être consultables en lecture seule avec leurs droits sans l’ancien code, après préparation des données nécessaires. Le statut terminal seul ne suffit pas à autoriser le retrait. Voir [spécification L14](l14-spec.md) et ADR 0031. Les mécanismes de rattrapage et migrations sont à détailler avant code. Studio passe en L15. L13 est implémenté dans les sources, qualification lourde en attente ; L14 reste non implémenté.

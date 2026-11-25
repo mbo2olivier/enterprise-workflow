@@ -52,6 +52,7 @@ public sealed class EnterpriseWorkflowApplicationBuilder
     private readonly List<Action<WorkflowRuntimeOptions>> _runtimeConfiguration = [];
     private readonly List<Action<WorkflowPortalOptions>> _presentationConfiguration = [];
     private readonly List<Action<WorkflowModuleLoadOptions>> _moduleConfiguration = [];
+    private readonly List<Action<WorkflowModuleDiscoveryOptions>> _discoveryConfiguration = [];
     private readonly List<Action<WorkflowHandlerRegistryBuilder>> _handlerConfiguration = [];
     internal EnterpriseWorkflowApplicationBuilder(IHostApplicationBuilder builder) => _builder = builder;
     public ConfigurationManager Configuration => (ConfigurationManager)_builder.Configuration;
@@ -70,6 +71,8 @@ public sealed class EnterpriseWorkflowApplicationBuilder
     { ArgumentNullException.ThrowIfNull(configure); _presentationConfiguration.Add(configure); return this; }
     public EnterpriseWorkflowApplicationBuilder ConfigureModules(Action<WorkflowModuleLoadOptions> configure)
     { ArgumentNullException.ThrowIfNull(configure); _moduleConfiguration.Add(configure); return this; }
+    public EnterpriseWorkflowApplicationBuilder ConfigureDiscovery(Action<WorkflowModuleDiscoveryOptions> configure)
+    { ArgumentNullException.ThrowIfNull(configure); _discoveryConfiguration.Add(configure); return this; }
     public EnterpriseWorkflowApplicationBuilder ConfigureHandlers(Action<WorkflowHandlerRegistryBuilder> configure)
     { ArgumentNullException.ThrowIfNull(configure); _handlerConfiguration.Add(configure); return this; }
     public EnterpriseWorkflowApplicationBuilder UseExternalEffectTransport<T>() where T : class, IExternalEffectTransport
@@ -133,7 +136,7 @@ public sealed class EnterpriseWorkflowApplicationBuilder
         _built = true;
         _branding.Validate();
         Services.AddSingleton(_branding);
-        var localization = Configuration.GetSection("Localization").Get<WorkflowLocalizationOptions>() ?? new();
+        var localization = WorkflowLocalizationOptions.FromConfiguration(Configuration);
         localization.Validate();
         Services.AddSingleton(new WorkflowTextLocalizationOptions { FallbackCulture = localization.FallbackCulture });
         var secondFactor = Configuration.GetSection("Security:SecondFactor").Get<SecondFactorOptions>() ?? new();
@@ -150,8 +153,10 @@ public sealed class EnterpriseWorkflowApplicationBuilder
         var timeProvider = TimeProvider.System;
         var securityStore = database.CreateSecurityStore(timeProvider);
         var localAuthentication = new LocalAuthenticationProvider(securityStore, policy, timeProvider);
-        var moduleDirectories = builder.Configuration.GetSection("Modules:Directories").Get<string[]>() ?? [];
-        var moduleCatalog = WorkflowModuleCatalog.Load(moduleDirectories, options => { foreach (var configure in _moduleConfiguration) configure(options); });
+        var moduleDiagnostics = new List<WorkflowModuleDiscoveryDiagnostic>();
+        var moduleCatalog = WorkflowModuleSource.Load(builder.Configuration, builder.Environment.ContentRootPath,
+            options => { foreach (var configure in _moduleConfiguration) configure(options); },
+            options => { foreach (var configure in _discoveryConfiguration) configure(options); }, moduleDiagnostics.Add);
         await WorkflowModuleKernel.ReconcileAsync(moduleCatalog, database.WorkflowMaintenanceStore);
 
         var configuredDirectories = new Dictionary<string, IIdentityDirectory>(StringComparer.Ordinal);
@@ -218,9 +223,9 @@ public sealed class EnterpriseWorkflowApplicationBuilder
             services.GetRequiredService<ISecurityProfileStore>(), services.GetRequiredService<ILocalAccountStore>(),
             services.GetRequiredService<IReadOnlyDictionary<string, IIdentityDirectory>>(), smtp, new SmtpWorkflowMailSender(smtp), new KernelExternalEffectTransport()) {
                         CulturePreferences = services.GetService<IUserCulturePreferenceStore>(),
-                        DefaultCulture = builder.Configuration["Localization:DefaultCulture"] ?? "fr",
-                        FallbackCulture = builder.Configuration["Localization:FallbackCulture"] ?? "en",
-                        SupportedCultures = (builder.Configuration.GetSection("Localization:SupportedCultures").Get<string[]>() ?? ["en", "fr"]).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                        DefaultCulture = localization.DefaultCulture,
+                        FallbackCulture = localization.FallbackCulture,
+                        SupportedCultures = localization.SupportedCultures.ToHashSet(StringComparer.OrdinalIgnoreCase),
                     });
         builder.Services.AddEnterpriseWorkflowRuntime<KernelExternalEffectTransport>(options => { options.NotifyHumanTaskPools = smtp.Enabled; builder.Configuration.GetSection("Workflow:Serialization").Bind(options.Serialization); foreach (var configure in _runtimeConfiguration) configure(options); });
         builder.Services.AddEnterpriseWorkflowPresentation(options =>
@@ -231,7 +236,7 @@ public sealed class EnterpriseWorkflowApplicationBuilder
         });
         if (_web)
         {
-            builder.Services.AddEnterpriseWorkflowLocalization(builder.Configuration.GetSection("Localization").Get<WorkflowLocalizationOptions>() ?? new());
+            builder.Services.AddEnterpriseWorkflowLocalization(localization);
             builder.Services.AddEnterpriseWorkflowWeb();
         }
 
@@ -241,6 +246,10 @@ public sealed class EnterpriseWorkflowApplicationBuilder
         var host = _builder is WebApplicationBuilder web ? (IHost)web.Build() : ((HostApplicationBuilder)_builder).Build();
         try
         {
+            var moduleLogger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("EnterpriseWorkflow.Modules");
+            foreach (var diagnostic in moduleDiagnostics)
+                if (moduleLogger.IsEnabled(LogLevel.Information))
+                    WorkflowModuleSourceLog.Report(moduleLogger, diagnostic.Code, diagnostic.Message, diagnostic.Path);
             // Resolve capability registries now, without a temporary service provider.
             _ = host.Services.GetRequiredService<IReadOnlyDictionary<string, IIdentityDirectory>>();
             EnsureUnique(host.Services.GetServices<IIdentityStatusProvider>().Select(item => item.ProviderId));

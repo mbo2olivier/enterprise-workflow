@@ -19,3 +19,7 @@ La marque est verrouillée par défaut dans les hôtes personnalisés ; la compo
 ## Conséquences
 
 Le socle CLI emporte les dépendances nécessaires à l’hébergement dev ; aucun projet abstrait vide n’est créé pour simuler un découpage. Les noms et signatures effectifs seront documentés à la livraison. L’auteur assume la qualification de ses plages runtime. Les tests lourds sont fournis au porteur sous forme de recette exécutable, sans les lancer pendant cette implémentation.
+
+## Évolution de plan du 24 novembre 2026
+
+La mention historique du Studio L13 ci-dessus est remplacée dans la feuille de route par L15 : L13 couvre désormais la découverte des modules, L14 le retrait des anciens artefacts et la consultation historique autonome. Voir [ADR 0031](0031-decouverte-modules-et-retrait-artefacts.md). Les décisions de composition L12 restent inchangées.

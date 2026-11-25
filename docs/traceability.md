@@ -19,7 +19,7 @@ Les liens associent besoin, décision, lot et preuve attendue. Sauf mention expl
 | EF-12 CLI/templates et `ew dev` | 0010, 0025 ; [spécification L9](l9-spec.md) | L9 | T14, T16, T12, T18, T20 |
 | EF-13 Versions | 0009, 0022 | L7a/b | T12, T13 |
 | EF-14 Audit/diagnostic | 0008 ; exploitation | L3 à L10 | T06, T10, T13, T21 |
-| EF-15 Studio différé | 0004, 0007 | L13 | T15, T16 |
+| EF-15 Studio différé | 0004, 0007 | L15 | T15, T16 |
 | ENF-01 Plateformes | 0001, 0010 | L1, L10 | T14 |
 | ENF-02 Infrastructure minimale | 0006, 0008 | L4, L7b | T14, T17 |
 | ENF-03 Concurrence | 0008 | L3a/b, L4, L6 | T04–T09, T19 |
@@ -107,3 +107,16 @@ Le [plan L12](l12-cli-distributions-branding-plan.md), approuvé le 18 novembre 
 Statut et limites de qualification : [preuve L11](evidence/l11.md). Le plan et les spécifications ne constituent pas une preuve d’exécution.
 
 L12 : décisions formalisées dans l’[ADR 0030](adr/0030-distributions-cli-runtime-et-marque.md), [spécification](l12-spec.md), [guide SDK CLI](l12-cli-sdk.md), [preuve](evidence/l12.md) et [recette déléguée](validation/l12-recette-porteur.md). La compatibilité vise une plage du runtime complet ; un service absent échoue à sa résolution normale.
+
+## L13 implémenté localement / L14 planifié — décision du 24 novembre 2026
+
+| Besoin | Spécification et décision | Lots / validation attendue |
+| --- | --- | --- |
+| Découverte d’une racine et fallback de la liste historique | [L13](l13-spec.md), ADR 0031 | L13 ; T12/T14/T18 ; priorité sans fusion, scan borné, intégrité et compatibilité |
+| Retrait du code devenu inutile malgré des définitions historiques conservées | [L14](l14-spec.md), ADR 0031 | L14 ; T07/T12/T13 ; traitements exécutables protégés, retrait possible après préparation |
+| Lecture historique autorisée sans ancien module | L14, politiques de visibilité existantes | L14 ; T10/T20/T23 ; restitution générique, médias et champs filtrés, migration des historiques |
+| Studio et export C# | Périmètre antérieur, renumérotation du 24 novembre | L15 ; T15/T16 |
+
+L13 conserve le contrôle de rétention actuel ; seule la livraison de L14 change cette politique. Aucune preuve d’exécution n’est inférée de ces spécifications.
+
+L13 : API Extensions/Hosting, priorité de configuration et découverte sont implémentées. Résultats ciblés et limites dans la [preuve L13](evidence/l13.md) ; campagnes lourdes dans la [recette](validation/l13-recette-porteur.md). L14 reste non démarré.

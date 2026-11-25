@@ -14,3 +14,5 @@ Exemple public, sans dépendance bancaire ni secret. Version de distribution : *
 `distribution.json` fixe la release et les versions de ses composants. Les dépendances sont des ProjectReference pour développer la distribution elle-même ; le module généré utilise un PackageReference exact. Une organisation remplace ces packages par ses packages privés et son feed NuGet, sans fork du framework.
 
 Parcours complet : [recette L12](../../docs/validation/l12-recette-porteur.md). Les phases sont lancées séparément avec `scripts/qualify-l12.py`. Aucun script ne publie de package ou ne qualifie une intégration bancaire réelle.
+
+L13 : le Kernel accepte aussi `Modules:RootDirectory` (prioritaire sur la liste `Modules:Directories`). La phase `kernel` du script L12 utilise désormais cette découverte et un chemin individuel invalide pour vérifier la priorité. La CLI dev et la compatibilité du runtime complet restent inchangées.

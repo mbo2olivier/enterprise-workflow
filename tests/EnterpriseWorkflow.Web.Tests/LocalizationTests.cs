@@ -5,11 +5,39 @@ using EnterpriseWorkflow.Abstractions;
 using EnterpriseWorkflow.Presentation;
 using EnterpriseWorkflow.Sdk;
 using Xunit;
+using Microsoft.Extensions.Configuration;
 
 namespace EnterpriseWorkflow.Web.Tests;
 
 public sealed class LocalizationTests
 {
+    [Fact]
+    public void ConfiguredLanguagesReplaceDefaultsWithoutHidingRealDuplicates()
+    {
+        var configuration = new ConfigurationBuilder().AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(
+            """{"Localization":{"DefaultCulture":"fr","FallbackCulture":"en","SupportedCultures":["fr","en"]}}"""))).Build();
+        var options = WorkflowLocalizationOptions.FromConfiguration(configuration);
+        Assert.Equal(2, options.SupportedCultures.Length);
+        Assert.Equal("fr", options.SupportedCultures[0]);
+        Assert.Equal("en", options.SupportedCultures[1]);
+        configuration["Localization:SupportedCultures:1"] = "FR";
+        Assert.Throws<InvalidOperationException>(() => WorkflowLocalizationOptions.FromConfiguration(configuration));
+    }
+
+    [Fact]
+    public void MissingLanguagesKeepDefaultsButExplicitEmptyArraysAreInvalid()
+    {
+        var defaults = WorkflowLocalizationOptions.FromConfiguration(new ConfigurationBuilder().Build());
+        Assert.Equal(2, defaults.SupportedCultures.Length);
+        Assert.Equal("en", defaults.SupportedCultures[0]);
+        var empty = new ConfigurationBuilder().AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(
+            """{"Localization":{"SupportedCultures":[]}}"""))).Build();
+        Assert.Throws<InvalidOperationException>(() => WorkflowLocalizationOptions.FromConfiguration(empty));
+        var single = new ConfigurationBuilder().AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(
+            """{"Localization":{"DefaultCulture":"fr","FallbackCulture":"fr","SupportedCultures":["fr"]}}"""))).Build();
+        Assert.Equal("fr", Assert.Single(WorkflowLocalizationOptions.FromConfiguration(single).SupportedCultures));
+    }
+
     [Fact]
     public void CatalogsAndFormProjectionsAreIndependentOfCompilationCultureAndKeepValuesStable()
     {

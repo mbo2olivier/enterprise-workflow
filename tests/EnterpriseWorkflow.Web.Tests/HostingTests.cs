@@ -27,6 +27,8 @@ public sealed class HostingTests
         {
             var builder = EnterpriseWorkflowApplication.CreateBuilder([]);
             builder.Configuration["ConnectionStrings:EnterpriseWorkflow"] = $"Data Source={Path.Combine(root, "test.db")};Pooling=False";
+            builder.Configuration["Localization:SupportedCultures:0"] = "fr";
+            builder.Configuration["Localization:SupportedCultures:1"] = "en";
             await builder.MigrateAsync();
             await using var host = await builder.BuildAsync();
             Assert.Null(host.Services.GetService<ISecondFactorHandler>());
